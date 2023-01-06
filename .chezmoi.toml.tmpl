@@ -1,0 +1,17 @@
+encryption = "gpg"
+{{ $email := promptStringOnce . "email" "Email address" }}
+
+[git]
+{{ if (eq .chezmoi.hostname "athena") }}
+    autoCommit = true
+    autoPush = true
+{{ end }}
+
+[data]
+    email = {{ $email | quote }}
+
+[gpg]
+    args = ["--quiet"]
+    recipient = "11ECA922F47F101CFA08046F343FFDD24D4FD4A9"
+    symetric = true
+

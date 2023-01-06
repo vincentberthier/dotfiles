@@ -1,0 +1,4 @@
+xhost +
+
+source ~/.profile
+

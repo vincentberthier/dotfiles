@@ -1,0 +1,118 @@
+alias zsh-update-plugins="find "$ZDOTDIR/plugins" -type d -exec test -e '{}/.git' ';' -print0 | xargs -I {} -0 git -C {} pull -q"
+alias nvimrc='nvim ~/.config/nvim'
+
+# Don’t use vim but nvim
+alias vi="nvim"
+alias vim="nvim"
+alias svi="sudo vi"
+
+# Colorize grep output (good for log files)
+alias grep='grep --color=auto'
+alias egrep='egrep --color=auto'
+alias fgrep='fgrep --color=auto'
+
+# Colorisze ls
+alias ls='ls --color=auto'
+
+# confirm before overwriting something
+alias cp="cp -i"
+alias mv='mv -i'
+alias ln='ln -i'
+alias rm='rm -I --preserve-root'
+
+# Don’t mess with /
+alias chown='chown --preserve-root'
+alias chmod='chmod --preserve-root'
+alias chgrp='chgrp --preserve-root'
+
+# easier to read disk
+alias df='df -h'     # human-readable sizes
+alias free='free -m' # show sizes in MB
+
+# For when keys break
+alias archlinx-fix-keys="sudo pacman-key --init && sudo pacman-key --populate archlinux && sudo pacman-key --refresh-keys"
+
+# Generic useful aliases
+alias mkdir='mkdir -pv'
+alias ll='ls -l'
+alias la='ls -a'
+alias l.='ls -d .*' # show only hidden files
+alias lt='ls --human-readable --size -1 -S --classify' # sort by size
+alias le='ls -t -1'
+alias rms='shred -uz' # Shred (remove + overwrite) files
+alias diff='colordiff'
+alias ping='ping -c 5'
+alias compdb='b -vn clean update |& compiledb'
+alias ssh='/usr/bin/ssh-ident -X'
+alias yay='paru'
+alias pacman='paru'
+alias maj='paru -Syu --noconfirm && paru -Sc --noconfirm'
+alias sudo='sudo -i'
+alias wget='wget -c' # Resurme wget by default
+alias df='df -H'
+alias du='du -ch'
+alias top='htop'
+alias cpv='rsync -ah --info=progress2'  # copy with a progress bar
+alias mkcd='fn() { mkdir -pv "$1"; cd "$1" }; fn '
+alias untar='tar -zxvf'
+alias c='clear'
+alias gdb='gdb --ex run --args'
+
+# Improve cd
+alias cd='z'
+alias cd..='z ..'
+alias ..='z ../'
+alias ...='z ../../..'
+alias ....='z ../../../..'
+
+# Cassandra
+alias cassandra_start='sudo systemctl start cassandra'
+alias cassandra_status='sudo systemctl status cassandra'
+alias cassandra_stop='sudo systemctl stop cassandra'
+
+# Change terminal language
+alias set_en='export LC_ALL=en_GB.UTF-8'
+alias set_fr='export LC_ALL=fr_FR.UTF-8'
+
+# Reboot / halt / poweroff
+alias reboot='sudo /sbin/reboot'
+alias poweroff='sudo /sbin/poweroff'
+alias halt='sudo /sbin/halt'
+alias shutdown='sudo /sbin/shutdown'
+
+## pass options to free ##
+alias meminfo='free -m -l -t'
+
+## get top process eating memory
+alias psmem='ps auxf | sort -nr -k 4'
+alias psmem10='ps auxf | sort -nr -k 4 | head -10'
+
+## get top process eating cpu ##
+alias pscpu='ps auxf | sort -nr -k 3'
+alias pscpu10='ps auxf | sort -nr -k 3 | head -10'
+
+## Get server cpu info ##
+alias cpuinfo='lscpu'
+
+## older system use /proc/cpuinfo ##
+##alias cpuinfo='less /proc/cpuinfo' ##
+## get GPU ram on desktop / laptop##
+alias gpumeminfo='grep -i --color memory /var/log/Xorg.0.log'
+
+# Git
+alias gac='git add . && git commit -a -m '
+
+# Chezmoi
+alias cme='chezmoi edit'
+alias cmu='chezmoi update'
+alias cmd='chezmoi diff'
+alias cma='chezmoi apply'
+alias cmA='chezmoi add'
+
+# CNES Cluster’s modules
+{{ if (eq .chezmoi.hostname "visu01") }}
+module() {  eval $($LMOD_CMD bash "$@") && eval $(${LMOD_SETTARG_CMD:-:} -s sh) }
+{{ else if (eq .chezmoi.hostname "athena") }}
+alias snx_start='sudo modprobe tun && sudo snx'
+{{ end }}
+

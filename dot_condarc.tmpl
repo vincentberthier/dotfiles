@@ -1,0 +1,11 @@
+channels:
+  - conda-forge
+  - defaults
+channel_priority: flexible
+
+{{ if eq .chezmoi.hostname "px-1005" }}
+envs_dirs:
+  - /homelocal/vberthier/.conda/envs
+pkgs_dirs:
+  - /homelocal/vberthier/.conda/pkgs
+{{ end }}

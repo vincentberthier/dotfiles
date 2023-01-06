@@ -1,0 +1,62 @@
+Host *
+	ForwardAgent yes
+
+Host cls
+	Hostname desktop.px.cls.fr
+	IdentityFile ~/.ssh/cls
+	User vberthier
+	ForwardX11Trusted=yes
+
+Host alten
+	Hostname px-2131.px.cls.fr
+	IdentityFile ~/.ssh/cls
+	User vberthier
+	ForwardX11Trusted=yes
+	ProxyJump cls
+
+Host pdap
+	Hostname jasondev-02.cls.fr
+	User devuser3
+	Compression=yes
+	ForwardX11Trusted=yes
+	ProxyJump cls
+
+Host pdap-test
+	Hostname s6-valpgfs02.cls.fr
+	User=arnaud.jouzeau
+	Compression=yes
+	ForwardX11Trusted=yes
+	ProxyJump cls
+
+Host login-cnes
+	Hostname 10.120.43.160
+	IdentityFile ~/.ssh/cls
+	User berthiv
+	Compression=yes
+	ForwardX11Trusted=yes
+	ProxyJump cls
+
+Host cnes-geco
+	Hostname visu06
+	IdentityFile ~/.ssh/cls
+	User berthiv
+	Compression=yes
+	ForwardX11Trusted=yes
+	ProxyJump login-cnes
+
+Host cnes-bang
+	Hostname visu05
+	IdentityFile ~/.ssh/cls
+	User berthiv
+	Compression=yes
+	ForwardX11Trusted=yes
+	ProxyJump login-cnes
+
+Host cnes
+	Hostname visu01
+	IdentityFile ~/.ssh/cls
+	User berthiv
+	Compression=yes
+	ForwardX11Trusted=yes
+	ProxyJump login-cnes
+
