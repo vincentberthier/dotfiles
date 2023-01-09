@@ -88,6 +88,14 @@ return require('packer').startup(function(use)
         }
     }
 
+    -- Visualize lsp progress
+    use({
+        "j-hui/fidget.nvim",
+        config = function()
+            require("figdet").setup()
+        end
+    })
+
     -- Adds extra functionality over rust analyzer
     use("simrat39/rust-tools.nvim")
 
