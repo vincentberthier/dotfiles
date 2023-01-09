@@ -184,7 +184,6 @@ local function on_attach(client, bufnr)
     vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
     vim.keymap.set("i", "<C-h>", vim.lsp.buf.signature_help, opts)
     vim.keymap.set("n", "<leader>lf", vim.lsp.buf.format, opts)
-
 end
 
 lsp.on_attach(on_attach)
@@ -195,3 +194,21 @@ vim.diagnostic.config({
     virtual_text = true,
 })
 
+local status, rust = pcall(require, "rust-tools")
+if not status then
+    vim.notify("Could not load Rust tools in LSP")
+    return
+end
+
+rust.setup({
+    server = {
+        on_attach = function(client, bufnr)
+            local opts = { buffer = bufnr, remap = false }
+            on_attach(client, bufnr)
+            -- Rust hover actions
+            vim.keymap.set("n", "<C-space>", rust.hover_actions.hover_actions, opts)
+            -- Rust code actions
+            vim.keymap.set("n", "<leader>a", rust.code_action_group.code_action_group, opts)
+        end,
+    },
+})
