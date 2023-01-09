@@ -213,5 +213,4 @@ rust.setup({
     },
 })
 
-lsp.rust_analyzer.setup{}
 
