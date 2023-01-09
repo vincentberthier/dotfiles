@@ -35,7 +35,6 @@ local options = {
 	cursorline = true, -- highlight the current line
 	signcolumn = 'yes', -- always display the sign column
 	cmdheight = 2, -- bottom command line height
-	completeopt = { "menuone", "noselect" }, -- mostly just for cmp (???)
 	pumheight = 10, -- pop-up menu height
 	showmode = false, -- do not show current mode
 	showtabline = 2, -- always show tabs
@@ -53,6 +52,10 @@ local options = {
 
 	-- Show column 100
 	colorcolumn = "100", -- colour that column
+
+    -- Completion
+    completeopt = {"menuone", "noselect", "noinsert"},
+    shortmess = vim.opt.shortmess + { c = true },
 }
 
 for k, v in pairs(options) do
