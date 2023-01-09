@@ -87,6 +87,10 @@ return require('packer').startup(function(use)
             { 'rafamadriz/friendly-snippets' }, -- snippets library
         }
     }
+
+    -- Adds extra functionality over rust analyzer
+    use("simrat39/rust-tools.nvim")
+
     use "windwp/nvim-autopairs" -- Autopairs closes brackets
     use "numToStr/Comment.nvim" -- Easily comment stuff
     use "JoosepAlviste/nvim-ts-context-commentstring" -- set comments by file type

@@ -1,6 +1,11 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
+-- menuone: popup even when there's only one match
+-- noinsert: Do not insert text until a selection is made
+-- noselect: Do not auto-select, nvim-cmp plugin will handle this for us.
+vim.o.completeopt = "menuone,noinsert,noselect"
+
 local lsp = require("lsp-zero")
 
 lsp.preset("recommended")
@@ -66,8 +71,8 @@ local kind_icons = {
 }
 
 local check_backspace = function()
-  local col = vim.fn.col "." - 1
-  return col == 0 or vim.fn.getline("."):sub(col, col):match "%s"
+    local col = vim.fn.col "." - 1
+    return col == 0 or vim.fn.getline("."):sub(col, col):match "%s"
 end
 
 local cmp_select = { behavior = cmp.SelectBehavior.Select }
@@ -81,32 +86,32 @@ local cmp_mappings = lsp.defaults.cmp_mappings({
         c = cmp.mapping.close(),
     },
     ["<Tab>"] = cmp.mapping(function(fallback)
-      if cmp.visible() then
-        cmp.select_next_item()
-      elseif luasnip.expandable() then
-        luasnip.expand()
-      elseif luasnip.expand_or_jumpable() then
-        luasnip.expand_or_jump()
-      elseif check_backspace() then
-        fallback()
-      else
-        fallback()
-      end
+        if cmp.visible() then
+            cmp.select_next_item()
+        elseif luasnip.expandable() then
+            luasnip.expand()
+        elseif luasnip.expand_or_jumpable() then
+            luasnip.expand_or_jump()
+        elseif check_backspace() then
+            fallback()
+        else
+            fallback()
+        end
     end, {
-      "i",
-      "s",
+        "i",
+        "s",
     }),
     ["<S-Tab>"] = cmp.mapping(function(fallback)
-      if cmp.visible() then
-        cmp.select_prev_item()
-      elseif luasnip.jumpable(-1) then
-        luasnip.jump(-1)
-      else
-        fallback()
-      end
+        if cmp.visible() then
+            cmp.select_prev_item()
+        elseif luasnip.jumpable(-1) then
+            luasnip.jump(-1)
+        else
+            fallback()
+        end
     end, {
-      "i",
-      "s",
+        "i",
+        "s",
     }),
 })
 
@@ -157,7 +162,7 @@ lsp.set_preferences({
     }
 })
 
-lsp.on_attach(function(client, bufnr)
+local function on_attach(client, bufnr)
     local opts = { buffer = bufnr, remap = false }
 
     if client.name == "eslint" then
@@ -180,7 +185,9 @@ lsp.on_attach(function(client, bufnr)
     vim.keymap.set("i", "<C-h>", vim.lsp.buf.signature_help, opts)
     vim.keymap.set("n", "<leader>lf", vim.lsp.buf.format, opts)
 
-end)
+end
+
+lsp.on_attach(on_attach)
 
 lsp.setup()
 
@@ -188,29 +195,39 @@ vim.diagnostic.config({
     virtual_text = true,
 })
 
-local status, conf = pcall(require, "lspconfig")
+local status, rust = pcall(require, "rust-tools")
 if not status then
-    vim.notify("Could not load lspconfig in LSP")
+    vim.notify("Could not load rust-tools in LSP")
     return
 end
-conf.rust_analyzer.setup({
-settings = {
-        ["rust-analyzer"] = {
-            imports = {
-                granularity = {
-                    group = "module"
-                },
-                prefix = "self",
-            },
-            cargo = {
-                buildScripts = {
-                    enable = true,
-                },
-            },
-            procMacro = {
-                enable = true
-            },
-        }
-    }
-})
+rust.setup({
+    tools = {
+        runnables = {
+            use_telescope = true,
+        },
+        inlay_hints = {
+            auto = true,
+            show_parameter_hints = false,
+            parameter_hints_prefix = "",
+            other_hints_prefix = "",
+        },
+    },
 
+    -- all the opts to send to nvim-lspconfig
+    -- these override the defaults set by rust-tools.nvim
+    -- see https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#rust_analyzer
+    server = {
+        -- on_attach is a callback called when the language server attachs to the buffer
+        on_attach = on_attach,
+        settings = {
+            -- to enable rust-analyzer settings visit:
+            -- https://github.com/rust-analyzer/rust-analyzer/blob/master/docs/user/generated_config.adoc
+            ["rust-analyzer"] = {
+                -- enable clippy on save
+                checkOnSave = {
+                    command = "clippy",
+                },
+            },
+        },
+    },
+})
