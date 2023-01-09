@@ -212,3 +212,6 @@ rust.setup({
         end,
     },
 })
+
+lsp.rust_analyzer.setup{}
+
