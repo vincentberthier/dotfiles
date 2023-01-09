@@ -133,11 +133,11 @@ lsp.setup_nvim_cmp({
             vim_item.kind = string.format("%s %s", kind_icons[vim_item.kind], vim_item.kind)
             vim_item.menu = ({
 
-                luasnip = "[Snippet]",
-                buffer = "[Buffer]",
-                path = "[Path]",
-                nvim_lsp = "[LSP]",
-                nvim_lua = "[Nvim]",
+                luasnip = "⋗",
+                buffer = "Ω",
+                path = "🖫",
+                nvim_lsp = "λ",
+                nvim_lua = "識",
             })[entry.source.name]
             return vim_item
         end,
