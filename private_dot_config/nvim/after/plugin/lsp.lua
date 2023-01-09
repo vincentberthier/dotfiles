@@ -187,3 +187,30 @@ lsp.setup()
 vim.diagnostic.config({
     virtual_text = true,
 })
+
+local status, conf = pcall(require, "lspconfig")
+if not status then
+    vim.notify("Could not load lspconfig in LSP")
+    return
+end
+conf.rust_analyzer.setup({
+settings = {
+        ["rust-analyzer"] = {
+            imports = {
+                granularity = {
+                    group = "module"
+                },
+                prefix = "self",
+            },
+            cargo = {
+                buildScripts = {
+                    enable = true,
+                },
+            },
+            procMacro = {
+                enable = true
+            },
+        }
+    }
+})
+
