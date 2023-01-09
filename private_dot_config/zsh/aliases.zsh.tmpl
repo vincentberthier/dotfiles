@@ -11,6 +11,13 @@ alias grep='grep --color=auto'
 alias egrep='egrep --color=auto'
 alias fgrep='fgrep --color=auto'
 
+# Find
+alias find='fn() { find "$@" -print 2> /dev/null }; fn '
+
+ff() {
+  find $1 -name "*.$2" -exec grep --color="auto" -Hn $3 {} \;
+}
+
 # Colorisze ls
 alias ls='ls --color=auto'
 
