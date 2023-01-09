@@ -109,6 +109,9 @@ return require('packer').startup(function(use)
     use "akinsho/toggleterm.nvim" -- open terminal
     -- use "ahmedkhalf/project.nvim" -- project management (doesn’t work / bad hardcoded maps)
 
+    -- Debugging
+    use 'puremourning/vimspector'
+
     -- automically set up configuration after cloning packer.nvim
     -- Needs to be at the very end
     if PACKER_BOOSTRAP then
