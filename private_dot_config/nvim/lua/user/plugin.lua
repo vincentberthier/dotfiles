@@ -92,7 +92,7 @@ return require('packer').startup(function(use)
     use({
         "j-hui/fidget.nvim",
         config = function()
-            require("figdet").setup()
+            require("fidget").setup()
         end
     })
 
