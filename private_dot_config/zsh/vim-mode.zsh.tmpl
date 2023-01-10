@@ -9,6 +9,7 @@ bindkey -M menuselect '^r' vi-up-line-or-history
 bindkey -M menuselect '^n' vi-forward-char
 bindkey -M menuselect '^s' vi-down-line-or-history
 
+{{ if (eq .chezmoi.hostname "px-2131") }}
 # Change cursor shape for different vi modes.
 function zle-keymap-select () {
     case $KEYMAP in
@@ -24,4 +25,4 @@ zle-line-init() {
 zle -N zle-line-init
 echo -ne '\e[5 q' # Use beam shape cursor on startup.
 preexec() { echo -ne '\e[5 q' ;} # Use beam shape cursor for each new prompt.
-
+{{ end }}
