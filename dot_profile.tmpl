@@ -42,5 +42,5 @@ export FPATH=$HOME/.local/share/zsh/5.9/functions
 {{ end }}
 
 {{ if (ne .chezmoi.hostname "athena") }}
-[ -f $HOME/.local/bin/zsh ] && exec $HOME/.local/bin/zsh -l
+    . $HOME/.cargo/env
 {{ end }}
