@@ -41,6 +41,4 @@ export PATH=$HOME/bin:$HOME/.local/bin:$PATH
 export FPATH=$HOME/.local/share/zsh/5.9/functions
 {{ end }}
 
-{{ if (ne .chezmoi.hostname "athena") }}
-    . $HOME/.cargo/env
-{{ end }}
+if [ -f "$HOME/.cargo/env" ]; then . $HOME/.cargo/env done
