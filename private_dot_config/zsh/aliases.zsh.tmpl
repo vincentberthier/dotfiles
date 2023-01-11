@@ -15,7 +15,11 @@ alias fgrep='fgrep --color=auto'
 alias find='fn() { find "$@" -print 2> /dev/null }; fn '
 
 ff() {
-  find $1 -name "*.$2" -exec grep --color="auto" -Hn $3 {} \;
+    root=$1; shift
+    extension=$1; shift
+    pattern="${1}"; shift
+    echo -e "Looking for ${pattern} in ${root} with extension ${extension}"
+    find $root -name "*.${extension}" $@ -exec grep --color="auto" -Hn ${pattern} {} \;
 }
 
 # Colorisze ls
