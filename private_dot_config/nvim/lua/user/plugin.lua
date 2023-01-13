@@ -115,6 +115,9 @@ return require('packer').startup(function(use)
     -- Auto-headers
     use 'VincentBerthier/auto-header.nvim'
 
+    -- Status line
+    use { "nvim-lualine/lualine.nvim", requires = { "kyazdani142/nvim-web-devicons", opt = true } }
+
     -- automically set up configuration after cloning packer.nvim
     -- Needs to be at the very end
     if PACKER_BOOSTRAP then
