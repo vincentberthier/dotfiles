@@ -13,7 +13,7 @@ lualine.setup {
         icons_enabled = true,
         theme = "iceberg_dark",
         sections = {
-            lualine_x = {'encoding', 'fileformat', 'filetype'}
+            lualine_x = {get_spaces, 'hello', 'encoding', 'fileformat', 'filetype'}
         }
     },
 }
