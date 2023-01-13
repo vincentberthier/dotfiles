@@ -18,18 +18,18 @@ local function diagnostics()
     local diags = require'lualine.components.diagnostics.'.get_diagnostics{'nvim_lsp'}[1]
     local res = ""
     if diags.error > 0 then
-        res = res .. diags.errors .. sign_icons.error
+        res = res .. " " .. diags.error .. sign_icons.error
     end
     if diags.warn > 0 then
-        res = res .. diags.warn .. sign_icons.warn
+        res = res .. " " .. diags.warn .. sign_icons.warn
     end
     if diags.hint > 0 then
-        res = res .. diags.hint .. sign_icons.hint
+        res = res .. " " .. diags.hint .. sign_icons.hint
     end
     if diags.info > 0 then
-        res = res .. diags.info .. sign_icons.info
+        res = res .. " " .. diags.info .. sign_icons.info
     end
-    return res
+    return res:sub(1)
 end
 
 local function diff_source()
