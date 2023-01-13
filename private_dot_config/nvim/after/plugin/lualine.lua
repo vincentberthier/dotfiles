@@ -109,8 +109,8 @@ lualine.setup {
     sections = {
         lualine_a = { 'mode' },
         lualine_b = { 'branch', diff },
-        lualine_c = { 'filename', diagnostics },
-        lualine_x = { lsp, get_spaces, 'encoding', 'fileformat', 'filetype' },
+        lualine_c = { 'filename' },
+        lualine_x = { diagnostics, lsp, get_spaces, 'filetype' },
         lualine_y = { 'progress' },
         lualine_z = { 'location' }
     },
