@@ -162,12 +162,58 @@ lsp.set_preferences({
     }
 })
 
+---------------------------
+--   Navic configuraton  --
+---------------------------
+local navic_status, navic = pcall(require, "nvim-navic")
+if not navic_status then
+    vim.notify("nvim-navic was not found. Disabling it in statusline")
+end
+navic.setup {
+        icons = {
+        File          = " ",
+        Module        = " ",
+        Namespace     = " ",
+        Package       = " ",
+        Class         = " ",
+        Method        = " ",
+        Property      = " ",
+        Field         = " ",
+        Constructor   = " ",
+        Enum          = "練",
+        Interface     = "練",
+        Function      = " ",
+        Variable      = " ",
+        Constant      = " ",
+        String        = " ",
+        Number        = " ",
+        Boolean       = "◩ ",
+        Array         = " ",
+        Object        = " ",
+        Key           = " ",
+        Null          = "ﳠ ",
+        EnumMember    = " ",
+        Struct        = " ",
+        Event         = " ",
+        Operator      = " ",
+        TypeParameter = " ",
+    },
+    highlight = false,
+    separator = " > ",
+    depth_limit = 0,
+    depth_limit_indicator = "..",
+    safe_output = true
+}
+
 local function on_attach(client, bufnr)
     local opts = { buffer = bufnr, remap = false }
 
     if client.name == "eslint" then
         vim.cmd.LspStop('eslint')
         return
+    end
+    if navic_status and client.server_capabilities.documentSymbolProvider then
+        navic.attach(client, bufnr)
     end
 
     vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
