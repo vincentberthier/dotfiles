@@ -13,7 +13,7 @@ if fn.empty(fn.glob(install_path)) > 0 then
     }
     print "Installing packer, close and reopen Neovim…"
     -- Only required if you have packer configured as `opt`
-    vim.cmd [[packadd packer.nvim]]
+    vim.cmd [[packadd plugin.nvim]]
 end
 
 -- Autocommand that reloads neovim whenever this file is saved
