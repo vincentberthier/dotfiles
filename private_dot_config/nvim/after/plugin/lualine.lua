@@ -4,7 +4,7 @@ if not status then
     return
 end
 
-local navic_status, navic = pcall(require, "lualine")
+local navic_status, navic = pcall(require, "nvim-navic")
 if not navic_status then
     vim.notify("Navic not found, disabling statusline")
 end
@@ -130,3 +130,4 @@ lualine.setup {
         lualine_z = {},
     }
 }
+
