@@ -104,7 +104,7 @@ return require('packer').startup(function(use)
     use "JoosepAlviste/nvim-ts-context-commentstring" -- set comments by file type
     use "nvim-tree/nvim-tree.lua" -- replace netrw with NvimTree
     use "nvim-tree/nvim-web-devicons" -- for file icons
-    use "akinsho/bufferline.nvim" -- bufferline
+    --[[ use "akinsho/bufferline.nvim" -- bufferline ]]
     use "moll/vim-bbye" -- close buffers without closing windows
     use "akinsho/toggleterm.nvim" -- open terminal
     -- use "ahmedkhalf/project.nvim" -- project management (doesn’t work / bad hardcoded maps)
