@@ -101,8 +101,9 @@ keymap("n", "<leader>Y", [["+Y]], opts)
 keymap("n", "<leader>d", [["_d]], opts)
 keymap("v", "<leader>d", [["_d]], opts)
 
--- Disable Q
+-- Disable Q and q
 keymap("n", "Q", "<nop>", opts)
+keymap("n", "q", "<nop>", opts)
 
 -- Go to another session
 keymap("n", "<C-f>", "<cmd>silent !tmux neww tmux-sessionizer<CR>", opts)
