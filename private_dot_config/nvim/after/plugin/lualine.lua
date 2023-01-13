@@ -43,10 +43,14 @@ local function diff_source()
   end
 end
 
-local git_diff_symbols = {
-    LineAdded = "",
-    LineModified = "",
-    LineRemoved = "",
+local diff = {
+    "diff",
+    source = diff_source,
+    symbols = {
+      added = " ",
+      modified = " ",
+      removed = " ",
+    }
 }
 
 lualine.setup {
@@ -58,7 +62,7 @@ lualine.setup {
     },
     sections = {
         lualine_a = { 'mode' },
-        lualine_b = { 'branch', { 'diff', source = diff_source, symbols = git_diff_symbols } },
+        lualine_b = { 'branch', diff },
         lualine_c = { 'filename', diagnostics },
         lualine_x = { get_spaces, 'encoding', 'fileformat', 'filetype' },
         lualine_y = { 'progress' },
