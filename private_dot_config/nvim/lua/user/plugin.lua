@@ -112,6 +112,9 @@ return require('packer').startup(function(use)
     -- Debugging
     use 'puremourning/vimspector'
 
+    -- Auto-headers
+    use 'VincentBerthier/auto-header.nvim'
+
     -- automically set up configuration after cloning packer.nvim
     -- Needs to be at the very end
     if PACKER_BOOSTRAP then
