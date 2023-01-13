@@ -4,6 +4,11 @@ if not status then
     return
 end
 
+local navic_status, navic = pcall(require, "lualine")
+if not navic_status then
+    vim.notify("Navic not found, disabling statusline")
+end
+
 local function get_spaces()
     return "" .. vim.api.nvim_buf_get_option(0, "shiftwidth") .. " spaces"
 end
@@ -89,6 +94,14 @@ local lsp = {
     end,
 }
 
+local function navic_line()
+    local res = ""
+    if navic_status and navic.is_available() then
+        res = navic.get_location()
+    end
+    return res
+end
+
 lualine.setup {
     options = {
         icons_enabled = true,
@@ -111,7 +124,7 @@ lualine.setup {
     winbar = {
         lualine_a = {},
         lualine_b = {"filename"},
-        lualine_c = {},
+        lualine_c = {navic_line},
         lualine_x = {},
         lualine_y = {},
         lualine_z = {},
