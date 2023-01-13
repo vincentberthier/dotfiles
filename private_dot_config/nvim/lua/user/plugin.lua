@@ -117,6 +117,8 @@ return require('packer').startup(function(use)
 
     -- Status line
     use { "nvim-lualine/lualine.nvim", requires = { "kyazdani142/nvim-web-devicons", opt = true } }
+    -- Context in the statusline
+    use { "SmiteshP/nvim-navic", requires = "neovim/nvim-lspconfig" }
 
     -- automically set up configuration after cloning packer.nvim
     -- Needs to be at the very end
