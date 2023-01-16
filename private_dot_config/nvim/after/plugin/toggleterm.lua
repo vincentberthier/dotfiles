@@ -15,7 +15,7 @@ toggleterm.setup({
 	persist_size = true,
 	direction = "float",
 	close_on_exit = true,
-	shell = vim.o.shell,
+	shell = "zsh",
 	float_opts = {
 		border = "curved",
 		winblend = 0,
@@ -33,7 +33,7 @@ function _G.set_terminal_keymaps()
   vim.api.nvim_buf_set_keymap(0, 't', '<C-x>', [[<cmd>wincmd h<CR>]], opts)
   vim.api.nvim_buf_set_keymap(0, 't', '<C-s>', [[<cmd>wincmd j<CR>]], opts)
   vim.api.nvim_buf_set_keymap(0, 't', '<C-k>', [[<cmd>wincmd k<CR>]], opts)
-  vim.api.nvim_buf_set_keymap(0, 't', '<C-k>', [[<cmd>wincmd l<CR>]], opts)
+  vim.api.nvim_buf_set_keymap(0, 't', '<C-l>', [[<cmd>wincmd l<CR>]], opts)
 end
 
 vim.cmd('autocmd! TermOpen term://* lua set_terminal_keymaps()')
