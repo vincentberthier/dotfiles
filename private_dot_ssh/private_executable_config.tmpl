@@ -7,6 +7,12 @@ Host *
 	User vberthier
 	ForwardX11Trusted=yes
 
+{{ if (eq .chezmoi.hostname "px-2131") }}Host desktop1{{ else }}Host cls2{{ end }}
+	Hostname desktop1.px.cls.fr
+	IdentityFile ~/.ssh/cls
+	User vberthier
+	ForwardX11Trusted=yes
+
 Host alten
 	Hostname px-2131.px.cls.fr
 	IdentityFile ~/.ssh/cls
