@@ -37,7 +37,7 @@ autoload -Uz colors && colors
 source "$ZDOTDIR/functions.zsh"
 
 # Enable zoxide
-eval "$(zoxide init zsh)"
+{{ if (eq .chezmoi.hostname "px-2131") }}eval "$(/home/vberthier/.local/bin/zoxide init zsh)"{{ else }}eval "$(zoxide init zsh)"{{ end }}
 zsh_add_file "fzf.zsh"
 
 # Normal files to source

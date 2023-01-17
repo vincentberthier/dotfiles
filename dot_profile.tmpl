@@ -35,7 +35,13 @@ if [ -f "${SSH_ENV}" ]; then
 else
     start_agent;
 fi  
-export PATH=$HOME/bin:$HOME/.local/bin:$PATH
+
+host=`hostname`
+if [[ $host == "px-1021" ]]; then
+    alias zsh='/homelocal/vberthier/.conda/envs/default/bin/zsh'
+else
+    export PATH=$HOME/bin:$HOME/.local/bin:$PATH
+fi
 
 {{ if (eq .chezmoi.hostname "visu01") }}
 export FPATH=$HOME/.local/share/zsh/5.9/functions
