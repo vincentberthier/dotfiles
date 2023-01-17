@@ -9,12 +9,14 @@ keymap("", "<Space>", "<nop>", opts)
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
+{{ if (eq .chezmoi.hostname "athena")}}
 vim.g.clipboard = {
     name = "wl-clipboard",
     copy = { ["+"] = { "wl-copy" }, ["*"] = { "wl-copy"} },
     paste = { ["+"] = { "wl-paste"}, ["*"] = { "wl-paste"}},
     cache_enabled = true,
 }
+{{ end }}
 
 -- Modes
 --   normal mode = "n"
@@ -92,6 +94,7 @@ keymap("n", "L", "Nzzzv", opts)
 
 -- Paste over while keeping current copied data
 keymap("x", "<leader>p", [["_dP]], opts)
+keymap("x", "<leader>P", [["+p]], opts)
 
 -- Copy to clipboard
 keymap("n", "<leader>y", [["+y]], opts)
