@@ -38,7 +38,7 @@ autoload -Uz colors && colors
 source "$ZDOTDIR/functions.zsh"
 
 # Enable zoxide
-{{ if (eq .chezmoi.hostname "px-2131") }}eval "$(/home/vberthier/.local/bin/zoxide init zsh)"{{ else }}eval "$(zoxide init zsh)"{{ end }}
+{{ if (eq .chezmoi.hostname "px-1021") }}eval "$(/home/vberthier/.local/bin/zoxide init zsh)"{{ else }}eval "$(zoxide init zsh)"{{ end }}
 zsh_add_file "fzf.zsh"
 
 # Normal files to source
@@ -102,7 +102,7 @@ if [[ "$TERM" == (Eterm*|alacritty*|aterm*|gnome*|konsole*|kterm*|putty*|rxvt*|s
 	add-zsh-hook -Uz preexec xterm_title_preexec
 fi
 
-{{ if (eq .chezmoi.hostname "px-2131") }}
+{{ if (eq .chezmoi.hostname "px-1021") }}
 ### CLS Specifics
 case $DISPLAY:$XAUTHORITY in
   :*:?*)
@@ -158,7 +158,7 @@ elif [[ $host == "px-2091" ]]; then
   export JPEG_PATH=${COTS_ROOT}/JPEG/V1.2.1/lib/
   export HDF5_PATH=${COTS_ROOT}/HDF5/V1.8.9/lib/
   export PROJ_PATH=${COTS_ROOT}/PROJ/V4.8.0/lib/
-  export CPPEOCFI_PATH=\$COTS_ROOT/CPPEOCFI/V4.17/libraries/LINUX64_LEGACY/
+  export CPPEOCFI_PATH=\$COTS_ROOT/CPPEOCFI/V4.22/libraries/LINUX64_LEGACY/
   export NETCDF_PATH=${COTS_ROOT}/NETCDF/V4.2/lib/
   export XERCESC_PATH=${COTS_ROOT}/XERCESC/V2.8.0/lib/
   export JPEG_PATH=${COTS_ROOT}/JPEG/V1.2.1/lib/
@@ -166,8 +166,44 @@ elif [[ $host == "px-2091" ]]; then
   export PNG_PATH=${COTS_ROOT}/PNG/V1.5.11/lib/
   export GRIB_PATH=${COTS_ROOT}/GRIB/V1.9.18/
   export LD_LIBRARY_PATH=${HDF5_PATH}:${PROJ_PATH}:${CPPEOCFI_PATH}:${NETCDF_PATH}:${XERCESC_PATH}:${JPEG_PATH}:${OPENJPEG_PATH}:${PNG_PATH}:${LD_LIBRARY_PATH}:/data/MPC_S3/vberthier/s3_ipf_l1/bin/lib
-  cd /data/MPC_S3
-fi
+  
+    # Run S3 processing chains
+    s3_cal() {
+    echo -e "\e[1;32mLaunching Pre-processing\e[0m"
+    $1/SR_1_PRE.bin $2
+    if [ $? -ne 0 ]; then 
+        return
+    fi
+    echo -e "\e[1;32mLaunching Calibration step\e[0m"
+    $1/SR_1_CAL.bin $2
+    if [ $? -ne 0 ]; then 
+        return
+    fi
+    echo -e "\e[1;32mLaunching LTM step\e[0m"
+    $1/SR_1_LTM.bin $2
+    if [ $? -ne 0 ]; then 
+        return
+    fi
+    echo -e "\e[1;32mLaunching Post-processing\e[0m"
+    $1/SR_1_POST.bin $2
+    }
+
+    s3_l1() {
+    echo -e "\e[1;32mLaunching Pre-processing\e[0m"
+    $1/SR_1_PRE.bin $2
+    if [ $? -ne 0 ]; then 
+        return
+    fi
+    echo -e "\e[1;32mLaunching Main step\e[0m"
+    $1/SR_1_SRA.bin $2
+    if [ $? -ne 0 ]; then 
+        return
+    fi
+    echo -e "\e[1;32mLaunching Post-processing\e[0m"
+    $1/SR_1_POST.bin $2 
+    }
+    cd /data/MPC_S3
+    fi
 
 {{ else if (eq .chezmoi.hostname "visu01.sis.cnes.fr") }}
 # CNES specifics

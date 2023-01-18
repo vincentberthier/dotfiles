@@ -1,13 +1,13 @@
 Host *
 	ForwardAgent yes
 
-{{ if (eq .chezmoi.hostname "px-2131") }}Host desktop{{ else }}Host cls{{ end }}
+{{ if (eq .chezmoi.hostname "px-1021") }}Host desktop{{ else }}Host cls{{ end }}
 	Hostname desktop.px.cls.fr
 	IdentityFile ~/.ssh/cls
 	User vberthier
 	ForwardX11Trusted=yes
 
-{{ if (eq .chezmoi.hostname "px-2131") }}Host desktop1{{ else }}Host cls2{{ end }}
+{{ if (eq .chezmoi.hostname "px-1021") }}Host desktop1{{ else }}Host cls2{{ end }}
 	Hostname desktop1.px.cls.fr
 	IdentityFile ~/.ssh/cls
 	User vberthier
@@ -18,21 +18,29 @@ Host alten
 	IdentityFile ~/.ssh/cls
 	User vberthier
 	ForwardX11Trusted=yes
-	{{ if (ne .chezmoi.hostname "px-2131") }}ProxyJump cls{{ end }}
+	{{ if (ne .chezmoi.hostname "px-1021") }}ProxyJump cls{{ end }}
 
 Host pdap
 	Hostname jasondev-02.cls.fr
 	User devuser3
 	Compression=yes
 	ForwardX11Trusted=yes
-	{{ if (ne .chezmoi.hostname "px-2131") }}ProxyJump cls{{ end }}
+	{{ if (ne .chezmoi.hostname "px-1021") }}ProxyJump cls{{ end }}
 
 Host pdap-test
 	Hostname s6-valpgfs02.cls.fr
 	User=arnaud.jouzeau
 	Compression=yes
 	ForwardX11Trusted=yes
-	{{ if (ne .chezmoi.hostname "px-2131") }}ProxyJump cls{{ end }}
+	{{ if (ne .chezmoi.hostname "px-1021") }}ProxyJump cls{{ end }}
+
+Host s3 
+	Hostname px-2091.px.cls.fr
+	User vberthier
+	IdentityFile ~/.ssh/cls
+	Compression=yes
+	ForwardX11Trusted=yes
+	{{ if (ne .chezmoi.hostname "px-1021") }}ProxyJump cls{{ end }}
 
 Host login-cnes
 	Hostname 10.120.43.160
@@ -40,7 +48,7 @@ Host login-cnes
 	User berthiv
 	Compression=yes
 	ForwardX11Trusted=yes
-	{{ if (ne .chezmoi.hostname "px-2131") }}ProxyJump cls{{ end }}
+	{{ if (ne .chezmoi.hostname "px-1021") }}ProxyJump cls{{ end }}
 
 Host cnes-geco
 	Hostname visu06
@@ -48,7 +56,7 @@ Host cnes-geco
 	User berthiv
 	Compression=yes
 	ForwardX11Trusted=yes
-	{{ if (eq .chezmoi.hostname "px-2131") }}ProxyCommand ssh login-cnes -W %h:%p{{ else }}ProxyJump login-cnes{{ end }}
+	{{ if (eq .chezmoi.hostname "px-1021") }}ProxyCommand ssh login-cnes -W %h:%p{{ else }}ProxyJump login-cnes{{ end }}
 
 Host cnes-bang
 	Hostname visu05
@@ -56,7 +64,7 @@ Host cnes-bang
 	User berthiv
 	Compression=yes
 	ForwardX11Trusted=yes
-	{{ if (eq .chezmoi.hostname "px-2131") }}ProxyCommand ssh login-cnes -W %h:%p{{ else }}ProxyJump login-cnes{{ end }}
+	{{ if (eq .chezmoi.hostname "px-1021") }}ProxyCommand ssh login-cnes -W %h:%p{{ else }}ProxyJump login-cnes{{ end }}
 
 Host cnes
 	Hostname visu01
@@ -64,5 +72,5 @@ Host cnes
 	User berthiv
 	Compression=yes
 	ForwardX11Trusted=yes
-	{{ if (eq .chezmoi.hostname "px-2131") }}ProxyCommand ssh login-cnes -W %h:%p{{ else }}ProxyJump login-cnes{{ end }}
+	{{ if (eq .chezmoi.hostname "px-1021") }}ProxyCommand ssh login-cnes -W %h:%p{{ else }}ProxyJump login-cnes{{ end }}
 
