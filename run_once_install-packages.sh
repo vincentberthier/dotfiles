@@ -83,6 +83,11 @@ iscmd "nvim" || {
     make install
 }
 
+if [ ! -d "$XDG_DATA_HOME/zsh/plugings/zsh-history-substring-search" ]; then
+    mkdir -p "$XDG_DATA_HOME/zsh/plugings/zsh-history-substring-search"
+    git clone https://github.com/zsh-users/zsh-history-substring-search "$XDG_DATA_HOME/zsh/plugings/zsh-history-substring-search"
+fi
+
 cd ~
 if $delete_tmp; then
     rm -rf ~/tmp

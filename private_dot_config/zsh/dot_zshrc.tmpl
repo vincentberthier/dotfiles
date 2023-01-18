@@ -50,6 +50,7 @@ zsh_add_plugin "zsh-users/zsh-autosuggestions"
 zsh_add_plugin "zsh-users/zsh-syntax-highlighting"
 zsh_add_plugin "hlissner/zsh-autopair"
 zsh_add_completion "esc/conda-zsh-completion" false
+plugins=( [plugins...] zsh-history-substring-search)
 # More plugins: https://github.com/unixorn/awesome-zsh-plugins
 # More completions: https://github.com/zsh-users/zsh-completions
 
@@ -66,8 +67,6 @@ bindkey '^[[3~' delete-char
 # Vi mode & keybinds
 bindkey -v
 bindkey -M vicmd t vi-backward-char
-bindkey -M vicmd s vi-down-line-or-history
-bindkey -M vicmd r vi-up-line-or-history
 bindkey -M vicmd n vi-forward-char
 bindkey '^R' history-incremental-search-backward
 bindkey '^S' history-incremental-search-forward
@@ -76,6 +75,12 @@ bindkey -M vicmd K vi-find-prev-char-skip
 
 # Auto-suggestions keybinds
 bindkey '^ ' autosuggest-execute  # press ctrl+space to accept and execute the suggestion
+
+# history-substring keybinds
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+bindkey -M vicmd s history-substring-search-down
+bindkey -M vicmd r history-substring-search-up
 
 # Set the terminal’s window title dynamically
 autoload -Uz add-zsh-hook
