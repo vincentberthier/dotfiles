@@ -4,7 +4,7 @@ if not status then
     return
 end
 
-configs.setup {
+configs.setup({
     -- A list of parser names, or "all"
     ensure_installed = "all",
 
@@ -33,6 +33,7 @@ configs.setup {
         additional_vim_regex_highlighting = true,
     },
     indent = { enable = true, disable = { "" } },
+    autotag = { enable = true },
     rainbow = {
         enable = true,
         -- disable = {},
@@ -45,5 +46,5 @@ configs.setup {
         enable = true,
         enable_autocmd = false,
     }
-}
+})
 

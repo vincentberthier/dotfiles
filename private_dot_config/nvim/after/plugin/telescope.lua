@@ -105,25 +105,5 @@ telescope.setup {
     },
 }
 
--- Find files
-vim.keymap.set("n", "<leader>f",
-    "<cmd>lua require'telescope.builtin'.find_files(require('telescope.themes').get_dropdown({ previewer = false }))<CR>"
-    , opts)
-vim.keymap.set('n', '<leader>tf', builtin.find_files, opts)
-vim.keymap.set('n', '<leader>ts', builtin.live_grep, opts)
-vim.keymap.set('n', '<C-p>', builtin.git_files, opts)
+telescope.load_extension("fzf")
 
--- Vim pickers
-vim.keymap.set("n", "<leader>tb", builtin.buffers, opts)
-vim.keymap.set("n", "<leader>tk", builtin.keymaps, opts)
-
--- LSP stuff
-vim.keymap.set("n", "<leader>tlr", builtin.lsp_references, opts)
-vim.keymap.set("n", "<leader>tld", builtin.diagnostics, opts)
-vim.keymap.set("n", "<leader>tls", builtin.lsp_document_symbols, opts)
-vim.keymap.set("n", "<leader>tlw", builtin.lsp_workspace_symbols, opts)
-
--- Git stuff
-vim.keymap.set("n", "<leader>tgc", builtin.git_commits, opts)
-vim.keymap.set("n", "<leader>tgb", builtin.git_branches, opts)
-vim.keymap.set("n", "<leader>tgs", builtin.git_status, opts)

@@ -34,26 +34,28 @@ export XDG_DATA_HOME=$HOME/.local/share
 update_font=false
 mkdir -p $XDG_DATA_HOME/fonts/nerd-fonts/
 cd $XDG_DATA_HOME/fonts/nerd-fonts/
-if [ ! -f "Hack Bold Italic Nerd Font Complete.ttf" ]; then
-    echo "Downloading Hack Bold Italic"
+
+if [ ! -f "Inconsolata Bold Nerd Font Complete.otf" ]; then
+    echo "Downloading Inconsolata"
     update_font=true
-    curl --silent https://raw.githubusercontent.com/ryanoasis/nerd-fonts/master/patched-fonts/Hack/BoldItalic/complete/Hack%20Bold%20Italic%20Nerd%20Font%20Complete.ttf -o 'Hack Bold Italic Nerd Font Complete.ttf'
+    curl --silent https://github.com/ryanoasis/nerd-fonts/releases/download/v2.3.0/Inconsolata.zip -o Inconsolata.zip
+    unzip Inconsolata.zip
 fi
-if [ ! -f "Hack Bold Nerd Font Complete.ttf" ]; then
-    echo "Downloading Hack Bold"
-    update_font=true
-    curl --silent https://raw.githubusercontent.com/ryanoasis/nerd-fonts/master/patched-fonts/Hack/Bold/complete/Hack%20Bold%20Nerd%20Font%20Complete.ttf -o 'Hack Bold Nerd Font Complete.ttf'
-fi
-if [ ! -f "Hack Italic Nerd Font Complete.ttf" ]; then
-    echo "Downloading Hack Italic"
-    update_font=true
-    curl --silent https://raw.githubusercontent.com/ryanoasis/nerd-fonts/master/patched-fonts/Hack/Italic/complete/Hack%20Italic%20Nerd%20Font%20Complete.ttf -o 'Hack Italic Nerd Font Complete.ttf'
-fi
+
 if [ ! -f "Hack Regular Nerd Font Complete.ttf" ]; then
-    echo "Downloading Hack Regular"
+    echo "Downloading Hack"
     update_font=true
-    curl --silent https://raw.githubusercontent.com/ryanoasis/nerd-fonts/master/patched-fonts/Hack/Regular/complete/Hack%20Regular%20Nerd%20Font%20Complete.ttf -o 'Hack Regular Nerd Font Complete.ttf'
+    curl --silent https://github.com/ryanoasis/nerd-fonts/releases/download/v2.3.0/Hack.zip Hack.zip
+    unzip Hack.zip
 fi
+
+if [ ! -f "Code New Roman Nerd Font Complete.otf" ]; then
+    echo "Downloading Code New Roman"
+    update_font=true
+    curl --silent https://github.com/ryanoasis/nerd-fonts/releases/download/v2.3.0/CodeNewRoman.zip -o CodeNewRoman.zip
+    unzip CodeNewRoman.zip
+fi
+
 cd $HOME
 
 if $update_font; then

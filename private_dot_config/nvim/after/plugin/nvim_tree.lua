@@ -9,6 +9,8 @@ if not status_ok then
     return
 end
 
+vim.cmd([[ highlight NvimTreeIndentMarker guifg=#3FC5FF ]])
+
 nvim_tree.setup {
     disable_netrw = true,
     hijack_netrw = true,
@@ -141,6 +143,8 @@ nvim_tree.setup {
                     ignored = "◌",
                 },
                 folder = {
+                    arrow_closed = "",
+                    arrow_open = "",
                     default = "",
                     open = "",
                     empty = "",

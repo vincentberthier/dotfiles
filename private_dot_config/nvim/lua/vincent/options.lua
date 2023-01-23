@@ -5,7 +5,7 @@ local options = {
 	tabstop = 4, -- number of spaces a tab counts for
 	softtabstop = 4, -- number of spaces to replace a tab with
 	shiftwidth = 4, -- number of spaces to insert for identation
-	expandtab = true, -- convert tabs to spaces
+	expandtab = true, -- convert tabs to space
 
 	smartindent = true, -- make identing smart (???)
 
@@ -28,6 +28,9 @@ local options = {
 	smartcase = true, -- override ignorecase if uppercase present
 
 	termguicolors = true, -- set term gui colours
+
+    -- Backspace
+    backspace = "indent,eol,start", -- Allow backspace on indent, end of line or insert mode start position
 
 	-- Generic UI
 	scrolloff = 8, -- always show at least eight rows up/down
@@ -62,4 +65,5 @@ for k, v in pairs(options) do
 	vim.opt[k] = v
 end
 
+vim.opt.iskeyword:append("-")
 vim.opt.isfname:append("@-@") -- add @ to allowed file names

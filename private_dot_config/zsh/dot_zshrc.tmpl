@@ -111,30 +111,28 @@ case $DISPLAY:$XAUTHORITY in
     XAUTHORITY=~/.Xauthority xauth merge "$XAUTHORITY";;
 esac
 
+######## Conda initilization
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/homelocal/anaconda/conda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+ eval "$__conda_setup"
+else
+ if [ -f "/homelocal/anaconda/conda/etc/profile.d/conda.sh" ]; then
+     . "/homelocal/anaconda/conda/etc/profile.d/conda.sh"
+ else
+     export PATH="/homelocal/anaconda/conda/bin:$PATH"
+ fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+export CONDA=/homelocal/vberthier/.conda/envs/dev
+
 host=`hostname`
 
 if [[ $host == "px-1005" ]]; then
     return
 elif [[ $host == "px-2131" ]]; then
-    ######## Conda initilization
-    # >>> conda initialize >>>
-    # !! Contents within this block are managed by 'conda init' !!
-    __conda_setup="$('/homelocal/anaconda/conda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-    if [ $? -eq 0 ]; then
-     eval "$__conda_setup"
-    else
-     if [ -f "/homelocal/anaconda/conda/etc/profile.d/conda.sh" ]; then
-         . "/homelocal/anaconda/conda/etc/profile.d/conda.sh"
-     else
-         export PATH="/homelocal/anaconda/conda/bin:$PATH"
-     fi
-    fi
-    unset __conda_setup
-    # <<< conda initialize <<<
-
-    export CONDA=/homelocal/vberthier/.conda/envs/dev
-
-
   dev() {
     conda activate /homelocal/vberthier/.conda/envs/dev
   }
@@ -166,44 +164,7 @@ elif [[ $host == "px-2091" ]]; then
   export PNG_PATH=${COTS_ROOT}/PNG/V1.5.11/lib/
   export GRIB_PATH=${COTS_ROOT}/GRIB/V1.9.18/
   export LD_LIBRARY_PATH=${HDF5_PATH}:${PROJ_PATH}:${CPPEOCFI_PATH}:${NETCDF_PATH}:${XERCESC_PATH}:${JPEG_PATH}:${OPENJPEG_PATH}:${PNG_PATH}:${LD_LIBRARY_PATH}:/data/MPC_S3/vberthier/s3_ipf_l1/bin/lib
-  
-    # Run S3 processing chains
-    s3_cal() {
-    echo -e "\e[1;32mLaunching Pre-processing\e[0m"
-    $1/SR_1_PRE.bin $2
-    if [ $? -ne 0 ]; then 
-        return
-    fi
-    echo -e "\e[1;32mLaunching Calibration step\e[0m"
-    $1/SR_1_CAL.bin $2
-    if [ $? -ne 0 ]; then 
-        return
-    fi
-    echo -e "\e[1;32mLaunching LTM step\e[0m"
-    $1/SR_1_LTM.bin $2
-    if [ $? -ne 0 ]; then 
-        return
-    fi
-    echo -e "\e[1;32mLaunching Post-processing\e[0m"
-    $1/SR_1_POST.bin $2
-    }
-
-    s3_l1() {
-    echo -e "\e[1;32mLaunching Pre-processing\e[0m"
-    $1/SR_1_PRE.bin $2
-    if [ $? -ne 0 ]; then 
-        return
-    fi
-    echo -e "\e[1;32mLaunching Main step\e[0m"
-    $1/SR_1_SRA.bin $2
-    if [ $? -ne 0 ]; then 
-        return
-    fi
-    echo -e "\e[1;32mLaunching Post-processing\e[0m"
-    $1/SR_1_POST.bin $2 
-    }
-    cd /data/MPC_S3
-    fi
+fi
 
 {{ else if (eq .chezmoi.hostname "visu01.sis.cnes.fr") }}
 # CNES specifics
