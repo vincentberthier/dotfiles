@@ -15,7 +15,7 @@ toggleterm.setup({
 	persist_size = true,
 	direction = "float",
 	close_on_exit = true,
-	shell = "~/.local/bin/zsh",
+	shell = "zsh",
 	float_opts = {
 		border = "curved",
 		winblend = 0,
