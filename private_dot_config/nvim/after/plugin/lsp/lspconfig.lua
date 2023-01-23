@@ -5,8 +5,8 @@ vim.o.completeopt = "menuone,noinsert,noselect"
 
 local lsp_status, lsp = pcall(require, "lsp-zero")
 if not lsp_status then
-    print("Could not load LSP server")
-    return
+	print("Could not load LSP server")
+	return
 end
 
 lsp.preset("recommended")
@@ -258,3 +258,8 @@ rust.setup({
 		end,
 	},
 })
+
+-- Silence offset_encodings warnings
+local capabilities = vim.lsp.protocol.make_client_capabilities()
+capabilities.offsetEncoding = { "utf-32" }
+require("lspconfig").clangd.setup({ capabilities = capabilities })
