@@ -16,7 +16,7 @@ if not status_proj then
 	return
 end
 
-local status_py, dap_py = pcall(require, "nvim-dap-python")
+local status_py, dap_py = pcall(require, "dap-python")
 if not status_py then
 	print("Couldn’t load nvim-dap-python: no debugging available")
 	return
