@@ -13,6 +13,9 @@ local augroup = vim.api.nvim_create_augroup("LspFormatting", {})
 
 -- configure null_ls
 null_ls.setup({
+	on_init = function(new_client, _)
+		new_client.offset_encoding = "utf-32"
+	end,
 	-- setup formatters & linters
 	sources = {
 		--  to disable file types use
