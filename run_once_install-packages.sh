@@ -21,7 +21,7 @@ iscmd "zsh" || {
     mkdir -p zsh && unxz zsh-*.tar.xz && tar -xvf zsh-*.tar -C zsh --strip-components 1
     cd zsh
 
-    ./configure --prefix=$HOME/.local
+    ./configure --prefix="$HOME"/.local
     make -j
     make install
 }
@@ -32,33 +32,33 @@ export XDG_DATA_HOME=$HOME/.local/share
 
 # Install fonts
 update_font=false
-mkdir -p $XDG_DATA_HOME/fonts/nerd-fonts/
-cd $XDG_DATA_HOME/fonts/nerd-fonts/
+mkdir -p "$XDG_DATA_HOME"/fonts/nerd-fonts/
+cd "$XDG_DATA_HOME"/fonts/nerd-fonts/
 
 if [ ! -f "Inconsolata Bold Nerd Font Complete.otf" ]; then
     echo "Downloading Inconsolata"
     update_font=true
-    curl --silent https://github.com/ryanoasis/nerd-fonts/releases/download/v2.3.0/Inconsolata.zip -o Inconsolata.zip
-    unzip Inconsolata.zip
+    wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.3.0/Inconsolata.zip 2> /dev/null
+    unzip -n Inconsolata.zip
 fi
 
 if [ ! -f "Hack Regular Nerd Font Complete.ttf" ]; then
     echo "Downloading Hack"
     update_font=true
-    curl --silent https://github.com/ryanoasis/nerd-fonts/releases/download/v2.3.0/Hack.zip Hack.zip
-    unzip Hack.zip
+    wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.3.0/Hack.zip 2> /dev/null
+    unzip -n Hack.zip
 fi
 
 if [ ! -f "Code New Roman Nerd Font Complete.otf" ]; then
     echo "Downloading Code New Roman"
     update_font=true
-    curl --silent https://github.com/ryanoasis/nerd-fonts/releases/download/v2.3.0/CodeNewRoman.zip -o CodeNewRoman.zip
-    unzip CodeNewRoman.zip
+    wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.3.0/CodeNewRoman.zip 2> /dev/null
+    unzip -n CodeNewRoman.zip
 fi
 
-cd $HOME
+cd "$HOME"
 
-if $update_font; then
+if "$update_font"; then
     echo "Updating font cache"
     fc-cache -vf > /dev/null
 fi
@@ -66,14 +66,14 @@ fi
 # Install zoxide
 iscmd "zoxide" || {
     echo "Installing zoxide"
-    mkdir -p $XDG_CONFIG_HOME/zsh/plugins/
+    mkdir -p "$XDG_CONFIG_HOME"/zsh/plugins/
     curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
 }
 if [ ! -d "$XDG_CONFIG_HOME/zsh/plugins/fzf" ]; then
     echo "Installing fzf"
-    git clone --depth 1 https://github.com/junegunn/fzf.git $XDG_CONFIG_HOME/zsh/plugins/fzf
-    $XDG_CONFIG_HOME/zsh/plugins/fzf/install
-    mv ~/.fzf.zsh $XDG_CONFIG_HOME/zsh/fzf.zsh
+    git clone --depth 1 https://github.com/junegunn/fzf.git "$XDG_CONFIG_HOME"/zsh/plugins/fzf
+    "$XDG_CONFIG_HOME"/zsh/plugins/fzf/install
+    mv ~/.fzf.zsh "$XDG_CONFIG_HOME"/zsh/fzf.zsh
 fi
 
 # Install neovim
@@ -86,10 +86,9 @@ iscmd "nvim" || {
 }
 
 cd ~
-if $delete_tmp; then
+if "$delete_tmp"; then
     rm -rf ~/tmp
 else
     rm -rf ~/tmp/zsh*
     rm -rf ~/tmp/neovim
 fi
-
