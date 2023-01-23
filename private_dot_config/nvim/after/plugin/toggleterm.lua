@@ -5,7 +5,7 @@ end
 
 toggleterm.setup({
 	size = 20,
-	open_mapping = "<leader>x",
+	open_mapping = "<C-x>",
 	hide_numbers = true,
 	shade_filetypes = {},
 	shade_terminals = true,

@@ -29,15 +29,15 @@ local options = {
 
 	termguicolors = true, -- set term gui colours
 
-    -- Backspace
-    backspace = "indent,eol,start", -- Allow backspace on indent, end of line or insert mode start position
+	-- Backspace
+	backspace = "indent,eol,start", -- Allow backspace on indent, end of line or insert mode start position
 
 	-- Generic UI
 	scrolloff = 8, -- always show at least eight rows up/down
 	sidescrolloff = 8, -- always show at least eight columns
 	cursorline = true, -- highlight the current line
-	signcolumn = 'yes', -- always display the sign column
-	cmdheight = 2, -- bottom command line height
+	signcolumn = "yes", -- always display the sign column
+	cmdheight = 1, -- bottom command line height
 	pumheight = 10, -- pop-up menu height
 	showmode = false, -- do not show current mode
 	showtabline = 2, -- always show tabs
@@ -50,15 +50,14 @@ local options = {
 	relativenumber = true, -- Line numbers are relative to current line
 	numberwidth = 2, -- width of the line number column
 
-
 	updatetime = 50, -- idle time (ms) before swap update
 
 	-- Show column 100
 	colorcolumn = "100", -- colour that column
 
-    -- Completion
-    completeopt = {"menuone", "noselect", "noinsert"},
-    shortmess = vim.opt.shortmess + { c = true },
+	-- Completion
+	completeopt = { "menuone", "noselect", "noinsert" },
+	shortmess = vim.opt.shortmess + { c = true },
 }
 
 for k, v in pairs(options) do

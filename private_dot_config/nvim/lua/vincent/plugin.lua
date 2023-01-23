@@ -107,6 +107,7 @@ return require("packer").startup(function(use)
 	use({ "mfussenegger/nvim-dap" })
 	use({ "rcarriga/nvim-dap-ui" })
 	use({ "ldelossa/nvim-dap-projects" })
+	use({ "mfussenegger/nvim-dap-python" })
 
 	-- Adds extra functionality over rust analyzer
 	use("simrat39/rust-tools.nvim")

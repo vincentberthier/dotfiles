@@ -201,6 +201,11 @@ navic.setup({
 	safe_output = true,
 })
 
+-- Silence offset_encodings warnings
+local capabilities = vim.lsp.protocol.make_client_capabilities()
+capabilities.offsetEncoding = { "utf-32" }
+require("lspconfig").clangd.setup({ capabilities = capabilities })
+
 local function on_attach(client, bufnr)
 	local opts = { buffer = bufnr, remap = false }
 
@@ -258,8 +263,3 @@ rust.setup({
 		end,
 	},
 })
-
--- Silence offset_encodings warnings
-local capabilities = vim.lsp.protocol.make_client_capabilities()
-capabilities.offsetEncoding = { "utf-32" }
-require("lspconfig").clangd.setup({ capabilities = capabilities })
