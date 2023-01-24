@@ -24,6 +24,7 @@ iscmd "zsh" || {
     ./configure --prefix="$HOME"/.local
     make -j
     make install
+    cd ${HOME}
 }
 
 iscmd "tmux" || {
@@ -40,6 +41,9 @@ iscmd "tmux" || {
     tar -zxf tmux*.tar.gz && rm tmux*.tar.gz && mv tmux* tmux && cd tmux
     ./configure --prefix="$HOME"/.local CFLAGS="-I${HOME}/.local/include" LDFLAGS="-L${HOME}/.local/lib"
     make -j 8 && make -j 8 install
+
+    git clone https://github.com/tmux-plugins/tpm "$HOME"/.tmux/plugins/tpm
+    cd ${HOME}
 }
 
 export XDG_CONFIG_HOME=$HOME/.config
@@ -97,14 +101,27 @@ iscmd "nvim" || {
     cd ~/tmp
     echo "Installing neovim"
     git clone https://github.com/neovim/neovim
-    cd neovim && make CMAKE_BUILD_TYPE=RelWithDebInfo CMAKE_INSTALL_PREFX=~/.local/
+    cd neovim && make CMAKE_BUILD_TYPE=RelWithDebInfo CMAKE_INSTALL_PREFX=$HOME/.local/
     make install
+    cd $HOME
 }
 
-cd ~
+# install xclip
+iscmd "xsel" || {
+    cd ~/tmp
+    echo "Installing xsel"
+    
+    git clone https://github.com/kfish/xsel.git && cd xsel
+    ./autogen.sh && ./configure --prefix=${HOME}/.local
+    make -j 8 && make -j 8 install
+    cd $HOME
+}
+    
+
+cd $HOME
 if "$delete_tmp"; then
-    rm -rf ~/tmp
+    rm -rf $HOME/tmp
 else
-    rm -rf ~/tmp/zsh*
-    rm -rf ~/tmp/neovim
+    rm -rf $HOME/tmp/zsh*
+    rm -rf $HOME/tmp/neovim
 fi

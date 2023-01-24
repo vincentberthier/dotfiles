@@ -9,14 +9,17 @@ vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 keymap("", "<Space>", "<nop>", opts)
 
-{{ if (eq .chezmoi.hostname "athena")}}
-vim.g.clipboard = {
+{{ if (eq .chezmoi.hostname "athena")}}vim.g.clipboard = {
     name = "wl-clipboard",
     copy = { ["+"] = { "wl-copy" }, ["*"] = { "wl-copy"} },
     paste = { ["+"] = { "wl-paste"}, ["*"] = { "wl-paste"}},
     cache_enabled = true,
-}
-{{ end }}
+}{{ else }}vim.g.clipboard = {
+    name = "xsel",
+    copy = { ["+"] = { "xsel" }, ["*"] = { "xsel"} },
+    paste = { ["+"] = { "xsel"}, ["*"] = { "xsel"}},
+    cache_enabled = true,
+}{{ end }}
 
 -- Modes
 --   normal mode = "n"

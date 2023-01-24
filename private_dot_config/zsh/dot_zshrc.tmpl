@@ -126,6 +126,7 @@ else
 fi
 unset __conda_setup
 # <<< conda initialize <<<
+conda deactivate
 
 export CONDA=/homelocal/vberthier/.conda/envs/dev
 
@@ -152,7 +153,6 @@ elif [[ $host == "px-2131" ]]; then
 elif [[ $host == "px-2091" ]]; then
 
   alias valid_netcdf="/data/MPC_S3/LandBranches/Sentinel3_ContinuousIntegrationData/workshop/validation_tools/src/valid_netcdf_product.py"
-  alias cmake="/data/MPC_S3/cmake-2.8.12-Linux-i386/bin/cmake"
   export COTS_ROOT=/data/MPC_S3/LandBranches/Sentinel3_ContinuousIntegrationData/COTS_V2
   export JPEG_PATH=${COTS_ROOT}/JPEG/V1.2.1/lib/
   export HDF5_PATH=${COTS_ROOT}/HDF5/V1.8.9/lib/
@@ -166,7 +166,7 @@ elif [[ $host == "px-2091" ]]; then
   export GRIB_PATH=${COTS_ROOT}/GRIB/V1.9.18/
   export LD_LIBRARY_PATH=${HDF5_PATH}:${PROJ_PATH}:${CPPEOCFI_PATH}:${NETCDF_PATH}:${XERCESC_PATH}:${JPEG_PATH}:${OPENJPEG_PATH}:${PNG_PATH}:${LD_LIBRARY_PATH}:/data/MPC_S3/vberthier/s3_ipf_l1/bin/lib
 fi
-
+export SHELL="${HOME}/.local/bin/zsh"
 {{ else if (eq .chezmoi.hostname "visu01.sis.cnes.fr") }}
 # CNES specifics
 workon_home_dir=~/scratch/.virtualenvs
