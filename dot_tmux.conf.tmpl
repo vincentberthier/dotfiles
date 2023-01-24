@@ -1,5 +1,5 @@
 set -g default-terminal "screen-256color"
-set -g default-command /home/vberthier/.local/bin/zsh
+set -g default-command {{ if (eq .chezmoi.hostname "px-1021") }}/home/vberthier/.local/bin/zsh{{ else if (eq .chezmoi.hostname "visu01") }}/home/ad/berthiv/.local/bin/zsh{{ else }}/usr/bin/zsh{{ end }}
 
 set -g mouse on
 set -g prefix C-a
