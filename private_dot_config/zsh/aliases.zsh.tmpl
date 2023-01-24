@@ -154,7 +154,13 @@ alias cmd='chezmoi diff'
 alias cma='chezmoi apply'
 alias cmA='chezmoi add'
 
-# CNES Cluster’s modules
+# Tmux
+alias t='tmux'
+alias ta='t a -t'
+alias tn='t new -t'
+alias tls='t ls'
+
+# CLS & CNES Cluster’s modules
 {{ if (ne .chezmoi.hostname "athena") }}
 module() {  eval $($LMOD_CMD bash "$@") && eval $(${LMOD_SETTARG_CMD:-:} -s sh) }
 {{ else }}
