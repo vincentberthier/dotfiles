@@ -4,6 +4,10 @@ set -g default-command {{ if (eq .chezmoi.hostname "px-1021") }}/home/vberthier/
 set -g mouse on
 set -g prefix C-a
 
+# Use ctrl+a as prefix instead of ctrl+b
+unbind C-b
+bind-key C-a send-prefix
+
 # VI mode
 set-window-option -g mode-keys vi
 unbind -T copy-mode-vi Space;
@@ -30,10 +34,12 @@ bind-key    -T copy-mode-vi S                    send-keys -X scroll-down
 bind-key    -T copy-mode-vi R                    send-keys -X scroll-up
 bind-key    -T copy-mode-vi N                    send-keys -X bottom-line
 
-unbind C-b
-bind-key C-a send-prefix
-
-bind C-r source-file ~/.tmux.conf \; display "Reloaded ~/.tmux.conf"
+# smart pane switching with awareness of vim splits
+bind -n C-t run "(tmux display-message -p '#{pane_current_command}' | grep -iq vim && tmux send-keys C-h) || tmux select-pane -L"
+bind -n C-s run "(tmux display-message -p '#{pane_current_command}' | grep -iq vim && tmux send-keys C-j) || tmux select-pane -D"
+bind -n C-r run "(tmux display-message -p '#{pane_current_command}' | grep -iq vim && tmux send-keys C-k) || tmux select-pane -U"
+bind -n C-n run "(tmux display-message -p '#{pane_current_command}' | grep -iq vim && tmux send-keys C-l) || tmux select-pane -R"
+# bind -n C-\ run "(tmux display-message -p '#{pane_current_command}' | grep -iq vim && tmux send-keys 'C-\\') || tmux select-pane -l"
 
 # Change binds for splits
 unbind %
@@ -41,6 +47,24 @@ bind | split-window -h -c "#{pane_current_path}"
 
 unbind '"'
 bind - split-window -v -c "#{pane_current_path}"
+
+# Hide status bar on demand
+bind C-s if -F '#{s/off//:status}' 'set status off' 'set status on'
+
+# sessions
+bind Q confirm-before -p "Kill-session #S? (y/n)" kill-session
+bind d detach
+
+# Windows
+set -g base-index 1
+set-window-option -g pane-base-index 1
+unbind n
+unbind p
+bind -n M-s previous-window
+bind -n M-r next-window
+bind -n M-c command-prompt -I "#W" { rename-window "%%" }
+bind X kill-window
+bind C-x confirm-before -p "Kill other windows? (y/n)" "kill-window -a"
 
 # Panes
 bind -r t resize-pane -L 5
@@ -54,13 +78,7 @@ bind-key -T copy-mode-vi 'C-s' select-pane -D
 bind-key -T copy-mode-vi 'C-r' select-pane -U
 bind-key -T copy-mode-vi 'C-n' select-pane -R
 
-# Windows
-set -g base-index 1
-set-window-option -g pane-base-index 1
-unbind n
-unbind p
-bind -n M-s previous-window
-bind -n M-r next-window
+bind x kill-pane
 
 ######### Plugins
 set -g @plugin "tmux-plugins/tpm"
@@ -68,27 +86,51 @@ set -g @plugin "tmux-plugins/tpm"
 # list of plugins
 set -g @plugin "christoomey/vim-tmux-navigator"
 set -g @plugin 'jimeh/tmux-themepack'
+set -g @plugin 'tmux-plugins/tmux-resurrect' # persist tmux sessions after computer restart
+set -g @plugin 'tmux-plugins/tmux-continuum' # auto-save sessions every 15 minutes
+set -g @plugin 'tmux-plugins/tmux-prefix-highlight'
+set -g @plugin 'tmux-plugins/tmux-sidebar'  # Sidebar, prefix + tab or prefix + backspace
+set -g @plugin 'tmux-plugins/tmux-online-status'
+set -g @plugin 'samoshkin/tmux-plugin-sysstat'
 set -g @themepack "powerline/double/blue"
 
-# Smart pane switching with awareness of Vim splits.
-# See: https://github.com/christoomey/vim-tmux-navigator
-# is_vim="ps -o state= -o comm= -t '#{pane_tty}' | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?(view|l?n?vim?x?)(diff)?$'"
-# bind-key -n 'C-t' if-shell "$is_vim" 'send-keys C-t'  'select-pane -L'
-# bind-key -n 'C-s' if-shell "$is_vim" 'send-keys C-s'  'select-pane -D'
-# bind-key -n 'C-r' if-shell "$is_vim" 'send-keys C-r'  'select-pane -U'
-# bind-key -n 'C-n' if-shell "$is_vim" 'send-keys C-n'  'select-pane -R'
-# tmux_version='$(tmux -V | sed -En "s/^tmux ([0-9]+(.[0-9]+)?).*/\1/p")'
-# if-shell -b '[ "$(echo "$tmux_version < 3.0" | bc)" = 1 ]' "bind-key -n 'C-\\' if-shell \"$is_vim\" 'send-keys C-\\'  'select-pane -l'"
-# if-shell -b '[ "$(echo "$tmux_version >= 3.0" | bc)" = 1 ]' "bind-key -n 'C-\\' if-shell \"$is_vim\" 'send-keys C-\\\\'  'select-pane -l'"
+set -g @resurrect-capture-pane-contents 'on'
+set -g @continuum-restore 'on'
 
-# smart pane switching with awareness of vim splits
-bind -n C-t run "(tmux display-message -p '#{pane_current_command}' | grep -iq vim && tmux send-keys C-h) || tmux select-pane -L"
-bind -n C-s run "(tmux display-message -p '#{pane_current_command}' | grep -iq vim && tmux send-keys C-j) || tmux select-pane -D"
-bind -n C-r run "(tmux display-message -p '#{pane_current_command}' | grep -iq vim && tmux send-keys C-k) || tmux select-pane -U"
-bind -n C-n run "(tmux display-message -p '#{pane_current_command}' | grep -iq vim && tmux send-keys C-l) || tmux select-pane -R"
-# bind -n C-\ run "(tmux display-message -p '#{pane_current_command}' | grep -iq vim && tmux send-keys 'C-\\') || tmux select-pane -l"
+bind C-r source-file ~/.tmux.conf \; display "Reloaded ~/.tmux.conf"
 
+##### Remote / nested TMUX sessions
+# Taken from https://github.com/samoshkin/tmux-config/blob/master/tmux/tmux.conf
 
+# Session is considered to be remote when we ssh into host
+if-shell 'test -n "$SSH_CLIENT"' \
+    'source-file ~/.tmux/tmux.remote.conf'
+
+# We want to have single prefix key "C-a", usable both for local and remote session
+# we don't want to "C-a" + "a" approach either
+# Idea is to turn off all key bindings and prefix handling on local session,
+# so that all keystrokes are passed to inner/remote session
+
+# see: toggle on/off all keybindings · Issue #237 · tmux/tmux - https://github.com/tmux/tmux/issues/237
+
+# Also, change some visual styles when window keys are off
+bind -T root F12  \
+    set prefix None \;\
+    set key-table off \;
+    set status-style "fg=$color_status_text,bg=$color_window_off_status_bg" \;\
+    set window-status-current-format "#[fg=$color_window_off_status_bg,bg=$color_window_off_status_current_bg]$separator_powerline_right#[default] #I:#W# #[fg=$color_window_off_status_current_bg,bg=$color_window_off_status_bg]$separator_powerline_right#[default]" \;\
+    set window-status-current-style "fg=$color_dark,bold,bg=$color_window_off_status_current_bg" \;\
+    if -F '#{pane_in_mode}' 'send-keys -X cancel' \;\
+    refresh-client -S \;\
+
+bind -T off F12 \
+  set -u prefix \;\
+  set -u key-table \;\
+  set -u status-style \;\
+  set -u window-status-current-style \;\
+  set -u window-status-current-format \;\
+  refresh-client -S
 
 # Initialize the plugins (MUST STAY AT THE BOTTOM)
 run "~/.tmux/plugins/tpm/tpm"
+
