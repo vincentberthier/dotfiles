@@ -114,14 +114,15 @@ if-shell 'test -n "$SSH_CLIENT"' \
 # see: toggle on/off all keybindings · Issue #237 · tmux/tmux - https://github.com/tmux/tmux/issues/237
 
 # Also, change some visual styles when window keys are off
+colour_fg=colour240
+colour_bg=default
 bind -T root F12  \
     set prefix None \;\
-    set key-table off \;
-    set status-style "fg=$color_status_text,bg=$color_window_off_status_bg" \;\
-    set window-status-current-format "#[fg=$color_window_off_status_bg,bg=$color_window_off_status_current_bg]$separator_powerline_right#[default] #I:#W# #[fg=$color_window_off_status_current_bg,bg=$color_window_off_status_bg]$separator_powerline_right#[default]" \;\
-    set window-status-current-style "fg=$color_dark,bold,bg=$color_window_off_status_current_bg" \;\
+    set key-table off \;\
+    set status-style "fg=$colour_fg,bg=$colour_bg" \;\
+    set window-status-current-style "fg=$colour_fg,bold,bg=$colour_bg" \;\
     if -F '#{pane_in_mode}' 'send-keys -X cancel' \;\
-    refresh-client -S \;\
+    refresh-client -S
 
 bind -T off F12 \
   set -u prefix \;\
