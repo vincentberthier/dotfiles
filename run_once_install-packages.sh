@@ -32,13 +32,13 @@ iscmd "tmux" || {
     rm -rf tmux* libevent*
     wget https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz 2> /dev/null
     tar -zxf libevent*.tar.gz && cd libevent-*
-    ./configure --prefix=${HOME}/.local --enable-shared
+    ./configure --prefix="$HOME"/.local --enable-shared
     make -j 8 && make -j 8 install
     cd ..
 
     wget https://github.com/tmux/tmux/releases/download/3.3a/tmux-3.3a.tar.gz 2> /dev/null
     tar -zxf tmux*.tar.gz && rm tmux*.tar.gz && mv tmux* tmux && cd tmux
-    ./configure --prefix=${HOME}/.local CFLAGS="-I${HOME}/.local/include" LDFLAGS="-L${HOME}/.local/lib"
+    ./configure --prefix="$HOME"/.local CFLAGS="-I${HOME}/.local/include" LDFLAGS="-L${HOME}/.local/lib"
     make -j 8 && make -j 8 install
 }
 

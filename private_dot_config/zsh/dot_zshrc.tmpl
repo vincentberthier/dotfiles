@@ -126,6 +126,7 @@ else
 fi
 unset __conda_setup
 # <<< conda initialize <<<
+
 export CONDA=/homelocal/vberthier/.conda/envs/dev
 
 host=`hostname`
@@ -192,10 +193,6 @@ conf_geco() {
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/home/ad/berthiv/.local \
         ..
-}
-
-ncdump() {
-  /bin/ncdump "$@" | less
 }
 
 conf_gecomain() {
