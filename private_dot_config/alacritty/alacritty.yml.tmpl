@@ -439,7 +439,7 @@ font:
 #   - (Linux/BSD/macOS) `$SHELL` or the user's login shell, if `$SHELL` is unset
 #   - (Windows) powershell
 shell:
-  program: /home/vberthier/.local/bin/zsh
+  program: {{if (eq .chezmoi.hostname "visu01") }}/home/ad/berthiv/.local/bin/zsh{{ else if (eq .chezmoi.hostname "px-1021") }}/home/vberthier/.local/bin/zsh{{ else }}/bin/zsh{{ end }}
 #  args:
 #    - --login
 
