@@ -45,9 +45,11 @@ if [[ $host == "px-1021" ]]; then
     export https_proxy=http://proxy-bureautique.cls.fr:8080/
 else
     export PATH=$HOME/bin:$HOME/.local/bin:$PATH
+    export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH
 fi{{ else }}export PATH=$HOME/bin:$HOME/.local/bin:$PATH{{ end }}
 
-{{ if (eq .chezmoi.hostname "visu01") }}export FPATH=$HOME/.local/share/zsh/5.9/functions{{ end }}
+{{ if (eq .chezmoi.hostname "visu01") }}export FPATH=$HOME/.local/share/zsh/5.9/functions
+export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH{{ end }}
 
 if [ -f "$HOME/.cargo/env" ]; then . $HOME/.cargo/env; fi
  {{ if (eq .chezmoi.hostname "px-1021") }}[[ $- == *i* ]] && zsh || return{{ end }}
