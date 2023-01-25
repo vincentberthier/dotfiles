@@ -139,6 +139,9 @@ return require("packer").startup(function(use)
 	-- add, delete, change surroundings
 	use({ "tpope/vim-surround" })
 
+	-- Coloration for kitty conf
+	use({ "fladson/vim-kitty" })
+
 	-- automically set up configuration after cloning packer.nvim
 	-- Needs to be at the very end
 	if PACKER_BOOSTRAP then

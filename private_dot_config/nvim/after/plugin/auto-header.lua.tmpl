@@ -30,13 +30,41 @@ headers.setup({
 				"Modified By: ",
 				"Copyright ",
 			},
-		},
+            {
+                language = "bash",
+                prefix = "# ",
+                block = "",
+                block_length = 0,
+                before = {
+                    "#!/bin/bash",
+                    "",
+                },
+                after = { "" },
+                template = {
+                    "File: #file_relative_path",
+                    "Project: #project_name",
+                    "Creation date: #date_now",
+                    "Author: #author_name <#author_mail>",
+                    "-----",
+                    "Last modified: #date_now",
+                    "Modified By: #author_name",
+                    "-----",
+                    "Copyright © #cp_year #cp_holders - All rights reserved",
+                },
+                track_change = {
+                    "File: ",
+                    "Last modified: ",
+                    "Modified By: ",
+                    "Copyright ",
+                },
+            },
+        },
         {
 			language = "python",
 			prefix = "# ",
 			block = "",
 			block_length = 0,
-			before = { 
+			before = {
                 "#!env python3",
                 "",
             },

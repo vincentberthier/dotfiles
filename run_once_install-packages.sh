@@ -12,6 +12,16 @@ else
 fi
 export TMPDIR=~/tmp/
 
+if [[ $(hostname) != "visu01.sis.cnes.fr" ]]; then
+    iscmd "kitty" || {
+        echo "Installing kitty"
+        cd ~/tmp
+        curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
+        ln -s ~/.local/kitty.app/bin/kitty ~/.local/bin
+        cp ~/.local/kitty.app/share/applications/kitty.desktop ~/.local/share/applications
+    }
+fi
+
 # If zsh is not installed, do it
 iscmd "zsh" || {
     echo "Installing ZSH"
@@ -24,7 +34,7 @@ iscmd "zsh" || {
     ./configure --prefix="$HOME"/.local
     make -j
     make install
-    cd ${HOME}
+    cd "$HOME"
 }
 
 iscmd "tmux" || {
@@ -32,7 +42,7 @@ iscmd "tmux" || {
     cd ~/tmp/
     rm -rf tmux* libevent*
     wget https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz 2> /dev/null
-    tar -zxf libevent*.tar.gz && cd libevent-*
+    tar -zxf libevent*.tar.gz && rm libevent*.tar.gz && cd libevent-*
     ./configure --prefix="$HOME"/.local --enable-shared
     make -j 8 && make -j 8 install
     cd ..
@@ -43,7 +53,7 @@ iscmd "tmux" || {
     make -j 8 && make -j 8 install
 
     git clone https://github.com/tmux-plugins/tpm "$HOME"/.tmux/plugins/tpm
-    cd ${HOME}
+    cd "$HOME"
 }
 
 export XDG_CONFIG_HOME=$HOME/.config
@@ -101,9 +111,9 @@ iscmd "nvim" || {
     cd ~/tmp
     echo "Installing neovim"
     git clone https://github.com/neovim/neovim
-    cd neovim && make CMAKE_BUILD_TYPE=RelWithDebInfo CMAKE_INSTALL_PREFX=$HOME/.local/
+    cd neovim && make CMAKE_BUILD_TYPE=RelWithDebInfo CMAKE_INSTALL_PREFX="$HOME"/.local/
     make install
-    cd $HOME
+    cd "$HOME"
 }
 
 # install xclip
@@ -112,16 +122,16 @@ iscmd "xsel" || {
     echo "Installing xsel"
     
     git clone https://github.com/kfish/xsel.git && cd xsel
-    ./autogen.sh && ./configure --prefix=${HOME}/.local
+    ./autogen.sh && ./configure --prefix="$HOME"/.local
     make -j 8 && make -j 8 install
-    cd $HOME
+    cd "$HOME"
 }
     
 
-cd $HOME
+cd "$HOME"
 if "$delete_tmp"; then
-    rm -rf $HOME/tmp
+    rm -rf "$HOME"/tmp
 else
-    rm -rf $HOME/tmp/zsh*
-    rm -rf $HOME/tmp/neovim
+    rm -rf "$HOME"/tmp/zsh*
+    rm -rf "$HOME"/tmp/neovim
 fi

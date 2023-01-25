@@ -34,7 +34,6 @@ null_ls.setup({
 		formatting.rustfmt,
 		-- C++-
 		formatting.clang_format,
-		diagnostics.cpplint,
 		-- Shell
 		formatting.beautysh,
 		formatting.shellharden,

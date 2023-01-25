@@ -1,4 +1,4 @@
-set -g default-command {{ if (eq .chezmoi.hostname "px-1021") }}/home/vberthier/.local/bin/zsh{{ else if (eq .chezmoi.hostname "visu01") }}/home/ad/berthiv/.local/bin/zsh{{ else }}/usr/bin/zsh{{ end }}
+set -g default-command {{ if (eq .chezmoi.hostname "px-1021") }}zsh{{ else if (eq .chezmoi.hostname "visu01") }}/home/ad/berthiv/.local/bin/zsh{{ else }}/usr/bin/zsh{{ end }}
 
 set -g mouse on
 set -g prefix C-a
@@ -54,6 +54,8 @@ bind C-s if -F '#{s/off//:status}' 'set status off' 'set status on'
 # sessions
 bind Q confirm-before -p "Kill-session #S? (y/n)" kill-session
 bind d detach
+bind M-v choose-tree -Zs
+bind M-V choose-tree -Zw
 
 # Windows
 set -g base-index 1
@@ -107,20 +109,13 @@ set -s escape-time 0
 set -g history-limit 50000
 
 # Increase tmux messages display duration from 750ms to 4s
-set -g display-time 4000
+set -g display-time 2000
 
 # Refresh 'status-left' and 'status-right' more often, from every 15s to 5s
 set -g status-interval 5
 
-# (OS X) Fix pbcopy/pbpaste for old tmux versions (pre 2.6)
-set -g default-command "reattach-to-user-namespace -l $SHELL"
-
 # Upgrade $TERM
 set -g default-terminal "screen-256color"
-
-# Emacs key bindings in tmux command prompt (prefix + :) are better than
-# vi keys, even for vim users
-# set -g status-keys emacs
 
 # Focus events enabled for terminals that support them
 set -g focus-events on
@@ -148,17 +143,14 @@ colour_bg=default
 bind -T root F12  \
     set prefix None \;\
     set key-table off \;\
-    set status-style "fg=$colour_fg,bg=$colour_bg" \;\
-    set window-status-current-style "fg=$colour_fg,bold,bg=$colour_bg" \;\
+    set status off \;\
     if -F '#{pane_in_mode}' 'send-keys -X cancel' \;\
     refresh-client -S
 
 bind -T off F12 \
   set -u prefix \;\
   set -u key-table \;\
-  set -u status-style \;\
-  set -u window-status-current-style \;\
-  set -u window-status-current-format \;\
+  set status on\;\
   refresh-client -S
 
 # Initialize the plugins (MUST STAY AT THE BOTTOM)

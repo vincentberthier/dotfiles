@@ -166,7 +166,6 @@ elif [[ $host == "px-2091" ]]; then
   export GRIB_PATH=${COTS_ROOT}/GRIB/V1.9.18/
   export LD_LIBRARY_PATH=${HDF5_PATH}:${PROJ_PATH}:${CPPEOCFI_PATH}:${NETCDF_PATH}:${XERCESC_PATH}:${JPEG_PATH}:${OPENJPEG_PATH}:${PNG_PATH}:${LD_LIBRARY_PATH}:/data/MPC_S3/vberthier/s3_ipf_l1/bin/lib
 fi
-export SHELL="${HOME}/.local/bin/zsh"
 {{ else if (eq .chezmoi.hostname "visu01.sis.cnes.fr") }}
 # CNES specifics
 workon_home_dir=~/scratch/.virtualenvs

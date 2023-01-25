@@ -1,7 +1,8 @@
 # Environment variables
 export EDITOR="nvim"
-export TERMINAL="terminator"
+export TERMINAL="kitty"
 export BROWSER="firefox"
+#export SHELL={{ if (eq .chezmoi.hostname "athena") }}"zsh"{{ else }}"${HOME}/.local/bin/zsh"{{ end }}
 
 # XDG config paths
 export XDG_CONFIG_HOME=$HOME/.config
@@ -11,47 +12,53 @@ export XDG_DATA_HOME=$HOME/.local/share
 # ZSH configuration path
 export ZDOTDIR=$HOME/.config/zsh
 
-# Add user binaries to path
+# Locales
+export LC_ALL="C.UTF-8"
+
+export PATH=$HOME/bin:$HOME/.local/bin:$PATH
+host=$(hostname)
+{{ if (eq .chezmoi.hostname "px-1021")}}if [[ $host == "px-1021" ]]; then
+    export HTTP_PROXY=http://proxy-bureautique.cls.fr:8080/
+    export http_proxy=http://proxy-bureautique.cls.fr:8080/
+    export HTTPS_PROXY=http://proxy-bureautique.cls.fr:8080/
+    export https_proxy=http://proxy-bureautique.cls.fr:8080/
+else
+    export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH
+fi{{ else if (eq .chezmoi.hostname "visu01") }}export FPATH=$HOME/.local/share/zsh/5.9/functions
+export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH{{ end }}
+
+if [ -f "$HOME/.cargo/env" ]; then . "$HOME"/.cargo/env; fi
+
+# If we're in SSH session, launch ZSH then exit when it ends
+if [[ "$SSH_TTY" != "" ]]; then
+    TERM="xterm-256color"
+    "$HOME"/.local/bin/zsh
+    exit
+fi
+
+# Don't do anything else if we're not interractive mode
+[[ $- == *i* ]] && return || echo "Interractive session"
 
 # Launch ssh agent server
 SSH_ENV="$HOME/.ssh/agent-environment"
 
 function start_agent {
     echo "Initialising new SSH agent..."
-    /usr/bin/ssh-agent | sed 's/^echo/#echo/' > "${SSH_ENV}"
+    /usr/bin/ssh-agent | sed 's/^echo/#echo/' > "$SSH_ENV"
     echo succeeded
-    chmod 600 "${SSH_ENV}"
-    . "${SSH_ENV}" > /dev/null
+    chmod 600 "$SSH_ENV"
+    . "$SSH_ENV" > /dev/null
     /usr/bin/ssh-add > /dev/null
 }
 
 # Source SSH settings, if applicable
-if [ -f "${SSH_ENV}" ]; then
-    . "${SSH_ENV}" > /dev/null
+if [ -f "$SSH_ENV" ]; then
+    . "$SSH_ENV" > /dev/null
     #ps ${SSH_AGENT_PID} doesn't work under cywgin
-    ps -ef | grep ${SSH_AGENT_PID} | grep ssh-agent$ > /dev/null || {
+    ps -ef | grep "$SSH_AGENT_PID" | grep ssh-agent$ > /dev/null || {
         start_agent;
     }
 else
     start_agent;
 fi  
-
-{{ if (eq .chezmoi.hostname "px-1021")}}host=`hostname`
-if [[ $host == "px-1021" ]]; then
-    alias zsh='/homelocal/vberthier/.conda/envs/default/bin/zsh'
-    export HTTP_PROXY=http://proxy-bureautique.cls.fr:8080/
-    export http_proxy=http://proxy-bureautique.cls.fr:8080/
-    export HTTPS_PROXY=http://proxy-bureautique.cls.fr:8080/
-    export https_proxy=http://proxy-bureautique.cls.fr:8080/
-else
-    export PATH=$HOME/bin:$HOME/.local/bin:$PATH
-    export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH
-fi{{ else }}export PATH=$HOME/bin:$HOME/.local/bin:$PATH{{ end }}
-
-{{ if (eq .chezmoi.hostname "visu01") }}export FPATH=$HOME/.local/share/zsh/5.9/functions
-export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH{{ end }}
-
-if [ -f "$HOME/.cargo/env" ]; then . $HOME/.cargo/env; fi
- {{ if (eq .chezmoi.hostname "px-1021") }}[[ $- == *i* ]] && zsh || return
- export SHELL=/home/vberthier/.local/bin/zsh{{ end }}
 
