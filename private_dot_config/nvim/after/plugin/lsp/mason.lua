@@ -46,7 +46,6 @@ mason_null.setup({
 		"rustfmt",
 		-- C++-
 		"clang-format",
-		"cpplint",
 		-- Shell
 		"shellharden",
 		"shellcheck",
