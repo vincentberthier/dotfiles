@@ -84,6 +84,10 @@ bindkey '^[[B' history-substring-search-down
 bindkey -M vicmd s history-substring-search-down
 bindkey -M vicmd r history-substring-search-up
 
+# Fixed Home / End in tmux
+bindkey "^[OF" end-of-line
+bindkey "^[OH" beginning-of-line
+
 # Set the terminal’s window title dynamically
 autoload -Uz add-zsh-hook
 
