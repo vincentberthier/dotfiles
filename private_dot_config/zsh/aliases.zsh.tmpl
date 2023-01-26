@@ -55,8 +55,7 @@ alias rms='shred -uz' # Shred (remove + overwrite) files
 alias diff='colordiff'
 alias ping='ping -c 5'
 alias compdb='b -vn clean update |& compiledb'
-if [[ "$TERM" == "xterm-kitty" ]]; then KITTY_SSH="kitty +kitten "; else KITTY_SSH=""; fi
-{{ if (ne .chezmoi.hostname "px-1021") }}alias ssh='${KITTY_SSH}/usr/bin/ssh-ident -X'{{ end }}
+if [[ "$TERM" == "xterm-kitty" ]]; alias ssh='kitty +kitten ssh'; fi
 alias yay='paru'
 alias pacman='paru'
 alias maj='paru -Syu --noconfirm && paru -Sc --noconfirm'
