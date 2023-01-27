@@ -164,13 +164,11 @@ alias tn='t new -t'
 alias tls='t ls'
 
 # CLS & CNES Cluster’s modules
-{{ if (ne .chezmoi.hostname "athena") }}
-alias quota="pxquota space status"
-module() {  eval $($LMOD_CMD bash "$@") && eval $(${LMOD_SETTARG_CMD:-:} -s sh) }
-{{ else }}
+{{ if (eq .chezmoi.hostname "athena") }}
 alias snx_start='sudo modprobe tun && sudo snx'
 {{ end }}
 
 if [[ "$TERM" == "xterm-kitty" ]]; then 
     alias si="kitty +kitten icat"
 fi
+
