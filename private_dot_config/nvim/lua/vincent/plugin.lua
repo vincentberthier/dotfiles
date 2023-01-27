@@ -51,7 +51,7 @@ return require("packer").startup(function(use)
 	use({ "nvim-telescope/telescope-fzf-native.nvim", run = "make" })
 
 	-- Install theme
-	use({ "catppuccin/nvim", as = "catppuccin" })
+	use({ "arcticicestudio/nord-vim" })
 	use({ "folke/tokyonight.nvim" })
 	use({ "xiyaowong/nvim-transparent" })
 
