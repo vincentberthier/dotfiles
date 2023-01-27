@@ -48,6 +48,7 @@ alias archlinux-fix-keys="sudo pacman-key --init && sudo pacman-key --populate a
 alias mkdir='mkdir -pv'
 alias ls='colorls --gs --sd --dark'
 {{ if (ne .chezmoi.hostname "visu01") }}alias cat='bat'
+alias less='cat'
 alias lls='lsd -lh --total-size'{{ end }}
 alias ll='ls -l'
 alias la='ls -A'
