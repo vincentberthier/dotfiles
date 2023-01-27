@@ -105,7 +105,7 @@ end
 lualine.setup({
 	options = {
 		icons_enabled = true,
-		theme = "palenight",
+		theme = "nord",
 		always_divide_middle = false,
 		globalstatus = true,
 		disabled_filetypes = {
