@@ -17,8 +17,8 @@ export LC_ALL="C.UTF-8"
 TZ='Europe/Paris'; export TZ
 
 export PATH=$HOME/bin:$HOME/.local/bin:$PATH
-host=$(hostname)
-{{ if (eq .chezmoi.hostname "px-1021")}}if [[ $host == "px-1021" ]]; then
+{{ if (eq .chezmoi.hostname "px-1021")}}host=$(hostname)
+if [[ $host == "px-1021" ]]; then
     export HTTP_PROXY=http://proxy-bureautique.cls.fr:8080/
     export http_proxy=http://proxy-bureautique.cls.fr:8080/
     export HTTPS_PROXY=http://proxy-bureautique.cls.fr:8080/
