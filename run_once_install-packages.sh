@@ -12,6 +12,12 @@ else
 fi
 export TMPDIR=~/tmp/
 
+iscmd hostname || {
+    hostname() {
+        uname -n
+    }
+}
+
 if [[ $(hostname) != "visu01.sis.cnes.fr" ]]; then
     iscmd "kitty" || {
         echo "Installing kitty"
@@ -53,6 +59,26 @@ iscmd "tmux" || {
     make -j 8 && make -j 8 install
 
     git clone https://github.com/tmux-plugins/tpm "$HOME"/.tmux/plugins/tpm
+    cd "$HOME"
+}
+
+iscmd "lsd" || {
+    echo "Installing LSD"
+    cd ~/tmp/
+    rm -rf lsd-*
+    wget  https://github.com/Peltoche/lsd/releases/download/0.23.1/lsd-0.23.1-x86_64-unknown-linux-gnu.tar.gz 2> /dev/null
+    tar -xzf lsd*.tar.gz && rm lsd-*.tar.gz && cd lsd*
+    cp lsd ~/.local/bin
+    cd "$HOME"
+}
+
+iscmd "bat" || {
+    echo "Installing Bat"
+    cd ~/tmp
+    rm -rf bat*
+    wget https://github.com/sharkdp/bat/releases/download/v0.22.1/bat-v0.22.1-x86_64-unknown-linux-gnu.tar.gz 2> /dev/null
+    tar -zxf bat-*tar.gz && rm bat*.tar.gz && cd bat*
+    cp bat ~/.local/bin/
     cd "$HOME"
 }
 
