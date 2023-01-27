@@ -34,6 +34,7 @@ zle -N down-line-or-beginning-search
 # Colours
 autoload -Uz colors && colors
 test -r "~/.dir_colors" && eval $(dircolors ~/.dir_colors)
+export BAT_THEME="Nord"
 
 # Load useful functions
 source "$ZDOTDIR/functions.zsh"
