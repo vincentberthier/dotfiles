@@ -62,15 +62,15 @@ iscmd "tmux" || {
     cd "$HOME"
 }
 
-# iscmd "lsd" || {
-#     echo "Installing LSD"
-#     cd ~/tmp/
-#     rm -rf lsd-*
-#     wget  https://github.com/Peltoche/lsd/releases/download/0.23.1/lsd-0.23.1-x86_64-unknown-linux-gnu.tar.gz 2> /dev/null
-#     tar -xzf lsd*.tar.gz && rm lsd-*.tar.gz && cd lsd*
-#     cp lsd ~/.local/bin
-#     cd "$HOME"
-# }
+iscmd "lsd" || {
+    echo "Installing LSD"
+    cd ~/tmp/
+    rm -rf lsd-*
+    wget  https://github.com/Peltoche/lsd/releases/download/0.23.1/lsd-0.23.1-x86_64-unknown-linux-gnu.tar.gz 2> /dev/null
+    tar -xzf lsd*.tar.gz && rm lsd-*.tar.gz && cd lsd*
+    cp lsd ~/.local/bin
+    cd "$HOME"
+}
 
 iscmd "colorls" || {
     echo "Installing colorls"
