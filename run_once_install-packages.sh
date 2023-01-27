@@ -75,7 +75,7 @@ iscmd "lsd" || {
 iscmd "colorls" || {
     echo "Installing colorls"
     if [[ "$(hostname)" == "visu01" ]]; then module load ruby; fi
-    gem install colorls 2> /dev/null
+    gem install colorls --user 2> /dev/null
     dir=$(ls -t -1 ~/.local/share/gem/ruby/ | head -n 1)
     ln -s "${HOME}/.local/share/gem/ruby/${dir}/bin/colorls" ~/.local/bin/colorls
 }
