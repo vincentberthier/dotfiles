@@ -62,14 +62,26 @@ iscmd "tmux" || {
     cd "$HOME"
 }
 
-iscmd "lsd" || {
-    echo "Installing LSD"
-    cd ~/tmp/
-    rm -rf lsd-*
-    wget  https://github.com/Peltoche/lsd/releases/download/0.23.1/lsd-0.23.1-x86_64-unknown-linux-gnu.tar.gz 2> /dev/null
-    tar -xzf lsd*.tar.gz && rm lsd-*.tar.gz && cd lsd*
-    cp lsd ~/.local/bin
-    cd "$HOME"
+# iscmd "lsd" || {
+#     echo "Installing LSD"
+#     cd ~/tmp/
+#     rm -rf lsd-*
+#     wget  https://github.com/Peltoche/lsd/releases/download/0.23.1/lsd-0.23.1-x86_64-unknown-linux-gnu.tar.gz 2> /dev/null
+#     tar -xzf lsd*.tar.gz && rm lsd-*.tar.gz && cd lsd*
+#     cp lsd ~/.local/bin
+#     cd "$HOME"
+# }
+
+iscmd "colorls" || {
+    echo "Installing colorls"
+    if [[ "$(hostname)" == "visu01" ]]; then module load ruby; fi
+    gem install colorls 2> /dev/null
+    dir=$(ls -t -1 ~/.local/share/gem/ruby/ | head -n 1)
+    ln -s "${HOME}/.local/share/gem/ruby/${dir}/bin/colorls" ~/.local/bin/colorls
+
+    mkdir -p ~/.config/colorls
+    wget https://raw.githubusercontent.com/gilsondev/nord-colorls/main/dark_colors.yaml 2> /dev/null
+    mv dark_colors.yaml ~/.config/colorls/
 }
 
 iscmd "bat" || {
