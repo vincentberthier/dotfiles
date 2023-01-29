@@ -2,7 +2,7 @@ encryption = "gpg"
 {{ $email := promptStringOnce . "email" "Email address" }}
 
 [git]
-{{ if (eq .chezmoi.hostname "athena") }}
+{{ if (or (eq .chezmoi.hostname "athena") (eq .chezmoi.hostname "gaia")) }}
     autoCommit = true
     autoPush = true
 {{ end }}

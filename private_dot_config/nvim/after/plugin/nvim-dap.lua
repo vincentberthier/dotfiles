@@ -33,15 +33,11 @@ dap.listeners.before.event_exited["dapui_config"] = function()
 	dapui.close()
 end
 
-local signs = {
-	DapBreakpoint = { text = "●", texthl = "LspDiagnosticsDefaultError" },
-	DapLogPoint = { text = "◉", texthl = "LspDiagnosticsDefaultError" },
-	DapStopped = { text = "🞂", texthl = "LspDiagnosticsDefaultInformation", linehl = "CursorLine" },
-}
+local sign = vim.fn.sign_define
 
-for sign, options in pairs(signs) do
-	vim.fn.sign_define(sign, options)
-end
+sign("DapBreakpoint", { text = "●", texthl = "DapBreakpoint", linehl = "", numhl = "" })
+sign("DapBreakpointCondition", { text = "●", texthl = "DapBreakpointCondition", linehl = "", numhl = "" })
+sign("DapLogPoint", { text = "◆", texthl = "DapLogPoint", linehl = "", numhl = "" })
 
 dap.adapters.cppdbg = {
 	id = "cppdbg",

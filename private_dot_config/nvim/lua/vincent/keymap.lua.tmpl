@@ -11,7 +11,7 @@ vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 keymap("", "<Space>", "<nop>", opts)
 
-{{ if (eq .chezmoi.hostname "athena")}}vim.g.clipboard = {
+{{ if (or (eq .chezmoi.hostname "athena") (eq .chezmoi.hostname "gaia")) }}vim.g.clipboard = {
     name = "wl-clipboard",
     copy = { ["+"] = { "wl-copy" }, ["*"] = { "wl-copy"} },
     paste = { ["+"] = { "wl-paste"}, ["*"] = { "wl-paste"}},

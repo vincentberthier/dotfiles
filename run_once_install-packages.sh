@@ -99,6 +99,13 @@ update_font=false
 mkdir -p "$XDG_DATA_HOME"/fonts/nerd-fonts/
 cd "$XDG_DATA_HOME"/fonts/nerd-fonts/
 
+if [ ! -f "Fira Code Regular Nerd Font Complete.ttf" ]; then
+    echo "Downloading Fira Code"
+    update_font=true
+    wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.3.0/FiraCode.zip 2> /dev/null
+    unzip -n FiraCode.zip
+fi
+
 if [ ! -f "Inconsolata Bold Nerd Font Complete.otf" ]; then
     echo "Downloading Inconsolata"
     update_font=true

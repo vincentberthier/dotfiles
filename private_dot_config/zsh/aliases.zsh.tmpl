@@ -75,6 +75,14 @@ alias gdb='gdb --ex run --args'
 alias weather='clear && curl wttr.in'
 alias t='tail -f'
 
+cut_wallpaper() {
+    filename=$(basename -- "$1")
+    extension="${filename##*.}"
+    filename="${filename%.*}"
+    mkdir -p ${HOME}/Images/Wallpapers
+    convert -crop 1920x1080 $1 ${HOME}/Images/Wallpapers/${filename}-%d.${extension}
+}
+
 # Netcdf
 nchead () {
     if [ -f $1 ]; then
@@ -156,6 +164,7 @@ alias cmu='chezmoi update'
 alias cmd='chezmoi diff'
 alias cma='chezmoi apply'
 alias cmA='chezmoi add'
+alias cmAC='chezmoi add --encrypt'
 
 # Tmux
 alias t='tmux'
@@ -164,7 +173,7 @@ alias tn='t new -t'
 alias tls='t ls'
 
 # CLS & CNES Cluster’s modules
-{{ if (eq .chezmoi.hostname "athena") }}
+{{ if (or (eq .chezmoi.hostname "athena") (eq .chezmoi.hostname "gaia")) }}
 alias snx_start='sudo modprobe tun && sudo snx'
 {{ end }}
 

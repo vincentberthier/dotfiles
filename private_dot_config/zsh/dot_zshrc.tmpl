@@ -31,13 +31,14 @@ autoload -U up-line-or-beginning-search down-line-or-beginning-search
 zle -N up-line-or-beginning-search
 zle -N down-line-or-beginning-search
 
+# Load useful functions
+source "$ZDOTDIR/functions.zsh"
+
 # Colours
 autoload -Uz colors && colors
 test -r "~/.dir_colors" && eval $(dircolors ~/.dir_colors)
-export BAT_THEME="Nord"
-
-# Load useful functions
-source "$ZDOTDIR/functions.zsh"
+export BAT_THEME="Catppuccin-mocha"
+zsh_add_file "catppuccin_mocha-zsh-syntax-highlighting.zsh"
 
 # Enable zoxide
 {{ if (eq .chezmoi.hostname "px-1021") }}eval "$(/home/vberthier/.local/bin/zoxide init zsh)"{{ else }}eval "$(zoxide init zsh)"{{ end }}
@@ -110,9 +111,15 @@ if [[ "$TERM" == (Eterm*|alacritty*|aterm*|gnome*|konsole*|kterm*|putty*|rxvt*|s
 	add-zsh-hook -Uz preexec xterm_title_preexec
 fi
 
+precmd() {
+    print -Pn "\e]133;A\e\\"
+}
+
 {{ if (eq .chezmoi.hostname "px-1021") }}
     zsh_add_file "cls.zsh"
 {{ else if (eq .chezmoi.hostname "visu01.sis.cnes.fr") }}
     zsh_add_file "cnes.zsh"
 {{ end }}
+
+please
 

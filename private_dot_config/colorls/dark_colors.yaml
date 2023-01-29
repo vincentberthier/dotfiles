@@ -1,47 +1,48 @@
-# Nord Theme for colorls
-#
-# Main Colors
-unrecognized_file: '#d08770' # Orange
-recognized_file:   '#d8dee9' # Foreground
-executable_file:   '#8fbcbb' # Green
-dir:               '#b48ead' # Purple
+# Catppuccin Theme for colorls
+# 
+# Main colors
+unrecognized_file: '#fab387' # Orange
+recognized_file:   '#cdd6f4' # Foreground
+executable_file:   '#a6e3a1' # Green
+dir:               '#cba6f7' # Purple
 
 # Link
-dead_link: '#bf616a'         # Red
-link:      '#88c0d0'         # Cyan
+dead_link: '#f38ba8'         # Red
+link:      '#94e2d5'         # Cyan
 
 # Special Files
-socket:    '#8fbcbb'         # Green
-blockdev:  '#8fbcbb'         # Green
-chardev:   '#8fbcbb'         # Green
+socket:    '#a6e3a1'         # Green
+blockdev:  '#a6e3a1'         # Green
+chardev:   '#a6e3a1'         # Green
 
 # Access Modes
-write:     '#b48ead'         # Pink
-read:      '#b77bc6'         # Purple
-exec:      '#88c0d0'         # Cyan
-no_access: '#bf616a'         # Red
+write:     '#f5c2e7'         # Pink
+read:      '#cba6f7'         # Purple
+exec:      '#94e2d5'         # Cyan
+no_access: '#f38ba8'         # Red
 
 # Age
-hour_old:    '#eceff4'       # Comment - 20% lighter
-day_old:     '#e5e9f0'       # Comment
-no_modifier: '#4c566a'       # Current Line
+hour_old:    '#89dceb'       # Sky
+day_old:     '#74c7ec'       # Sapphire
+no_modifier: '#89b4fa'       # Blue
 
 # File Size
-file_large:  '#bf616a'       # Red
-file_medium: '#d08770'       # Orange
+file_large:  '#f38ba8'       # Red
+file_medium: '#fab387'       # Orange
 file_small:  '#a3be8c'       # Green
 
 # Random
 report: '#a3be8c'            # Green
-user:   '#88c0d0'            # Cyan
+user:   '#94e2d5'            # Cyan
 tree:   '#4c566a'            # Current Line
 empty:  '#6272a4'            # Comment
-error:  '#bf616a'            # Red
-normal: '#d8dee9'            # Foreground
+error:  '#f38ba8'            # Red
+normal: '#cdd6f4'            # Foreground
 
 # Git
-addition:     '#88c0d0'      # Cyan
-modification: '#ebcb8b'      # Yellow
-deletion:     '#bf616a'      # Red
-untracked:    '#d08770'      # Orange
+addition:     '#94e2d5'      # Cyan
+modification: '#f9e2af'      # Yellow
+deletion:     '#f38ba8'      # Red
+untracked:    '#fab387'      # Orange
 unchanged:    '#a3be8c'      # Green
+
