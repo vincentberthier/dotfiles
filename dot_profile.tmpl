@@ -38,7 +38,7 @@ if [[ "$SSH_TTY" != "" ]]; then
 fi
 
 # Don't do anything else if we're not interractive mode
-[[ $- == *i* ]] && return || echo "Interractive session"
+[[ $- != *i* ]] && return
 
 # Launch ssh agent server
 SSH_ENV="$HOME/.ssh/agent-environment"
