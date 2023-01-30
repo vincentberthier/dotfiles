@@ -41,7 +41,7 @@ export BAT_THEME="Catppuccin-mocha"
 zsh_add_file "catppuccin_mocha-zsh-syntax-highlighting.zsh"
 
 # Enable zoxide
-{{ if (eq .chezmoi.hostname "px-1021") }}eval "$(/home/vberthier/.local/bin/zoxide init zsh)"{{ else }}eval "$(zoxide init zsh)"{{ end }}
+{{ if (eq .chezmoi.hostname "px-1021") }}eval "$(${HOME}/.local/bin/zoxide init zsh)"{{ else }}eval "$(zoxide init zsh)"{{ end }}
 zsh_add_file "fzf.zsh"
 
 # Normal files to source
@@ -121,5 +121,5 @@ precmd() {
     zsh_add_file "cnes.zsh"
 {{ end }}
 
-please
+if [[ -f /usr/bin/python3 ]]; then please; fi
 

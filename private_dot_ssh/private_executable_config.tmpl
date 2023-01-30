@@ -1,76 +1,67 @@
 Host *
 	ForwardAgent yes
+	ForwardX11Trusted=yes
+    Compression=yes
+	IdentityFile ~/.ssh/cls
 
 {{ if (eq .chezmoi.hostname "px-1021") }}Host desktop{{ else }}Host cls{{ end }}
 	Hostname desktop.px.cls.fr
-	IdentityFile ~/.ssh/cls
 	User vberthier
-	ForwardX11Trusted=yes
 
 {{ if (eq .chezmoi.hostname "px-1021") }}Host desktop1{{ else }}Host cls2{{ end }}
 	Hostname desktop1.px.cls.fr
-	IdentityFile ~/.ssh/cls
 	User vberthier
-	ForwardX11Trusted=yes
 
 Host alten
 	Hostname px-2131.px.cls.fr
-	IdentityFile ~/.ssh/cls
 	User vberthier
-	ForwardX11Trusted=yes
 	{{ if (ne .chezmoi.hostname "px-1021") }}ProxyJump cls{{ end }}
 
 Host pdap
 	Hostname jasondev-02.cls.fr
 	User devuser3
-	Compression=yes
-	ForwardX11Trusted=yes
 	{{ if (ne .chezmoi.hostname "px-1021") }}ProxyJump cls{{ end }}
 
 Host pdap-test
 	Hostname s6-valpgfs02.cls.fr
 	User=arnaud.jouzeau
-	Compression=yes
-	ForwardX11Trusted=yes
+    PreferredAuthentications password
 	{{ if (ne .chezmoi.hostname "px-1021") }}ProxyJump cls{{ end }}
 
 Host s3 
 	Hostname px-2091.px.cls.fr
 	User vberthier
-	IdentityFile ~/.ssh/cls
-	Compression=yes
-	ForwardX11Trusted=yes
 	{{ if (ne .chezmoi.hostname "px-1021") }}ProxyJump cls{{ end }}
+
+Host rebond-obso
+    Hostname ssh-obso.obso-mgmt.cls.fr
+    User vberthier
+    ProxyJump alten
+
+Host cryosat
+    Hostname ipfcryocean-dev.obso-qt.cls.fr
+    User c2o_us1
+    KexAlgorithms +diffie-hellman-group1-sha1
+    HostKeyAlgorithms +ssh-dss
+    ProxyJump rebond-obso
 
 Host login-cnes
 	Hostname 10.120.43.160
-	IdentityFile ~/.ssh/cls
 	User berthiv
-	Compression=yes
-	ForwardX11Trusted=yes
 	{{ if (ne .chezmoi.hostname "px-1021") }}ProxyJump cls{{ end }}
 
 Host cnes-geco
 	Hostname visu06
-	IdentityFile ~/.ssh/cls
 	User berthiv
-	Compression=yes
-	ForwardX11Trusted=yes
 	{{ if (eq .chezmoi.hostname "px-1021") }}ProxyCommand ssh login-cnes -W %h:%p{{ else }}ProxyJump login-cnes{{ end }}
 
 Host cnes-bang
 	Hostname visu05
-	IdentityFile ~/.ssh/cls
 	User berthiv
-	Compression=yes
-	ForwardX11Trusted=yes
 	{{ if (eq .chezmoi.hostname "px-1021") }}ProxyCommand ssh login-cnes -W %h:%p{{ else }}ProxyJump login-cnes{{ end }}
 
 Host cnes
 	Hostname visu01
-	IdentityFile ~/.ssh/cls
 	User berthiv
-	Compression=yes
-	ForwardX11Trusted=yes
 	{{ if (eq .chezmoi.hostname "px-1021") }}ProxyCommand ssh login-cnes -W %h:%p{{ else }}ProxyJump login-cnes{{ end }}
 

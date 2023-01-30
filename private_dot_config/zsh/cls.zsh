@@ -1,3 +1,4 @@
+TZ="Europe/Paris"; export TZ
 ### CLS Specifics
 case $DISPLAY:$XAUTHORITY in
   :*:?*)

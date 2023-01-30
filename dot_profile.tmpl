@@ -14,10 +14,10 @@ export ZDOTDIR=$HOME/.config/zsh
 
 # Locales
 export LC_ALL="fr_FR.UTF-8"
-TZ='Europe/Paris'; export TZ
 
 export PATH=$HOME/bin:$HOME/.local/bin:$PATH
 {{ if (eq .chezmoi.hostname "px-1021")}}host=$(hostname)
+TZ='Europe/Paris'; export TZ
 if [[ $host == "px-1021" ]]; then
     export HTTP_PROXY=http://proxy-bureautique.cls.fr:8080/
     export http_proxy=http://proxy-bureautique.cls.fr:8080/

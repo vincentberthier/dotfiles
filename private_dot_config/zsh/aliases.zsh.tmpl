@@ -46,7 +46,13 @@ alias archlinux-fix-keys="sudo pacman-key --init && sudo pacman-key --populate a
 
 # Generic useful aliases
 alias mkdir='mkdir -pv'
-alias ls='colorls --gs --sd --dark'
+{{ if (eq .chezmoi.hostname "px-1021") }}function ls () {
+   if [[ "$(hostname)" == "px-1021" ]]; then
+       colorls --gs --sd --dark $@
+    else
+        lsd -h $@
+    fi
+}{{ end }}
 {{ if (ne .chezmoi.hostname "visu01") }}alias cat='bat'
 alias less='cat'
 alias lls='lsd -lh --total-size'{{ end }}
@@ -59,6 +65,8 @@ alias diff='colordiff'
 alias ping='ping -c 5'
 alias compdb='b -vn clean update |& compiledb'
 if [[ "$TERM" == "xterm-kitty" ]]; then alias ssh='kitty +kitten ssh'; fi
+alias rsync='rsync -azv --progress'
+alias scp="rsync"
 alias yay='paru'
 alias pacman='paru'
 alias maj='paru -Syu --noconfirm && paru -Sc --noconfirm'
@@ -169,7 +177,7 @@ alias cmAC='chezmoi add --encrypt'
 # Tmux
 alias t='tmux'
 alias ta='t a -t'
-alias tn='t new -t'
+alias tn='t new -s'
 alias tls='t ls'
 
 # CLS & CNES Cluster’s modules

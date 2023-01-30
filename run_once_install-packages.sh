@@ -33,7 +33,7 @@ iscmd "zsh" || {
     echo "Installing ZSH"
     cd ~/tmp
     rm -f zsh*.tar.xz
-    wget https://www.zsh.org/pub/zsh-{5..9}.{0..9}.tar.xz 2> /dev/null
+    wget https://www.zsh.org/pub/zsh-{5..9}.{0..9}.tar.xz 2> /dev/null --no-check-certificate
     mkdir -p zsh && unxz zsh-*.tar.xz && tar -xvf zsh-*.tar -C zsh --strip-components 1
     cd zsh
 
