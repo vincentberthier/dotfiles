@@ -1,2 +1,9 @@
 README.md
-
+{{ if (and (ne .chezmoi.hostname "athena") (ne .chezmoi.hostname "gaia")) -}}
+.config/dunst
+.config/foot
+.config/hypr
+.config/spotify-tui
+.config/spotifyd
+.config/waybar
+{{- end }}

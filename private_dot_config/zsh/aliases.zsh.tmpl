@@ -23,9 +23,6 @@ ff() {
     find $root -name "*.${extension}" $@ -exec grep --color="auto" -Hn ${pattern} {} \;
 }
 
-# Colorisze ls
-alias ls='ls --color=auto'
-
 # confirm before overwriting something
 alias cp="cp -i"
 alias mv='mv -i'
@@ -44,18 +41,27 @@ alias free='free -m' # show sizes in MB
 # For when keys break
 alias archlinux-fix-keys="sudo pacman-key --init && sudo pacman-key --populate archlinux && sudo pacman-key --refresh-keys"
 
-# Generic useful aliases
-alias mkdir='mkdir -pv'
-{{ if (eq .chezmoi.hostname "px-1021") }}function ls () {
+# Colorisze ls
+## alias ls='ls --color=auto'
+{{- if (eq .chezmoi.hostname "px-1021") }}
+function ls () {
    if [[ "$(hostname)" == "px-1021" ]]; then
        colorls --gs --sd --dark $@
     else
         lsd -h $@
     fi
-}{{ end }}
-{{ if (ne .chezmoi.hostname "visu01") }}alias cat='bat'
+}
+{{- else }}
+alias ls="colorls --gs --sd --dark"
+{{- end }}
+
+# Generic useful aliases
+alias mkdir='mkdir -pv'
+{{- if (ne .chezmoi.hostname "visu01") }}
+alias cat='bat'
 alias less='cat'
-alias lls='lsd -lh --total-size'{{ end }}
+alias lls='lsd -lh --total-size'
+{{- end }}
 alias ll='ls -l'
 alias la='ls -A'
 alias le='ls -l -t -r'
@@ -180,10 +186,9 @@ alias ta='t a -t'
 alias tn='t new -s'
 alias tls='t ls'
 
-# CLS & CNES Cluster’s modules
-{{ if (or (eq .chezmoi.hostname "athena") (eq .chezmoi.hostname "gaia")) }}
+{{- if (or (eq .chezmoi.hostname "athena") (eq .chezmoi.hostname "gaia")) }}
 alias snx_start='sudo modprobe tun && sudo snx'
-{{ end }}
+{{- end }}
 
 if [[ "$TERM" == "xterm-kitty" ]]; then 
     alias si="kitty +kitten icat"

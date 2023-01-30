@@ -7,7 +7,7 @@ COLORS="$WOFI_HOME/colors"
 
 echo "$CONFIG $STYLE $COLORS"
 if [[ ! $(pidof wofi) ]]; then
-    wofi --show drun --prompt "Search..." --conf ${CONFIG} --style ${STYLE} --color ${COLORS}
+    wofi --show drun --prompt "Search..." --conf "$CONFIG" --style "$STYLE" --color "$COLORS"
 else
     pkill wofi
 fi

@@ -2,6 +2,8 @@ HISTSIZE=100000
 SAVEHIST=100000
 
 export PATH="$HOME/.local/bin":$PATH
-{{ if (ne .chezmoi.hostname "px-1021") }}export MANPAGER="nvim +Man!"{{ end }}
+{{- if (ne .chezmoi.hostname "px-1021") }}
+export MANPAGER="nvim +Man!"
+{{- end }}
 export MANWIDTH=999
 

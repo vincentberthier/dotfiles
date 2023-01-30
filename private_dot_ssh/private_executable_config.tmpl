@@ -4,11 +4,19 @@ Host *
     Compression=yes
 	IdentityFile ~/.ssh/cls
 
-{{ if (eq .chezmoi.hostname "px-1021") }}Host desktop{{ else }}Host cls{{ end }}
+{{- if (eq .chezmoi.hostname "px-1021") }}
+Host desktop
+{{- else }}
+Host cls
+{{- end }}
 	Hostname desktop.px.cls.fr
 	User vberthier
 
-{{ if (eq .chezmoi.hostname "px-1021") }}Host desktop1{{ else }}Host cls2{{ end }}
+{{ if (eq .chezmoi.hostname "px-1021") -}}
+Host desktop1
+{{- else }}
+Host cls2
+{{- end }}
 	Hostname desktop1.px.cls.fr
 	User vberthier
 
