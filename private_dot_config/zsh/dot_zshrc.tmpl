@@ -125,5 +125,5 @@ precmd() {
     zsh_add_file "cnes.zsh"
 {{ end }}
 
-if [[ -f /usr/bin/python3 ]]; then please; fi
+if [[ -f /usr/bin/python3 ]]; then please 2> /dev/null; fi
 
