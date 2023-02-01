@@ -4,7 +4,7 @@ alias nvimrc='nvim ~/.config/nvim'
 # Don’t use vim but nvim
 alias vi="nvim"
 alias vim="nvim"
-alias svi="sudo vi"
+alias svi="doas vi"
 alias vdev='nvim --cmd "set rtp+=./" .'
 
 # Colorize grep output (good for log files)
@@ -39,7 +39,7 @@ alias df='df -h'     # human-readable sizes
 alias free='free -m' # show sizes in MB
 
 # For when keys break
-alias archlinux-fix-keys="sudo pacman-key --init && sudo pacman-key --populate archlinux && sudo pacman-key --refresh-keys"
+alias archlinux-fix-keys="doas pacman-key --init && doas pacman-key --populate archlinux && doas pacman-key --refresh-keys"
 
 # Colorisze ls
 ## alias ls='ls --color=auto'
@@ -76,7 +76,7 @@ alias scp="rsync"
 alias yay='paru'
 alias pacman='paru'
 alias maj='paru -Syu --noconfirm && paru -Sc --noconfirm'
-alias sudo='sudo -i'
+alias doas='doas -i'
 alias wget='wget -c' # Resurme wget by default
 alias df='df -H'
 alias du='du -ch'
@@ -136,19 +136,19 @@ alias ...='z ../../..'
 alias ....='z ../../../..'
 
 # Cassandra
-alias cassandra_start='sudo systemctl start cassandra'
-alias cassandra_status='sudo systemctl status cassandra'
-alias cassandra_stop='sudo systemctl stop cassandra'
+alias cassandra_start='doas systemctl start cassandra'
+alias cassandra_status='doas systemctl status cassandra'
+alias cassandra_stop='doas systemctl stop cassandra'
 
 # Change terminal language
 alias set_en='export LC_ALL=en_GB.UTF-8'
 alias set_fr='export LC_ALL=fr_FR.UTF-8'
 
 # Reboot / halt / poweroff
-alias reboot='sudo /sbin/reboot'
-alias poweroff='sudo /sbin/poweroff'
-alias halt='sudo /sbin/halt'
-alias shutdown='sudo /sbin/shutdown'
+alias reboot='doas /sbin/reboot'
+alias poweroff='doas /sbin/poweroff'
+alias halt='doas /sbin/halt'
+alias shutdown='doas /sbin/shutdown'
 
 ## pass options to free ##
 alias meminfo='free -m -l -t'
