@@ -2,19 +2,19 @@
 
 # General
 show=drun
-prompt=Apps
+prompt=Applications
 normal_window=true
 layer=overlay
 term=foot
-columns=5
+columns=3
 
 # Geometry
-width=80%
-height=80%
+width=60%
+height=50%
 orientation=vertical
 halign=fill
 line_wrap=off
-dynamic_lines=false
+dynamic_lines=true
 
 # Images
 allow_markup=true
