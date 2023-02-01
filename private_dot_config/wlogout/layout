@@ -1,0 +1,54 @@
+{
+    "label" : "lock",
+    "action" : "swaylock",
+    "text" : "Lock",
+    "keybind" : "l",
+    "height" : 0.9,
+    "width" : 0.8,
+    "circular": "false"
+}
+{
+    "label" : "hibernate",
+    "action" : "systemctl hibernate",
+    "text" : "Hibernate",
+    "keybind" : "h",
+    "height" : 0.9,
+    "width" : 0.8,
+    "circular": "false"
+}
+{
+    "label" : "logout",
+    "action" : "loginctl terminate-user $USER",
+    "text" : "Logout",
+    "keybind" : "e",
+    "height" : 0.9,
+    "width" : 0.8,
+    "circular": "false"
+}
+{
+    "label" : "shutdown",
+    "action" : "systemctl poweroff",
+    "text" : "Shutdown",
+    "keybind" : "s",
+    "height" : 0.9,
+    "width" : 0.8,
+    "circular": "false"
+}
+{
+    "label" : "suspend",
+    "action" : "systemctl suspend",
+    "text" : "Suspend",
+    "keybind" : "u",
+    "height" : 0.9,
+    "width" : 0.8,
+    "circular": "false"
+}
+{
+    "label" : "reboot",
+    "action" : "systemctl reboot",
+    "text" : "Reboot",
+    "keybind" : "r",
+    "height" : 0.9,
+    "width" : 0.8,
+    "circular": "false"
+}
