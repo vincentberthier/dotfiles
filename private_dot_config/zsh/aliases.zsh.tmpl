@@ -187,7 +187,7 @@ alias tn='t new -s'
 alias tls='t ls'
 
 {{- if (or (eq .chezmoi.hostname "athena") (eq .chezmoi.hostname "gaia")) }}
-alias snx_start='sudo modprobe tun && sudo snx'
+alias snx_start='doas modprobe tun && doas snx'
 {{- end }}
 
 if [[ "$TERM" == "xterm-kitty" ]]; then 
