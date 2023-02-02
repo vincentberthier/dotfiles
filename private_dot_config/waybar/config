@@ -53,6 +53,10 @@
         "format": " {}%",
         "format-alt":" {used:0.1f}G",
         "max-length": 10
+        "states": {
+            "warning": 80,
+            "normal": 50,
+        }
     },
     "custom/updates": {
         "exec": "paru -Sy > /dev/null && (paru -Qua) | wc -l",

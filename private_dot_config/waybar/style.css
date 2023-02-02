@@ -148,3 +148,6 @@ tooltip {
     margin-left: 0px;
 }
 
+#memory.warning {
+    color: #fab387;
+}
