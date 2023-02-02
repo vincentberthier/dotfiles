@@ -20,7 +20,7 @@ ROOT=$PWD
 for dir in */; do
     echo "------------- Traitement de $dir -------------" >> "$LOG_PATH"
     cd "$ROOT/$dir"
-    /usr/bin/duplicacy backup -threads 4 -stats -dry-run >> "$LOG_PATH"
+    /usr/bin/duplicacy backup -threads 4 -stats >> "$LOG_PATH"
 done
 echo "------------- Vérification d’intégrité -------------" >> "$LOG_PATH"
 /usr/bin/duplicacy check -stats -tabular >> "$LOG_PATH"
