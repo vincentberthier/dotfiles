@@ -1,23 +1,23 @@
 {
+    "output": "DP-2",
     "layer": "top",
     "position": "top",
-    "mod": "dock",
+    "mode": "dock",
     "exclusive": true,
     "passtrough": false,
     "gtk-layer-shell": true,
     "height": 0,
     "modules-left": [
         "clock",
-        // "cpu",
-        // "memory",
         "custom/weather",
         "wlr/workspaces"
     ],
-    "modules-center": ["hyprland/window"],
+    // "modules-center": ["hyprland/window"],
     "modules-right": [
         "tray",
         "custom/updates",
-        // "custom/language",
+        "cpu",
+        "memory",
         "pulseaudio",
         "pulseaudio#microphone"
     ],
@@ -38,33 +38,27 @@
             "4": "",
             "5": "",
             "urgent": "",
-            "active": "",
+            "active": "",
             "default": ""
           }
     },
-    // "cpu": {
-    //     "interval": 10,
-    //     "format": " {}%",
-    //     "max-length": 10,
-    //     "on-click": ""
-    // },
-    // "memory": {
-    //     "interval": 30,
-    //     "format": " {}%",
-    //     "format-alt":" {used:0.1f}G",
-    //     "max-length": 10
-    // },
+    "cpu": {
+        "interval": 1,
+        "format": " {usage}%",
+        "max-length": 10,
+        "on-click": ""
+    },
+    "memory": {
+        "interval": 5,
+        "format": " {}%",
+        "format-alt":" {used:0.1f}G",
+        "max-length": 10
+    },
     "custom/updates": {
         "exec": "(paru -Qua) | wc -l",
-        "interval": 7200,
+        "interval": 3600,
         "format": " {}"
     },
-    // "custom/language": {
-    //     "exec": "cat /tmp/kb_layout",
-    //     "interval": 3,
-    //     "format": " {}",
-    //     "tooltip": false
-    // },
     "custom/weather" : {
         "tooltip" : true,
         "format" : "{}",
@@ -108,6 +102,11 @@
         "on-scroll-up": "pamixer --default-source -i 5",
         "on-scroll-down": "pamixer --default-source -d 5",
         "scroll-step": 5
-    }
+    },
+   //  "hyprland/submap": {
+   //      "format": "✌️ {}",
+   //      "max-length": 8,
+   //      "tooltip": false
+   //  }
 }
 

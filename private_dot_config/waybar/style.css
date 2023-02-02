@@ -3,9 +3,9 @@
 * {
     border: none;
     border-radius: 0;
-    font-family: Cartograph CF Nerd Font, monospace;
+    font-family: FiraCode Nerd Font, monospace;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 12px;
     min-height: 0;
 }
 
@@ -53,6 +53,8 @@ tooltip {
 #custom-language,
 #custom-updates,
 #custom-caffeine,
+#cpu,
+#memory,
 #custom-weather,
 #window,
 #clock,
