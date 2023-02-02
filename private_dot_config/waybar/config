@@ -55,7 +55,7 @@
         "max-length": 10
     },
     "custom/updates": {
-        "exec": "(paru -Qua) | wc -l",
+        "exec": "paru -Sy && (paru -Qua) | wc -l",
         "interval": 3600,
         "format": " {}"
     },
