@@ -1,0 +1,16 @@
+[
+    {
+        "name": "Aegis",
+        "id": "ConfigFiles",
+        "repository": "/home/vincent/.config",
+        "storage": "/mnt/aegis/backup",
+        "encrypted": false,
+        "no_backup": false,
+        "no_restore": false,
+        "no_save_password": false,
+        "nobackup_file": "",
+        "keys": null,
+        "filters": "../filters.txt",
+        "exclude_by_attribute": false
+    }
+]

@@ -1,0 +1,65 @@
+# ============================ useless files anywhere, by extension
+# e:(?i).*.msf*$
+# e:(?i)\.bac$
+# e:(?i)\.back$
+# e:(?i)\.bak$
+# e:(?i)\.bkp$
+# e:(?i)\.obj$
+# e:(?i)\.old$
+# e:(?i)\.part$
+
+e:(?i)\.!ut$
+e:(?i)\.bup$
+e:(?i)\.cache$
+e:(?i)\.crdownload$
+e:(?i)\.dmp$
+e:(?i)\.dov$
+e:(?i)\.dump$
+e:(?i)\.err$
+e:(?i)\.ffs_lock$
+e:(?i)\.ffs_tmp$
+e:(?i)\.lck$
+e:(?i)\.prv$
+e:(?i)\.rbf$
+
+################
+# Custom rules #
+################
+
+# Temporary directories, caches
+e:(?i)\.(tmp|temp)$
+e:(?i)(^|/)\.cache$
+e:(?i)(^|/)\.cache/
+e:(?i)(^|/)temp/
+e:(?i)(^|/)tmp/
+e:(?i)(^|/)cache/
+e:(?i)/Package Cache/
+e:(?i)(^|/)\.~lock.*
+
+# Tools
+e:(?i)(^|/)\.clangd/
+e:(?i)(^|/)\.vscode/
+e:(?i)(^|/)\.mypy_cache/
+
+# Git Folders
+e:(?i)(^|/)\.git/
+e:(?i)(^|/)\.svn/
+
+# Rust
+e:(?i)(^|/)target/
+
+# Doxygen
+e:(?i)(^|/)docs/doxyoutput/
+e:(?i)(^|/)docs/api/
+e:(?i)(^|/)docs/_build/
+
+# Random stuff
+e:(?i)(^|/)Crashpad/
+e:(?i)(^|/)CacheStorage/
+e:(?i)(^|/)Code Cache/
+e:(?i)^discord/
+e:(?i)^Signal/stickers.noindex/
+e:(?i)^Microsoft/
+
+# Include everything else
+i:.*
