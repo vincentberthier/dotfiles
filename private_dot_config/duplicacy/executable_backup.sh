@@ -10,17 +10,17 @@ mkdir -p "$LOG_PATH"
 find "$LOG_PATH" -type f -mtime 6 -delete
 
 # Create the new log file
-LOG_PATH=$LOG_PATH/$(date +%Y-%m-%d).log
+LOG_FILE=$LOG_FILE/$(date +%Y-%m-%d).log
 
-echo "-------------------------------------------------------" >> "$LOG_PATH"
-echo "Début de la sauvegarde: $(date)" >> "$LOG_PATH"
-echo "-------------------------------------------------------" >> "$LOG_PATH"
+echo "-------------------------------------------------------" >> "$LOG_FILE"
+echo "Début de la sauvegarde: $(date)" >> "$LOG_FILE"
+echo "-------------------------------------------------------" >> "$LOG_FILE"
 
 ROOT=/home/vincent/.config/duplicacy/
 for dir in */; do
-    echo "------------- Traitement de $dir -------------" >> "$LOG_PATH"
+    echo "------------- Traitement de $dir -------------" >> "$LOG_FILE"
     cd "$ROOT/$dir"
-    /usr/bin/duplicacy backup -threads 4 -stats >> "$LOG_PATH"
+    /usr/bin/duplicacy backup -threads 4 -stats >> "$LOG_FILE"
 done
-echo "------------- Vérification d’intégrité -------------" >> "$LOG_PATH"
-/usr/bin/duplicacy check -stats -tabular >> "$LOG_PATH"
+echo "------------- Vérification d’intégrité -------------" >> "$LOG_FILE"
+/usr/bin/duplicacy check -stats -tabular >> "$LOG_FILE"
