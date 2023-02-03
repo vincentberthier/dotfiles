@@ -16,7 +16,7 @@ echo "-------------------------------------------------------" >> "$LOG_FILE"
 echo "Début de la sauvegarde: $(date)" >> "$LOG_FILE"
 echo "-------------------------------------------------------" >> "$LOG_FILE"
 
-REPO_ROOT=/home/vincent/.config/duplicacy/
+REPO_ROOT=/home/vincent/.config/duplicacy
 for dir in "$REPO_ROOT"/*/; do
     echo "------------- Traitement de $dir -------------" >> "$LOG_FILE"
     cd "$dir"
