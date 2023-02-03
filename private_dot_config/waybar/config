@@ -71,7 +71,7 @@
     },
     "custom/backup": {
         "exec": "~/.config/waybar/scripts/backup.sh",
-        "interval": 300,
+        "interval": 15,
         "format": "{}",
         "return-type": "json"
     },

@@ -118,7 +118,7 @@ tooltip {
 }
 
 #clock {
-    color: @peach;
+    color: @text;
     border-radius: 10px 0px 0px 10px;
     margin-left: 5px;
     border-right: 0px;
