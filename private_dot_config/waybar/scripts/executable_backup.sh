@@ -11,10 +11,10 @@ SYNC_LOG="${LOG_PATH}/$(date +%Y-%m-%d)-sync.log"
 TEXT=""
 REMOTE_OK="󰒍"
 REMOTE_ERROR="󰒎"
-REMOTE_DELAY=3600
+REMOTE_DELAY=21600
 DISK_OK="󰋊"
 DISK_ERROR="󱁌"
-DISK_DELAY=900
+DISK_DELAY=3600
 
 echo "$BACKUP_LOG" " - " "$SYNC_LOG" >> ~/waybar.log
 NOW=$(date +%s)
