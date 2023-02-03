@@ -10,7 +10,7 @@ mkdir -p "$LOG_PATH"
 find "$LOG_PATH" -type f -mtime 6 -delete
 
 # Create the new log file
-LOG_PATH=$XDG_DATA_HOME/duplicacy/$(date +%Y-%m-%d).log
+LOG_PATH=LOG_PATH/$(date +%Y-%m-%d).log
 
 echo "-------------------------------------------------------" >> "$LOG_PATH"
 echo "Début de la sauvegarde: $(date)" >> "$LOG_PATH"
