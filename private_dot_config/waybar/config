@@ -73,7 +73,7 @@
         "exec": "~/.config/waybar/scripts/backup.sh",
         "interval": 300,
         "format": "{}",
-        "return-type": "html"
+        "return-type": "json"
     },
     "custom/weather" : {
         "tooltip" : true,
