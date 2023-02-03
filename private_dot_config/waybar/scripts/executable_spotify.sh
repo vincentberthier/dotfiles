@@ -3,9 +3,9 @@
 metadata=$(playerctl -p spotifyd metadata)
 
 ART_RE="spotifyd mpris:artUrl\s+([0-9A-Za-z_/\:\.-]+)"
-TITLE_RE="spotifyd xesam:title\s+([0-9A-Za-z, \.\:-]+)"
-ALBUM_RE="spotifyd xesam:album\s+([0-9A-Za-z, \.\:-]+)"
-ARTIST_RE="spotifyd xesam:albumArtist\s+([0-9A-Za-z, \.\:-]+)"
+TITLE_RE="spotifyd xesam:title\s+([0-9A-Za-z'’, \.\:-]+)"
+ALBUM_RE="spotifyd xesam:album\s+([0-9A-Za-z'’, \.\:-]+)"
+ARTIST_RE="spotifyd xesam:albumArtist\s+([0-9A-Za-z'’, \.\:-]+)"
 
 ART=""
 if [[ $metadata =~ $ART_RE ]]; then
