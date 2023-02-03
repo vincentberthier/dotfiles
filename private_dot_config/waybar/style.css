@@ -64,7 +64,8 @@ tooltip {
 #workspaces,
 #tray,
 #backlight,
-#custom-backup {
+#custom-backup,
+#custom-spotify {
     background: @base;
     padding: 0px 10px;
     margin: 3px 0px;
@@ -79,6 +80,11 @@ tooltip {
 }
 
 #tray {
+    border-radius: 10px;
+    margin-right: 10px;
+}
+
+#custom-spotify {
     border-radius: 10px;
     margin-right: 10px;
 }

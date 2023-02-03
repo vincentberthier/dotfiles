@@ -14,6 +14,7 @@
     ],
     // "modules-center": ["hyprland/window"],
     "modules-right": [
+        "custom/spotify",
         "tray",
         "custom/updates",
         "custom/backup",
@@ -81,6 +82,14 @@
         "restart-interval" : 300,
         "exec" : "~/.config/waybar/scripts/waybar-wttr.py",
         "return-type" : "json"
+    },
+    "custom/spotify": {
+        "interval": 5,
+        "format": "{}",
+        "on-click": "playerctl -p spotifyd play-pause",
+        "on-click-forward": "playerctl -p spotifyd next",
+        "on-click-backward": "playerctl -p spotifyd previous",
+        "exec": "~/.config/waybar/scripts/track_spotify.sh"
     },
     "tray": {
         "icon-size": 13,
