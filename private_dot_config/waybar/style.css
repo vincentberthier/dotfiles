@@ -33,7 +33,7 @@ tooltip {
 }
 
 #workspaces button.focused {
-    color: subtext0;
+    color: @subtext0;
     background: @mantle;
     border-radius: 10px;
 }
@@ -148,14 +148,26 @@ tooltip {
     margin-left: 0px;
 }
 
+#cpu.critical {
+    color: @text;
+}
+
+#cpu.warning {
+    color: @peach;
+}
+
+#cpu.normal {
+    color: @red;
+}
+
+#memory {
+    color: @red;
+}
+
 #memory.warning {
     color: @peach;
 }
 
 #memory.normal {
     color: @text;
-}
-
-#memory {
-    color: @red;
 }
