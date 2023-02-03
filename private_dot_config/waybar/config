@@ -72,7 +72,8 @@
     "custom/backup": {
         "exec": "~/.config/waybar/scripts/backup.sh",
         "interval": 300,
-        "format": "{}"
+        "format": "{}",
+        "return-type": "html"
     },
     "custom/weather" : {
         "tooltip" : true,
