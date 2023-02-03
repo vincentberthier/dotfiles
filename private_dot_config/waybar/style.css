@@ -149,6 +149,12 @@ tooltip {
     margin-left: 0px;
 }
 
+#custom-backup {
+    border-radius: 0px 10px 10px 0px;
+    border-right: 0px;
+    margin-left: 0px;
+}
+
 #cpu.critical {
     color: @red;
 }
