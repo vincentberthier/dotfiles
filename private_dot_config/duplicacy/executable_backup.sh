@@ -3,7 +3,7 @@
 # Cron job to backup locally
 # To init a new repository: duplicacy init --repository FOLDER_TO_BACKUP --storage-name Aegis BACKUP_NAME /mnt/aegis/backup/
 
-LOG_PATH="/home/vincent/.config/duplicacy/"
+LOG_PATH="/home/vincent/.local/share/duplicacy/"
 mkdir -p "$LOG_PATH"
 
 # Remove log files older than a weep
