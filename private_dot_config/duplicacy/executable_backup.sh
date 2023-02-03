@@ -10,7 +10,7 @@ mkdir -p "$LOG_PATH"
 find "$LOG_PATH" -type f -mtime 6 -delete
 
 # Create the new log file
-LOG_FILE=$LOG_FILE/$(date +%Y-%m-%d).log
+LOG_FILE=$LOG_PATH/$(date +%Y-%m-%d).log
 
 echo "-------------------------------------------------------" >> "$LOG_FILE"
 echo "Début de la sauvegarde: $(date)" >> "$LOG_FILE"
