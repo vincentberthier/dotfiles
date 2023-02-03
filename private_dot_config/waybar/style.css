@@ -163,3 +163,15 @@ tooltip {
 #memory.critical {
     color: @red;
 }
+
+#span.error {
+    color: @red;
+}
+
+#span.warning {
+    color: @peach;
+}
+
+#span.ok {
+    color: @green;
+}
