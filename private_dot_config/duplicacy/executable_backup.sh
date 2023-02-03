@@ -16,7 +16,7 @@ echo "-------------------------------------------------------" >> "$LOG_PATH"
 echo "Début de la sauvegarde: $(date)" >> "$LOG_PATH"
 echo "-------------------------------------------------------" >> "$LOG_PATH"
 
-ROOT=$PWD
+ROOT=/home/vincent/.config/duplicacy/
 for dir in */; do
     echo "------------- Traitement de $dir -------------" >> "$LOG_PATH"
     cd "$ROOT/$dir"

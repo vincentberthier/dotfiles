@@ -149,25 +149,17 @@ tooltip {
 }
 
 #cpu.critical {
-    color: @text;
+    color: @red;
 }
 
 #cpu.warning {
     color: @peach;
 }
 
-#cpu.normal {
-    color: @red;
-}
-
-#memory {
-    color: @red;
-}
-
 #memory.warning {
     color: @peach;
 }
 
-#memory.normal {
-    color: @text;
+#memory.critical {
+    color: @red;
 }
