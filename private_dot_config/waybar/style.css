@@ -72,6 +72,12 @@ tooltip {
     border: 1px solid @mantle;
 }
 
+#custom-backup {
+    padding: 0px 5px;
+    border-radius: 0 10px 10px 0;
+    margin-right: 10px;
+}
+
 #tray {
     border-radius: 10px;
     margin-right: 10px;
@@ -149,11 +155,10 @@ tooltip {
     margin-left: 0px;
 }
 
-/* #custom-backup { */
-/*     border-radius: 0px 10px 10px 0px; */
-/*     border-right: 0px; */
-/*     margin-left: 0px; */
-/* } */
+#cpu {
+    border-right: 0px;
+    border-radius: 10px 0px 0px 10px;
+}
 
 #cpu.critical {
     color: @red;
