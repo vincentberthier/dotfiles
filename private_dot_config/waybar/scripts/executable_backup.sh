@@ -16,7 +16,6 @@ DISK_OK="󰋊"
 DISK_ERROR="󱁌"
 DISK_DELAY=3600
 
-echo "$BACKUP_LOG" " - " "$SYNC_LOG" >> ~/waybar.log
 NOW=$(date +%s)
 
 if [ ! -f "$BACKUP_LOG" ]; then
