@@ -23,4 +23,4 @@ for dir in */; do
     /usr/bin/duplicacy backup -threads 4 -stats >> "$LOG_FILE"
 done
 echo "------------- Vérification d’intégrité -------------" >> "$LOG_FILE"
-/usr/bin/duplicacy check -stats -tabular >> "$LOG_FILE"
+/usr/bin/duplicacy check -stats -tabular >> "$LOG_PATH/$(date +%Y-%m-%d)-sync.log"
