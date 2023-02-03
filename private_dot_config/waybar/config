@@ -16,6 +16,7 @@
     "modules-right": [
         "tray",
         "custom/updates",
+        "custom/backup",
         "cpu",
         "memory",
         "pulseaudio",
@@ -67,6 +68,11 @@
         "exec": "paru -Sy > /dev/null && (paru -Qua) | wc -l",
         "interval": 3600,
         "format": " {}"
+    },
+    "custom/backup": {
+        "exec": "~/.config/waybar/scripts/backup.sh",
+        "interval": 300,
+        "format": "{}"
     },
     "custom/weather" : {
         "tooltip" : true,
