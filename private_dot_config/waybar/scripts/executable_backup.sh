@@ -36,7 +36,7 @@ fi
 if [ ! -f "$SYNC_LOG" ]; then
     TEXT="${TEXT} <span foreground='#f38ba8'>${REMOTE_ERROR}</span>"
 else
-    LAST_MODIF=$(date -r "$BACKUP_LOG" +%s)
+    LAST_MODIF=$(date -r "$SYNC_LOG" +%s)
     ((ELAPSED = NOW - LAST_MODIF))
     ((STALE = REMOTE_DELAY * 2 / 3))
     if (( $ELAPSED > $REMOTE_DELAY )); then
