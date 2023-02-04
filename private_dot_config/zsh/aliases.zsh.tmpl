@@ -185,6 +185,9 @@ alias ta='t a -t'
 alias tn='t new -s'
 alias tls='t ls'
 
+# Postgress
+alias pg='doas -u postgres'
+
 {{- if (or (eq .chezmoi.hostname "athena") (eq .chezmoi.hostname "gaia")) }}
 alias snx_start='doas modprobe tun && doas snx'
 {{- end }}
