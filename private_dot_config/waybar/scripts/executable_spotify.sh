@@ -24,7 +24,7 @@ if [[ $metadata =~ $ARTIST_RE ]]; then
     ARTIST="${BASH_REMATCH[1]}"
 fi
 
-if [[ "$ARTIST - $TITLE" == $(cat /tmp/spotify_currently_playing.txt 2> /dev/null) ]]; then
+if [[ "$ARTIST - $TITLE" == $(cat /tmp/spotify_currently_playing) ]]; then
     exit 0
 fi
 
