@@ -16,8 +16,8 @@
         "custom/spotify",
         "tray",
         "custom/updates",
-        "custom/backup",
         "custom/vpn",
+        "custom/backup",
         "cpu",
         "memory",
         "pulseaudio",
@@ -80,7 +80,7 @@
         "exec": "~/.config/waybar/scripts/vpn.sh",
         "interval": 1,
         "format": "{}"
-    }
+    },
     "custom/weather" : {
         "tooltip" : true,
         "format" : "{}",

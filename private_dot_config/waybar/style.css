@@ -65,7 +65,8 @@ tooltip {
 #tray,
 #backlight,
 #custom-backup,
-#custom-spotify {
+#custom-spotify,
+#custom-vpn {
     background: @base;
     padding: 0px 10px;
     margin: 3px 0px;

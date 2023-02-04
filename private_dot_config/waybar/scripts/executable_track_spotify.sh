@@ -1,6 +1,6 @@
 #!/bin/bash
 
-STATUS=$(playerctl -p spotifyd status)
+STATUS=$(playerctl -p spotifyd status 2> /dev/null)
 TRACK=$(cat /tmp/spotify_currently_playing.txt)
 RES=""
 

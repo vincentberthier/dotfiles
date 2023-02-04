@@ -1,6 +1,6 @@
 #!/bin/bash
 
-metadata=$(playerctl -p spotifyd metadata)
+metadata=$(playerctl -p spotifyd metadata 2> /dev/null)
 
 ART_RE="spotifyd mpris:artUrl\s+([0-9A-Za-z_/\:\.-]+)"
 TITLE_RE="spotifyd xesam:title\s+([0-9A-Za-z'’, \.\:-]+)"
