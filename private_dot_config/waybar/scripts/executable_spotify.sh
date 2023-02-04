@@ -24,6 +24,10 @@ if [[ $metadata =~ $ARTIST_RE ]]; then
     ARTIST="${BASH_REMATCH[1]}"
 fi
 
+if [[ "$ARTIST - $TITLE" == $(cat /tmp/spotify_currently_playing) ]]
+exit 0
+fi
+
 wget -O /tmp/spotify_art "$ART" 2> /dev/null
 notify-send -u low -a Spotify -i /tmp/spotify_art "$ARTIST" "[$ALBUM] $TITLE"
 echo "$ARTIST - $TITLE" > /tmp/spotify_currently_playing.txt
