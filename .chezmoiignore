@@ -1,10 +1,10 @@
 README.md
 {{ if (and (ne .chezmoi.hostname "athena") (ne .chezmoi.hostname "gaia")) -}}
-.config/dunst
-.config/duplicacy
-.config/foot
-.config/hypr
-.config/spotify-tui
-.config/spotifyd
-.config/waybar
+private_dot_config/dunst
+private_dot_config/duplicacy
+private_dot_config/foot
+private_dot_config/hypr
+private_dot_config/spotify-tui
+private_dot_config/spotifyd
+prvate_dot_config/waybar
 {{- end }}
