@@ -78,7 +78,7 @@
     },
     "custom/vpn": {
         "exec": "~/.config/waybar/scripts/vpn.sh",
-        "interval": 1,
+        "interval": 15,
         "format": "{}"
     },
     "custom/weather" : {
