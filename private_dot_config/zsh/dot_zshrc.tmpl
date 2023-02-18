@@ -4,14 +4,14 @@
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+    source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
 HISTFILE=~/.histfile
 
 # Useful options
 setopt autocd chaselinks pushd_silent # change directories
-setopt extendedglob nomatch # Expansion & globbing 
+setopt extendedglob nomatch # Expansion & globbing
 setopt interactive_comments
 # stty stop undef  # Prevents ctrl-s from freezing the terminal
 zle_highlight=('paste:none')
@@ -59,6 +59,7 @@ zsh_add_plugin "zsh-users/zsh-syntax-highlighting"
 zsh_add_plugin "hlissner/zsh-autopair"
 zsh_add_plugin "zsh-users/zsh-history-substring-search"
 zsh_add_plugin "MichaelAquilina/zsh-auto-notify"
+zsh_add_plugin
 zsh_add_completion "esc/conda-zsh-completion" false
 # More plugins: https://github.com/unixorn/awesome-zsh-plugins
 # More completions: https://github.com/zsh-users/zsh-completions
@@ -101,8 +102,8 @@ bindkey '^[[4~' end-of-line
 autoload -Uz add-zsh-hook
 
 function xterm_title_precmd () {
-	print -Pn -- '\e]2;%n@%m: %~\a'
-	[[ "$TERM" == 'screen'* ]] && print -Pn -- '\e_\005{g}%n\005{-}@\005{m}%m\005{-}: \005{B}%~\005{-}\e\\'
+    print -Pn -- '\e]2;%n@%m: %~\a'
+    [[ "$TERM" == 'screen'* ]] && print -Pn -- '\e_\005{g}%n\005{-}@\005{m}%m\005{-}: \005{B}%~\005{-}\e\\'
 }
 
 function xterm_title_preexec () {
@@ -126,4 +127,3 @@ precmd() {
 {{ end }}
 
 if [[ -f /usr/bin/python3 ]]; then please 2> /dev/null; fi
-
