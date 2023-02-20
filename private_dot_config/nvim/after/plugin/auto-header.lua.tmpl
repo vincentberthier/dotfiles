@@ -4,7 +4,11 @@ if not status then
 	return
 end
 
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
+
 headers.setup({
+	key = "<leader>ah",
 	templates = {
 		{
 			language = "*",
@@ -30,44 +34,44 @@ headers.setup({
 				"Modified By: ",
 				"Copyright ",
 			},
-            {
-                language = "bash",
-                prefix = "# ",
-                block = "",
-                block_length = 0,
-                before = {
-                    "#!/bin/bash",
-                    "",
-                },
-                after = { "" },
-                template = {
-                    "File: #file_relative_path",
-                    "Project: #project_name",
-                    "Creation date: #date_now",
-                    "Author: #author_name <#author_mail>",
-                    "-----",
-                    "Last modified: #date_now",
-                    "Modified By: #author_name",
-                    "-----",
-                    "Copyright © #cp_year #cp_holders - All rights reserved",
-                },
-                track_change = {
-                    "File: ",
-                    "Last modified: ",
-                    "Modified By: ",
-                    "Copyright ",
-                },
-            },
-        },
-        {
+			{
+				language = "bash",
+				prefix = "# ",
+				block = "",
+				block_length = 0,
+				before = {
+					"#!/bin/bash",
+					"",
+				},
+				after = { "" },
+				template = {
+					"File: #file_relative_path",
+					"Project: #project_name",
+					"Creation date: #date_now",
+					"Author: #author_name <#author_mail>",
+					"-----",
+					"Last modified: #date_now",
+					"Modified By: #author_name",
+					"-----",
+					"Copyright © #cp_year #cp_holders - All rights reserved",
+				},
+				track_change = {
+					"File: ",
+					"Last modified: ",
+					"Modified By: ",
+					"Copyright ",
+				},
+			},
+		},
+		{
 			language = "python",
 			prefix = "# ",
 			block = "",
 			block_length = 0,
 			before = {
-                "#!env python3",
-                "",
-            },
+				"#!env python3",
+				"",
+			},
 			after = { "" },
 			template = {
 				"File: #file_relative_path",
@@ -87,7 +91,7 @@ headers.setup({
 				"Copyright ",
 			},
 		},
-        {
+		{
 			language = "lua",
 			prefix = "-- ",
 			block = "",
@@ -166,7 +170,8 @@ headers.setup({
 		},
 	},
 	projects = {
-		{{ if (eq .chezmoi.hostname "px-1021") }}{
+		{{ if (eq .chezmoi.hostname "px-1021") -}}
+        {
             project_name = "Tools & Utils",
             root = "/",
             create = false,
@@ -174,7 +179,12 @@ headers.setup({
             data = {
                 cp_holders = "Collecte Localisation Satellite (CLS)",
                 author_mail = "vberthier@groupscls.com",
-            },{{ else if (eq .chezmoi.hostname "visu-01" ) }}{},{{ else }}{
+            },
+        },
+        {{ else if (eq .chezmoi.hostname "visu-01" ) -}}
+        {},
+        {{ else -}}
+        {
 			project_name = "Vincent’s projects",
 			root = "/home/vincent/code/",
 			create = true,
@@ -214,7 +224,7 @@ headers.setup({
 				cp_holders = "Vincent Berthier",
 				author_mail = "",
 			},
-        {{ end }}
 		},
+        {{ end -}}
 	},
 })

@@ -7,24 +7,30 @@ case $DISPLAY:$XAUTHORITY in
     XAUTHORITY=~/.Xauthority xauth merge "$XAUTHORITY";;
 esac
 
+iscmd() {
+    command -v >&- "$@"
+}
+
 ######## Conda initilization
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/homelocal/anaconda/conda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
- eval "$__conda_setup"
-else
- if [ -f "/homelocal/anaconda/conda/etc/profile.d/conda.sh" ]; then
-     . "/homelocal/anaconda/conda/etc/profile.d/conda.sh"
- else
-     export PATH="/homelocal/anaconda/conda/bin:$PATH"
- fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
-conda deactivate
+iscmd conda && {
+    __conda_setup="$('/homelocal/anaconda/conda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+    if [ $? -eq 0 ]; then
+     eval "$__conda_setup"
+    else
+     if [ -f "/homelocal/anaconda/conda/etc/profile.d/conda.sh" ]; then
+         . "/homelocal/anaconda/conda/etc/profile.d/conda.sh"
+     else
+         export PATH="/homelocal/anaconda/conda/bin:$PATH"
+     fi
+    fi
+    unset __conda_setup
+    # <<< conda initialize <<<
+    conda deactivate
 
-export CONDA=/homelocal/vberthier/.conda/envs/dev
+    export CONDA=/homelocal/vberthier/.conda/envs/dev
+}
 
 host=`hostname`
 

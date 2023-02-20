@@ -22,7 +22,7 @@ local options = {
 	undofile = true, -- persist undo tree files here
 
 	-- Search highlighting & incremental
-	hlsearch = false, -- keep the searched terms highlited
+	hlsearch = true, -- keep the searched terms highlited
 	incsearch = true, -- allow incremental search
 	ignorecase = true, -- ignore case when searching
 	smartcase = true, -- override ignorecase if uppercase present

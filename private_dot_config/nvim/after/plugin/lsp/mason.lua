@@ -24,7 +24,6 @@ mason_lspconfig.setup({
 		"sumneko_lua",
 		"clangd",
 		"rust_analyzer",
-		"pylsp",
 	},
 	automatic_installation = true,
 })
@@ -39,9 +38,7 @@ mason_null.setup({
 		"autoflake",
 		"autopep8",
 		"isort",
-		"mypy",
 		"pydocstyle",
-		"pylint",
 		-- rust
 		"rustfmt",
 		-- C++-

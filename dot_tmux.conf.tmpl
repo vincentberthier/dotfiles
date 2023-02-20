@@ -1,4 +1,10 @@
-set -g default-command {{ if (eq .chezmoi.hostname "px-1021") }}zsh{{ else if (eq .chezmoi.hostname "visu01") }}/home/ad/berthiv/.local/bin/zsh{{ else }}/usr/bin/zsh{{ end }}
+{{ if (eq .chezmoi.hostname "px-1021") -}}
+set -g default-command zsh
+{{ else if (eq .chezmoi.hostname "visu01") -}}
+set -g default-command /home/ad/berthiv/.local/bin/zsh
+{{ else -}}
+set -g default-command /usr/bin/zsh
+{{ end -}}
 
 set -g mouse on
 set -g prefix C-a
@@ -62,8 +68,8 @@ set -g base-index 1
 set-window-option -g pane-base-index 1
 unbind n
 unbind p
-bind -n M-s previous-window
-bind -n M-r next-window
+bind -n M-t previous-window
+bind -n M-n next-window
 bind -n M-c command-prompt -I "#W" { rename-window "%%" }
 bind X kill-window
 bind C-x confirm-before -p "Kill other windows? (y/n)" "kill-window -a"
