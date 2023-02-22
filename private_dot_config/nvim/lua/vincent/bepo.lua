@@ -23,24 +23,24 @@ keymap("v", "h", "t", opts)
 keymap("v", "<S-h>", "<S-t>", opts)
 keymap("x", "h", "t", opts)
 keymap("x", "<S-h>", "<S-t>", opts)
-keymap("t", "h", "t", opts)
-keymap("t", "<S-h>", "<S-t>", opts)
+keymap("o", "h", "t", opts)
+keymap("o", "<S-h>", "<S-t>", opts)
 keymap("n", "j", "s", opts)
 keymap("n", "<S-s>", "mzJ`z", opts) -- Append the next line to the current one after a space
 keymap("v", "j", "s", opts)
 keymap("v", "<S-s>", "mzJ`z", opts) -- Append the next line to the current one after a space
 keymap("x", "j", "s", opts)
 keymap("x", "<S-s>", "mzJ`z", opts) -- Append the next line to the current one after a space
-keymap("t", "j", "s", opts)
-keymap("t", "<S-s>", "mzJ`z", opts) -- Append the next line to the current one after a space
+keymap("o", "j", "s", opts)
+keymap("o", "<S-s>", "mzJ`z", opts) -- Append the next line to the current one after a space
 keymap("n", "k", "r", opts)
 keymap("n", "<S-k>", "<S-r>", opts)
 keymap("v", "k", "r", opts)
 keymap("v", "<S-k>", "<S-r>", opts)
 keymap("x", "k", "r", opts)
 keymap("x", "<S-k>", "<S-r>", opts)
-keymap("t", "k", "r", opts)
-keymap("t", "<S-k>", "<S-r>", opts)
+keymap("o", "k", "r", opts)
+keymap("o", "<S-k>", "<S-r>", opts)
 keymap("n", "l", "nzzzv", opts) -- Keep the cursor in the middle of the screen while searching for terms
 keymap("n", "<S-l>", "Nzzzv", opts) -- Keep the cursor in the middle of the screen while searching for terms
 
