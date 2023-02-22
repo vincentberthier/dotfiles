@@ -12,7 +12,7 @@
   full_screen = <Super>F11
 [profiles]
   [[default]]
-    background_darkness = 0.75
+    background_darkness = 0.8
     background_type = image
     cursor_color = "#D8DEE9"
     font = Hack 10

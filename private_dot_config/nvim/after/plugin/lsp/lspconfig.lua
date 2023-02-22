@@ -12,7 +12,11 @@ end
 lsp.preset("recommended")
 
 -- Fix Undefined global 'vim'
+<<<<<<< Updated upstream
 lsp.configure("ls_lua", {
+=======
+lsp.configure("lua_ls", {
+>>>>>>> Stashed changes
 	settings = {
 		Lua = {
 			diagnostics = {
