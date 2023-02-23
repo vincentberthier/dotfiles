@@ -7,6 +7,7 @@ end
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
+
 headers.setup({
 	key = "<leader>ah",
 	templates = {
@@ -228,3 +229,17 @@ headers.setup({
         {{ end -}}
 	},
 })
+
+local status_wk, wk = pcall(require, "which-key")
+if not status_wk then
+	print("Could not load which-key, maps will be defaults")
+	return
+end
+wk.register(
+{
+    ["<leader>"] = {
+        i = {
+            h = { "<cmd>require('auto-header').add_or_update_header()<CR>", "Add/update file header" },
+        },
+    },
+}, { mode = "n" })

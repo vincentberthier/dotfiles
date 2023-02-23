@@ -21,11 +21,7 @@ mason.setup()
 
 mason_lspconfig.setup({
 	ensure_installed = {
-<<<<<<< Updated upstream
-		"ls_lua",
-=======
 		"lua_ls",
->>>>>>> Stashed changes
 		"clangd",
 		"rust_analyzer",
 	},

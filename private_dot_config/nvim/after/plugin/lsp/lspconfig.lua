@@ -205,6 +205,11 @@ navic.setup({
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities.offsetEncoding = { "utf-32" }
 require("lspconfig").clangd.setup({ capabilities = capabilities })
+local status_wk, wk = pcall(require, "which-key")
+if not status_wk then
+	print("Could not load which-key, maps will be defaults")
+	return
+end
 
 local function on_attach(client, bufnr)
 	local opts = { buffer = bufnr, remap = false }
@@ -217,24 +222,31 @@ local function on_attach(client, bufnr)
 		navic.attach(client, bufnr)
 	end
 
-	vim.keymap.set("n", "gf", "<cmd>Lsgsaga lsp_finder<CR>", opts) -- show definitions & references
-	vim.keymap.set("n", "gd", "<cmd>Lspsaga peek_definition<CR>", opts)
-	vim.keymap.set("n", "gD", "<cmd>lua vim.lsp.buf.declarations<CR>", opts)
-	vim.keymap.set("n", "gi", "<cmd>lua vim.lsp.buf.implementation()<CR>", opts)
-	vim.keymap.set("n", "<leader>ca", "<cmd>Lspsaga code_action<CR>", opts)
-	vim.keymap.set("n", "<leader>rn", "<cmd>Lspsaga rename<CR>", opts)
-	vim.keymap.set("n", "<leader>D", "<cmd>Lspsaga show_line_diagnostics<CR>", opts)
-	vim.keymap.set("n", "<leader>d", "<cmd>Lspsaga show_cursor_diagnostics<CR>", opts)
-	vim.keymap.set("n", "[d", "<cmd>Lspsaga diagnostic_jump_prev<CR>", opts)
-	vim.keymap.set("n", "]d", "<cmd>Lspsaga diagnostic_jump_next<CR>", opts)
-	vim.keymap.set("n", "K", "<cmd>Lspsaga hover_doc<CR>", opts)
-	vim.keymap.set("n", "<leader>o", "<cmd>LSoutlineToggle<CR>", opts)
-	vim.keymap.set("i", "<C-h>", vim.lsp.buf.signature_help, opts)
-	vim.keymap.set("n", "<leader>lf", vim.lsp.buf.format, opts)
+	wk.register({
+		["<leader>"] = {
+			c = {
+				a = { "<cmd>Lspsaga code_action<CR>", "Action" },
+				c = { "<cmd>Lspsaga show_cursor_diagnostitcs<CR>", "Show cursor’s diagnostics" },
+				d = { "<cmd>Lspsaga peek_definition<CR>", "Peek definition" },
+				D = { "<cmd>lua vim.lsp.buf.declarations<CR>", "Goto declaration" },
+				f = { "<cmd>Lspsaga lsp_finder<CR>", "Find symbol’s definition" },
+				i = { "<cmd>Lua vim.lsp.buf.implementation()<CR>", "Goto implementation" },
+				l = { "<cmd>Lspsaga show_line_diagnostitcs<CR>", "Show line’s diagnostics" },
+				n = { "<cmd>Lspsaga diagnostic_jump_next<CR>", "Next diagnostics" },
+				o = { "<cmd>LSoutlineToggle<CR>", "Toggles outline" },
+				r = { "<cmd>Lspsaga rename<CR>", "Rename symbol" },
+				t = { "<cmd>Lspsaga diagnostic_jump_prev<CR>", "Previous diagnostics" },
+			},
+			l = {
+				f = { vim.lsp.buf.format, "Format the buffer" },
+			},
+		},
+		K = { "<cmd>Lspsaga hover_doc ++keep<CR>", "Get hover doc" },
+	}, { mode = "n", buffer = bufnr })
 
-	--[[ vim.keymap.set("n", "gr", "<nop>", opts) ]]
-	--[[ vim.keymap.set("n", "<leader>vws", vim.lsp.buf.workspace_symbol, opts) ]]
-	--[[ vim.keymap.set("n", "gl", vim.diagnostic.open_float, opts) ]]
+	wk.register({
+		["<C-h>"] = { vim.lsp.buf.signature_help, "Show function’s signature" },
+	}, { mode = "i", buffer = bufnr })
 end
 
 lsp.on_attach(on_attach)

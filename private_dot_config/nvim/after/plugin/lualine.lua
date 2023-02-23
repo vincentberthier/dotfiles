@@ -131,7 +131,7 @@ lualine.setup({
 		lualine_a = { "mode" },
 		lualine_b = { "branch", diff },
 		lualine_c = { "filename" },
-		lualine_x = { diagnostics, lsp, get_spaces, "filetype" },
+		lualine_x = { diagnostics, lsp, get_spaces },
 		lualine_y = { "progress" },
 		lualine_z = { "location" },
 	},
@@ -141,8 +141,11 @@ lualine.setup({
 	},
 	winbar = {
 		lualine_a = {},
-		lualine_b = { "filename" },
-		lualine_c = { navic_line },
+		lualine_b = {},
+		lualine_c = {
+			"filetype",
+			navic_line,
+		},
 		lualine_x = {},
 		lualine_y = {},
 		lualine_z = {},
