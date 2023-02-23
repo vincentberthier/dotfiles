@@ -177,4 +177,13 @@ lazy.setup({
 
 	-- Coloration for kitty conf
 	"fladson/vim-kitty",
+
+	-- Keymap / rebinds handling
+	{
+		"folke/which-key.nvim",
+		config = function()
+			vim.o.timeout = true
+			vim.o.timeoutlen = 300
+		end,
+	},
 })
