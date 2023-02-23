@@ -35,124 +35,149 @@ vim.g.clipboard = {
 --   term mode = "t"
 --   command mode = "c"
 
--- Increment / decrement
-keymap("n", "<leader>+", "<C-a>", opts)
-keymap("n", "<leader>-", "<C-x>", opts)
+local status_wk, wk = pcall(require, "which-key")
+if not status_wk then
+    print("Could not configure keymap")
+    return
+end
 
--- Split windows
-keymap("n", "<leader>sv", "<C-w>v", opts) -- split window vertically
-keymap("n", "<leader>sh", "<C-w>s", opts) -- split window vertically
-keymap("n", "<leader>se", "<C-w>=", opts) -- make split windows of equal height
-keymap("n", "<leader>sc", ":close<CR>", opts) -- close current split window
-keymap("n", "<leader>sm", ":MaximizerToggle<CR>", opts) -- toggle split windows maximization
+-- Normal mode
+wk.register({
+    ["<leader>"] = {
+        ["+"] = { "<C-a>", "Increment value" },
+        ["-"] = { "<C-x>", "Decrement value" },
+        b = {
+            name = "Buffers",
+            c = { ":bdelete<CR>", "Closes the current buffer" },
+        },
+        c = {
+            name = "Clear",
+            h = { ":nohl<CR>", "Clear highlights" },
+        },
+        d = {
+            name = "Debugging",
+            b = { "<cmd>lua require('dap').toggle_breakpoint()<CR>", "Toggle breakpoint" },
+            B = { "<cmd>lua require('dap').set_breakpoint(vim.fn.input('Breakpoint condition: '))<CR>", "Conditional breakpoint" },
+            l = { "<cmd>lua require('dap').set_breakpoint(nil, nil, vim.fn.input('Log point message: '))<CR>", "Logging breakpoint" },
+            s = { "<cmd>lua require('dap').step_into()<CR>", "Step into" },
+            n = { "<cmd>lua require('dap').step_over()<CR>", "Step over" },
+            o = { "<cmd>lua require('dap').step_out()<CR>", "Step out" },
+            c = { "<cmd>lua require('dap').continue()<CR>", "Start / Continue" },
+            e = { "<cmd>lua require('dap').eval()<CR>", "Eval" },
+            C = { "<cmd>lua require('dap').close()<CR>", "Close" },
+            L = { "<cmd>lua require('dap').run_last()<CR>", "Close" },
+        },
+        e = { ":NvimTreeToggle<CR>", "Show files tree" },
+        g = {
+            name = "Git",
+            c = { "<cmd> Telescope git_commits<CR>", "Show commits" },
+            d = { "<cmd> Telescope git_bcommits<CR>", "Show buffer’s commits" },
+            b = { "<cmd> Telescope git_branches<CR>", "Show branches" },
+            s = { "<cmd> Telescope git_status<CR>", "Show status" },
+        },
+        i = {
+            name = "Insert",
+        },
+        l = {
+            name = "LSP",
+            r = { "<cmd> Telescope lsp_refererences<CR>", "Find references" },
+            d = { "<cmd> Telescope diagnostics<CR>", "Show diagnostics" },
+            s = { "<cmd> Telescope lsp_document_symbols<CR>", "Show document’s symbols" },
+            w = { "<cmd> Telescope lsp_workspace_symbols<CR>", "Show workspace’s symbols" },
+            l = { ":LspRestart<CR>", "Restart LSP" },
+        },
+        m = {
+            "Mode",
+            e = { ":set spelllang=en<CR>", "English language" },
+            f = { ":set spelllang=fr<CR>", "French language" },
+            c = { ":set nospell<CR>:set nowrap<CR>", "Code mode" },
+            t = { ":set spell<CR>:set wrap<CR>", "Text mode" },
+        },
+        r = { [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]], "Replace word" },
+        s = {
+            name = "Splits",
+            v = { "<C-w>v", "Split vertically" },
+            h = { "<C-w>v", "Split horizontally" },
+            e = { "<C-w>=", "Equalize splits size" },
+            c = { ":close<CR>", "Close the current split window" },
+            m = { ":MaximizerToggle<CR>", "Toggles the current split window max size" },
+            ["<Up>"] = { ":resize +2<CR>", "Increase height" },
+            ["<Down>"] = { ":resize -2<CR>", "Decrease height" },
+            ["<Left>"] = { ":vertical resize -2<CR>", "Decrease width" },
+            ["<Right>"] = { ":vertical resize +2<CR>", "Increase width" },
+        },
+        t = {
+            name = "Telescope",
+            t = { "<cmd> lua require'telescope.builtin'.find_files(require('telescope.themes').get_dropdown({ previewer = false }))<CR>", "Quick find file"},
+            f = { "<cmd> Telescope find_files<CR>", "Find file" },
+            s = { "<cmd> Telescope live_grep<CR>", "Live grep" },
+            g = { "<cmd> Telescope git_files<CR>", "Find git file" },
+            b = { "<cmd> Telescope buffers<CR>", "Find buffer" },
+            h = { "<cmd> Telescope help_tags<CR>", "Navigate help tags" },
+            k = { "<cmd> Telescope keymaps<CR>", "Show active keybinds" },
+        },
+        T = {
+            name = "Tabs",
+            o = { ":tabn<CR>", "Open a new tab" },
+            c = { ":tabc<CR>", "Closes the current tab" },
+        },
+        u = { ":UndotreeShow<CR>", "Show undo tree" },
+        x = { "<cmd>!chmod +x %<CR>", "Make executable" },
+    },
+    -- DAP
+    ["<F3>"] = { "<cmd>lua require('dap').continue()<CR>", "Start / Continue debugging" },
+    ["<F5>"] = { "<cmd>lua require('dap').toggle_breakpoint()<CR>", "Toggle breakpoint" },
+    ["<F10>"] = { "<cmd>lua require('dap').step_over()<CR>", "Step over" },
+    ["<F11>"] = { "<cmd>lua require('dap').step_into()<CR>", "Step into" },
+    ["<F12>"] = { "<cmd>lua require('dap').step_out()<CR>", "Step out" },
+    ["<C-Up>"] = { ":resize +2<CR>", "Increase height" },
+    ["<C-Down>"] = { ":resize -2<CR>", "Decrease height" },
+    ["<C-Left>"] = { ":vertical resize -2<CR>", "Decrease width" },
+    ["<C-Right>"] = { ":vertical resize +2<CR>", "Increase width" },
+    x = { '"_x', "Delete character without saving" },
+    X = { '"_X', "Backspace without saving" },
+    Y = { "yg$", "Copy to end of line" },
+    ["<C-d>"] = { "<C-d>zz", "Scroll down" },
+    ["<C-u>"] = { "<C-u>zz", "Scroll up" },
+    ["<C-f>"] = { "<cmd>silent !tmux neww tmux-sessionizer<CR>", "Next tmux session" },
+},
+    -- options
+    { mode = "n" }
+)
 
--- Navigate in buffers
-keymap("n", "<leader>bc", ":bdelete<CR>", opts)
+-- Visual mode
+wk.register({
+    ["<leader>"] = {
+        p = { [["_dP]], "Paste without copy" },
+        P = { [["+P]], "Clip paste without copy" },
+        y = { [["+y]], "Copy to clipboard" },
+        d = { [["_d]], "Delete without copy" },
+        D = { [["+d]], "Delete to clipboard" },
+    },
+    [">"] = { ">gv", "Increase indentation" },
+    ["<"] = { "<gv", "Decrease indentation" },
+},
+-- options
+{ mode = "v" }
+)
 
--- Resize split windows
-keymap("n", "<C-Up>", ":resize +2<CR>", opts)
-keymap("n", "<C-Down>", ":resize -2<CR>", opts)
-keymap("n", "<C-Left>", ":vertical resize -2<CR>", opts)
-keymap("n", "<C-Right>", ":vertical resize +2<CR>", opts)
-
--- Tabs
-keymap("n", "<leader>to", ":tabn<CR>", opts) -- open new tab
-keymap("n", "<leader>tc", ":tabn<CR>", opts) -- close current tab
-
--- Stay in indent mode
-keymap("v", "<", "<gv", opts)
-keymap("v", ">", ">gv", opts)
-
--- Show / hide the undo tree
-keymap("n", "<leader>u", ":UndotreeShow<CR>", opts)
-
--- Copy / paste / delete
-keymap("n", "x", '"_x', opts) -- delete the character without saving it
-keymap("n", "<S-X> ", '"_<S-X>', opts) -- delete the character without saving it
-keymap("n", "Y", "yg$", opts) -- copy from position to end of line
--- Keep the cursor in the middle while scrolling
-keymap("n", "<C-d>", "<C-d>zz", opts)
-keymap("n", "<C-u>", "<C-u>zz", opts)
-
--- Search
-keymap("n", "<leader>nh", ":nohl<CR>", opts) -- remove the search highlights
-
--- Paste over while keeping current copied data
-keymap("x", "<leader>p", [["_dP]], opts)
-keymap("x", "<leader>P", [["+p]], opts)
-
--- Copy to clipboard
-keymap("n", "<leader>y", [["+y]], opts)
-keymap("v", "<leader>y", [["+y]], opts)
-keymap("n", "<leader>Y", [["+Y]], opts)
-keymap("n", "<leader>D", [["+d]], opts)
-keymap("v", "<leader>D", [["+d]], opts)
-
--- Delete but don't copy
-keymap("n", "<leader>d", [["_d]], opts)
-keymap("v", "<leader>d", [["_d]], opts)
+-- Visual block line
+wk.register({
+    ["<leader>"] = {
+        p = { [["_dP]], "Paste without copy" },
+        P = { [["+P]], "Clip paste without copy" },
+        y = { [["+y]], "Copy to clipboard" },
+        d = { [["_d]], "Delete without copy" },
+        D = { [["+d]], "Delete to clipboard" },
+    },
+    [">"] = { ">gv", "Increase indentation" },
+    ["<"] = { "<gv", "Decrease indentation" },
+},
+-- options
+{ mode = "x" }
+)
 
 -- Disable Q and q
 keymap("n", "Q", "<nop>", opts)
 keymap("n", "q", "<nop>", opts)
 
--- Go to another session
-keymap("n", "<C-f>", "<cmd>silent !tmux neww tmux-sessionizer<CR>", opts)
-
--- Quick fix navigation??
---keymap("n", "<C-s>", "<cmd>cnext<CR>zz", opts)
---keymap("n", "<C-r>", "<cmd>cprev<CR>zz", opts)
--- Replace current word in buffer
-keymap("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]], opts)
--- Make current file executable
-keymap("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true })
-
--- Plugin keymaps
-keymap("n", "<leader>e", ":NvimTreeToggle<CR>", opts) -- Toggles netrw in a left bar
-
--- Telecope
--- Find files
-keymap(
-	"n",
-	"<leader>f",
-	"<cmd>lua require'telescope.builtin'.find_files(require('telescope.themes').get_dropdown({ previewer = false }))<CR>",
-	opts
-)
-keymap("n", "<leader>ff", "<cmd> Telescope find_files<CR>", opts)
-keymap("n", "<leader>fs", "<cmd> Telescope live_grep<CR>", opts)
-keymap("n", "<C-p>", "<cmd> Telescope git_files<CR>", opts)
-keymap("n", "<leader>fb", "<cmd>Telescope buffers<CR>", opts)
-keymap("n", "<leader>fh", "<cmd>Telescope help_tags<CR>", opts)
-keymap("n", "<leader>fk", "<cmd> Telescope keymaps<CR>", opts)
-
--- LSP stuff
-keymap("n", "<leader>lr", "<cmd> Telescope lsp_references<CR>", opts)
-keymap("n", "<leader>ld", "<cmd> Telescope diagnostics<CR>", opts)
-keymap("n", "<leader>ls", "<cmd> Telescope lsp_document_symbols<CR>", opts)
-keymap("n", "<leader>lw", "<cmd> Telescope lsp_workspace_symbols<CR>", opts)
-keymap("n", "<leader>rs", ":LspRestart<CR>", opts)
-
--- Git stuff
-keymap("n", "<leader>gc", "<cmd>Telescope git_commits<CR>", opts)
-keymap("n", "<leader>gfc", "<cmd>Telescope git_bcommits<CR>", opts)
-keymap("n", "<leader>gb", "<cmd>Telescope git_branches<CR>", opts)
-keymap("n", "<leader>gsp", "<cmd>Telescope git_status<CR>", opts)
-
--- Dap
-keymap("n", "<F3>", "<cmd>lua require('dap').toggle_breakpoint()<CR>", opts)
-keymap("n", "<leader>db", "<cmd>lua require('dap').toggle_breakpoint()<CR>", opts)
-keymap("n", "<leader>dB", "<cmd>lua require('dap').set_breakpoint(vim.fn.input('Breakpoint condition: '))<CR>", opts)
-keymap(
-	"n",
-	"<leader>dbl",
-	"<cmd>lua require('dap').set_breakpoint(nil, nil, vim.fn.input('Log point message: '))<CR>",
-	opts
-)
-keymap("n", "<leader>ds", "<cmd>lua require('dap').continue()<CR>", opts)
-keymap("n", "<leader>dl", "<cmd>lua require('dap').run_last()<CR>", opts)
-keymap("n", "<leader>de", "<cmd>lua require('dapui').eval()<CR>", opts)
-keymap("n", "<F5>", "<cmd>lua require('dap').continue()<CR>", opts)
-keymap("n", "<C-F5>", "<cmd>lua require('dap').close()<CR>", opts)
-keymap("n", "<F10>", "<cmd>lua require('dap').step_over()<CR>", opts)
-keymap("n", "<F11>", "<cmd>lua require('dap').step_into()<CR>", opts)
-keymap("n", "<F12>", "<cmd>lua require('dap').step_out()<CR>", opts)
