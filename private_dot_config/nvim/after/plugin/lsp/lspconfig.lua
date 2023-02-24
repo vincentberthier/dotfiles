@@ -226,7 +226,7 @@ local function on_attach(client, bufnr)
 		["<leader>"] = {
 			c = {
 				a = { "<cmd>Lspsaga code_action<CR>", "Action" },
-				c = { "<cmd>Lspsaga show_cursor_diagnostitcs<CR>", "Show cursor’s diagnostics" },
+				c = { "<cmd>Lspsaga show_cursor_diagnostics<CR>", "Show cursor’s diagnostics" },
 				d = { "<cmd>Lspsaga peek_definition<CR>", "Peek definition" },
 				D = { "<cmd>lua vim.lsp.buf.declarations<CR>", "Goto declaration" },
 				f = { "<cmd>Lspsaga lsp_finder<CR>", "Find symbol’s definition" },
