@@ -1,0 +1,193 @@
+format = """
+[](#89B4FA)\
+$os\
+$username\
+[](fg:#11111b bg:#89B4FA)\
+[](bg:#CDD6F4 fg:#89B4FA)\
+$directory\
+[](fg:#cdd6f4 bg:#fab387)\
+$git_branch\
+$git_state\
+$git_status\
+$git_metrics\
+[](fg:#fab387 bg:#cba6f7)\
+$c\
+$cmake\
+$elixir\
+$elm\
+$golang\
+$haskell\
+$java\
+$julia\
+$nim\
+$rust\
+[](fg:#cba6f7 bg:#a6e3a1)\
+$docker_context\
+$conda\
+$container\
+$hostname\
+[](fg:#a6e3a1)
+$character
+"""
+
+right_format = """
+[](fg:#f9e2af)\
+$cmd_duration\
+[ ](fg:#89B4FA bg:#f9e2af)\
+$time
+"""
+
+# Disable the blank line at the start of the prompt
+# add_newline = false
+
+# You can also replace your username with a neat symbol like  to save some space
+[username]
+show_always = true
+style_user = "fg:#11111b bg:#89B4FA"
+style_root = "fg:#11111b bg:#f38ba8"
+format = '[$user ]($style)'
+
+[directory]
+style = "fg:#11111b bg:#cdd6f4"
+read_only_style = "fg:#11111b bg:#cdd6f4"
+format = "[$path]($style)[$read_only]($read_only_style)"
+truncation_length = 3
+truncation_symbol = "…/"
+
+# Here is how you can shorten some long paths by text replacement
+# similar to mapped_locations in Oh My Posh:
+[directory.substitutions]
+"Documents" = " "
+"Downloads" = " "
+"Music" = " "
+"Pictures" = " "
+# Keep in mind that the order matters. For example:
+# "Important Documents" = "  "
+# will not be replaced, because "Documents" was already substituted before.
+# So either put "Important Documents" before "Documents" or use the substituted version:
+# "Important  " = "  "
+
+[c]
+symbol = " "
+style = "fg:#11111b bg:#cba6f7"
+format = '[[ $symbol ($version) ](fg:#11111b bg:#cba6f7)]($style)'
+detect_extensions = ["c", "h", "hxx", "cxx", "mxx"]
+detect_files = ["buildfile"]
+
+[character]
+success_symbol = '[❯](bold green) '
+error_symbol = '[❯](bold red) '
+
+[cmake]
+symbol = '△ '
+style = "fg:#11111b bg:#cba6f7"
+format = '[[ $symbol ($version) ](fg:#11111b bg:#cba6f7)]($style)'
+
+[cmd_duration]
+style = "fg:#11111b bg:#f9e2af"
+format = "[$duration  ]($style)"
+min_time_to_notify = 10_000
+
+[conda]
+symbol = "🅒 "
+style = "fg:#11111b bg:#a6e3a1"
+format = '[[ $symbol $environment ](fg:#11111b bg:#a6e3a1)]($style) $path'
+
+[container]
+symbol = "⬢ "
+style = "fg:#11111b bg:#a6e3a1"
+format = '[[ $symbol $name ](fg:#11111b bg:#a6e3a1)]($style) $path'
+
+[docker_context]
+symbol = " "
+style = "fg:#11111b bg:#a6e3a1"
+format = '[[ $symbol $context ](fg:#11111b bg:#a6e3a1)]($style) $path'
+
+[elixir]
+symbol = " "
+style = "fg:#11111b bg:#cba6f7"
+format = '[[ $symbol ($version) ](fg:#11111b bg:#cba6f7)]($style)'
+
+[elm]
+symbol = " "
+style = "fg:#11111b bg:#cba6f7"
+format = '[[ $symbol ($version) ](fg:#11111b bg:#cba6f7)]($style)'
+
+[git_branch]
+symbol = ""
+style = "fg:#11111b bg:#fab387"
+format = '[[ $symbol $branch ](fg:#11111b bg:#fab387)]($style)'
+
+[git_state]
+style = "fg:#11111b bg:#fab387"
+format = '[[ $symbol $branch ](fg:#11111b bg:#fab387)]($style)'
+cherry_pick = '[ PICKING](bold red)'
+merge = '[ MERGING](bold red)'
+rebase = '[ REBASE](bold red)'
+
+[git_status]
+style = "fg:#11111b bg:#fab387"
+format = '[[($all_status$ahead_behind )](fg:#11111b bg:#fab387)]($style)'
+
+[git_metrics]
+added_style = "fg:#11111b bg:#fab387"
+deleted_style = "fg:#11111b bg:#fab387"
+format = '([ $added]($added_style))([ $deleted]($deleted_style))'
+disabled = false
+
+
+[golang]
+symbol = " "
+style = "fg:#11111b bg:##cba6f7"
+#format = '[[ $symbol ($version) ](fg:#11111b bg:#cba6f7)]($style)'
+format = '[[ $symbol](fg:#11111b bg:#cba6f7)]($style)'
+[haskell]
+symbol = " "
+style = "fg:#11111b bg:#cba6f7"
+format = '[[ $symbol ($version) ](fg:#11111b bg:#cba6f7)]($style)'
+
+[hostname]
+ssh_symbol = "🌐 "
+style = "fg:#11111b bg:#a6e3a1"
+format = '[[ $ssh_symbol $hostname ](fg:#11111b bg:#a6e3a1)]($style) $path'
+
+[java]
+symbol = " "
+style = "fg:#11111b bg:#cba6f7"
+format = '[[ $symbol ($version) ](fg:#11111b bg:#cba6f7)]($style)'
+
+[julia]
+symbol = " "
+style = "fg:#11111b bg:#cba6f7"
+format = '[[ $symbol ($version) ](fg:#11111b bg:#cba6f7)]($style)'
+
+[nodejs]
+symbol = ""
+style = "fg:#11111b bg:#cba6f7"
+format = '[[ $symbol ($version) ](fg:#11111b bg:#cba6f7)]($style)'
+disabled = true
+
+[nim]
+symbol = " "
+style = "fg:#11111b bg:#cba6f7"
+format = '[[ $symbol ($version) ](fg:#11111b bg:#cba6f7)]($style)'
+
+[os]
+style = "fg:#11111b bg:#89B4FA"
+format = '[$symbol ]($style)'
+disabled = true
+
+[package]
+disabled = true
+
+[rust]
+symbol = ""
+style = "fg:#11111b bg:#cba6f7"
+format = '[[ $symbol ($version) ](fg:#11111b bg:#cba6f7)]($style)'
+
+[time]
+disabled = false
+time_format = "%R" # Hour:Minute Format
+style = "fg:#11111b bg:#89b4fa"
+format = '[[  $time ](fg:#11111b bg:#89b4fa)]($style)'
+
