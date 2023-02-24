@@ -231,7 +231,7 @@ local function on_attach(client, bufnr)
 				D = { "<cmd>lua vim.lsp.buf.declarations<CR>", "Goto declaration" },
 				f = { "<cmd>Lspsaga lsp_finder<CR>", "Find symbol’s definition" },
 				i = { "<cmd>Lua vim.lsp.buf.implementation()<CR>", "Goto implementation" },
-				l = { "<cmd>Lspsaga show_line_diagnostitcs<CR>", "Show line’s diagnostics" },
+				l = { "<cmd>Lspsaga show_line_diagnostics<CR>", "Show line’s diagnostics" },
 				n = { "<cmd>Lspsaga diagnostic_jump_next<CR>", "Next diagnostics" },
 				o = { "<cmd>LSoutlineToggle<CR>", "Toggles outline" },
 				r = { "<cmd>Lspsaga rename<CR>", "Rename symbol" },
