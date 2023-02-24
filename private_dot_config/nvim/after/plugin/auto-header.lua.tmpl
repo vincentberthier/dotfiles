@@ -240,7 +240,7 @@ wk.register(
     ["<leader>"] = {
         a = { h = { "which_key_ignore" } },
         i = {
-            h = { "<cmd>require('auto-header').add_or_update_header()<CR>", "Add/update file header" },
+            h = { "<cmd>lua require('auto-header').add_or_update_header()<CR>", "Add/update file header" },
         },
     },
 }, { mode = "n" })
