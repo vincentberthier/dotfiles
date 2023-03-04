@@ -73,3 +73,7 @@ Host cnes
 	User berthiv
 	{{ if (eq .chezmoi.hostname "px-1021") }}ProxyCommand ssh login-cnes -W %h:%p{{ else }}ProxyJump login-cnes{{ end }}
 
+{{ if (eq .chezmoi.hostname "gaia") -}}
+Host vm-bot
+    Hostname vps-8bd6e95d.vps.ovh.net
+    User debian
