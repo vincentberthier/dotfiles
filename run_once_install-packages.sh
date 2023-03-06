@@ -75,9 +75,7 @@ iscmd "lsd" || {
 iscmd "colorls" || {
     echo "Installing colorls"
     if [[ "$(hostname)" == "visu01" ]]; then module load ruby; fi
-    gem install colorls --user 2> /dev/null
-    dir=$(ls -t -1 ~/.local/share/gem/ruby/ | head -n 1)
-    ln -s "${HOME}/.local/share/gem/ruby/${dir}/bin/colorls" ~/.local/bin/colorls
+    gem install colorls --user -n~/.local/bin 2> /dev/null
 }
 
 iscmd "bat" || {
@@ -151,8 +149,8 @@ fi
 iscmd "nvim" || {
     cd ~/tmp
     echo "Installing neovim"
-    git clone https://github.com/neovim/neovim
-    cd neovim && make CMAKE_BUILD_TYPE=RelWithDebInfo CMAKE_INSTALL_PREFX="$HOME"/.local/
+    git clone --depth 1 https://github.com/neovim/neovim
+    cd neovim && make CMAKE_BUILD_TYPE=Release CMAKE_EXTRA_FLAGS="-DCMAKE_INSTALL_PREFIX="$HOME"/.local/"
     make install
     cd "$HOME"
 }
