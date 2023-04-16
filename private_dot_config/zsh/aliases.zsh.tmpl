@@ -193,7 +193,7 @@ alias pg='doas -u postgres'
 
 {{- if (or (eq .chezmoi.hostname "athena") (eq .chezmoi.hostname "gaia")) }}
 alias snx_start='doas modprobe tun && doas snx'
-alias regen_initramfs='doas mkinitcpio --config /etc/mkinitcpio.conf --generate /boot/initramfs-custom.img'
+alias regen_initramfs='doas mkinitcpio --config /etc/mkinitcpio.conf --generate /boot/initramfs-custom.img --kernel $(\ls /usr/lib/modules/)'
 alias htop='btop'
 {{- end }}
 
