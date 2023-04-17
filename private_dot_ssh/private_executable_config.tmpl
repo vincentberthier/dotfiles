@@ -25,9 +25,14 @@ Host alten
 	User vberthier
 	{{ if (ne .chezmoi.hostname "px-1021") }}ProxyJump cls{{ end }}
 
-Host pdap
-	Hostname jasondev-02.cls.fr
+Host pdap7
+	Hostname jasondev-02-new.qt.cls.fr
 	User devuser3
+	{{ if (ne .chezmoi.hostname "px-1021") }}ProxyJump cls{{ end }}
+
+Host pdap
+    Hostname s6-rh8devs02.qt.cls.fr
+    User opdevel1
 	{{ if (ne .chezmoi.hostname "px-1021") }}ProxyJump cls{{ end }}
 
 Host pdap-test
