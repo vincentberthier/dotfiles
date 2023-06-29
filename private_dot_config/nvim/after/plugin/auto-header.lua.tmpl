@@ -173,11 +173,11 @@ headers.setup({
 	projects = {
 		{{ if (eq .chezmoi.hostname "px-1021") -}}
         {
-            project_name = "Tools & Utils",
             root = "/",
             create = false,
             update = true,
             data = {
+                project_name = "Tools & Utils",
                 cp_holders = "Collecte Localisation Satellite (CLS)",
                 author_mail = "vberthier@groupscls.com",
             },
@@ -186,27 +186,26 @@ headers.setup({
         {},
         {{ else -}}
         {
-			project_name = "Vincent’s projects",
 			root = "/home/vincent/code/",
 			create = true,
 			update = true,
 			data = {
+                project_name = "Vincent’s projects",
 				cp_holders = "Vincent Berthier",
 				author_mail = "vincent.berthier@posteo.org",
 			},
 		},
 		{
-			project_name = "Athena’s Crucible",
 			root = "/home/vincent/code/athena_crucible/",
 			create = true,
 			update = true,
 			data = {
+                project_name = "Athena’s Crucible",
 				cp_holders = "Vincent Berthier",
 				author_mail = "vincent.berthier@posteo.org",
 			},
 		},
 		{
-			project_name = "auto-header.nvim",
 			root = "/home/vincent/code/auto-header.nvim",
 			create = false,
 			update = true,
@@ -222,6 +221,7 @@ headers.setup({
 				headers.licenses.MIT,
 			},
 			data = {
+                project_name = "auto-header.nvim",
 				cp_holders = "Vincent Berthier",
 				author_mail = "",
 			},
