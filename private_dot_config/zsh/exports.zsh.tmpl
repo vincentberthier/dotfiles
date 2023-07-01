@@ -4,6 +4,7 @@ SAVEHIST=100000
 export PATH="$HOME/.local/bin":$PATH
 {{- if (ne .chezmoi.hostname "px-1021") }}
 export MANPAGER="nvim +Man!"
+export PATH="$HOME/.cargo/bin:$PATH"
 {{- end }}
 export MANWIDTH=999
 
