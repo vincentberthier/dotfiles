@@ -94,6 +94,7 @@ wk.register({
             c = { ":set nospell<CR>:set nowrap<CR>", "Code mode" },
             t = { ":set spell<CR>:set wrap<CR>", "Text mode" },
             h = { ":nohl<CR>", "Clear highlights" },
+            x = { "<cmd>!chmod +x %<CR>", "Make executable" },
         },
         r = { [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]], "Replace word" },
         s = {
@@ -124,7 +125,14 @@ wk.register({
             c = { ":tabc<CR>", "Closes the current tab" },
         },
         u = { ":UndotreeShow<CR>", "Show undo tree" },
-        x = { "<cmd>!chmod +x %<CR>", "Make executable" },
+        x = { 
+            name = "Trouble",
+            x = { ":TroubleToggle<CR>", "Toggle the Trouble pannel" },
+            w = { ":TroubleToggle workspace_diagnostics<CR>", "Toggle workspace diagnostics window" },
+            d = { ":TroubleToggle document_diagnostics<CR>", "Toggle document diagnostics window" },
+            l = { ":TroubleToggle loclist<CR>", "Toggle Trouble localisation lists" },
+            q = { ":TroubleToggle quickfix<CR>", "Toggle Trouble quickfist" },
+        },
     },
     x = { '"_x', "Delete character without saving" },
     X = { '"_X', "Backspace without saving" },
