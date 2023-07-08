@@ -273,5 +273,12 @@ rust.setup({
 			-- Rust code actions
 			vim.keymap.set("n", "<leader>a", rust.code_action_group.code_action_group, opts)
 		end,
+		settings = {
+			["rust-analyzer"] = {
+				checkOnSave = {
+					command = "clippy",
+				},
+			},
+		},
 	},
 })

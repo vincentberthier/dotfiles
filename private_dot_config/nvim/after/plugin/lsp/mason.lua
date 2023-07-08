@@ -32,7 +32,7 @@ mason_lspconfig.setup({
 	ensure_installed = {
 		"lua_ls",
 		"clangd",
-		"rust_analyzer",
+		--[[ "rust_analyzer", ]]
 	},
 	automatic_installation = true,
 })
