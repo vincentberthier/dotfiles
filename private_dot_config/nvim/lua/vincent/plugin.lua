@@ -155,7 +155,6 @@ lazy.setup({
 	"nvim-tree/nvim-tree.lua", -- replace netrw with NvimTree
 	"nvim-tree/nvim-web-devicons", -- for file icons
 	"moll/vim-bbye", -- close buffers without closing windows
-	"akinsho/toggleterm.nvim", -- open terminal
 	-- use "ahmedkhalf/project.nvim" -- project management (doesn’t work / bad hardcoded maps)
 
 	-- Auto-headers
