@@ -11,7 +11,6 @@ function move_foot {
     hyprctl dispatch movetoworkspacesilent name:"$2",pid:"$1"
 }
 
-sleep 2
 foots="$(hyprctl clients -j | jq -r '[.[] | select(.class=="foot")]' | jq -r '.[].pid')"
 readarray -t <<< "$foots"
 move_foot "${MAPFILE[0]}" dev
