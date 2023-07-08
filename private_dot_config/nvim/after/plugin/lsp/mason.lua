@@ -49,7 +49,7 @@ mason_null.setup({
 		"isort",
 		"pydocstyle",
 		-- rust
-		"rustfmt",
+		--[[ "rustfmt", ]]
 		-- C++-
 		"clang-format",
 		-- Shell
