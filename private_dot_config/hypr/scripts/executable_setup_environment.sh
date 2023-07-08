@@ -23,4 +23,5 @@ move_firefox "Dev’" webdev
 move_firefox "Work" work
 move_firefox "New Window" misc
 
+sleep 10
 hyprctl dispatch movetoworkspacesilent name:chat,discord
