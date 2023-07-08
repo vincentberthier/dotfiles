@@ -140,6 +140,9 @@ lazy.setup({
 		end,
 	},
 
+	-- Diagnostics pannel
+	{ "folke/trouble.nvim", dependencies = { "nvim-tree/nvim-web-devicons" } },
+
 	-- Debugging
 	"mfussenegger/nvim-dap",
 	"rcarriga/nvim-dap-ui",
