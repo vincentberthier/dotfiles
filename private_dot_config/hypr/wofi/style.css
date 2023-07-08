@@ -15,6 +15,7 @@ $ {
 }
 
 #input {
+    color: --wofi-color2;
     background-color: --wofi-color1;
     border: 0px solid --wofi-color0;
     padding: 8px 12px;
