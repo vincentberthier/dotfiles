@@ -18,7 +18,7 @@ move_foot "${MAPFILE[0]}" dev
 move_foot "${MAPFILE[1]}" dev
 move_foot "${MAPFILE[2]}" misc
 sleep 5
-move_firefox "General" default
+move_firefox "General" general
 move_firefox "Dev’" webdev
 move_firefox "Work" work
 move_firefox "New Window" misc

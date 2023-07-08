@@ -28,6 +28,10 @@ tooltip {
     margin-right: 5px;
 }
 
+#workspaces button {
+    color: @text;
+}
+
 #workspaces button.active {
     color: @subtext0;
 }

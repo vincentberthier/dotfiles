@@ -30,16 +30,16 @@
     "wlr/workspaces": {
         "on-scroll-up": "hyprctl dispatch workspace e+1",
         "on-scroll-down": "hyprctl dispatch workspace e-1",
-        "all-outputs": false,
+        "all-outputs": true,
         "on-click": "activate",
         "format": "{icon}",
         "format-icons": {
-            "2": "",
-            "1": "",
-            "4": "",
-            "3": "",
-            "5": "󰾔",
-            "6": "󰬱",
+            "general": "",
+            "chat": "",
+            "dev": "",
+            "misc": "",
+            "webdev": "󰾔",
+            "work": "󰬱",
             "urgent": "",
             "active": "",
             "default": ""
