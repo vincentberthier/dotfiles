@@ -7,17 +7,17 @@ function move_firefox {
 }
 
 function move_foot {
-    window=$(hyprctl clients -j | jq -r '[.[] | select(.class=="foot")]' | jq -r '.[].address')
-    hyprctl dispatch movetoworkspacesilent name:"$2",address:"$window"
+    echo "$1"
+    hyprctl dispatch movetoworkspacesilent name:"$2",pid:"$1"
 }
 
-foot
-move_foot dev
-foot
-move_foot dev
-foot
-move_foot misc
 sleep 2
+foots="$(hyprctl clients -j | jq -r '[.[] | select(.class=="foot")]' | jq -r '.[].pid')"
+readarray -t <<< "$foots"
+move_foot "${MAPFILE[0]}" dev
+move_foot "${MAPFILE[1]}" dev
+move_foot "${MAPFILE[2]}" misc
 move_firefox "General" default
-move_firefox "Dev’" dev
+move_firefox "Dev’" webdev
+move_firefox "Work" work
 move_firefox "New Window" misc
