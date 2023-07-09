@@ -79,7 +79,7 @@ lazy.setup({
 	"nvim-lua/plenary.nvim", -- useful lua functions used by lots of plugins
 
 	-- Movements
-	{ "folke/flash.nvim", event = "VeryLazy" },
+	{ "folke/flash.nvim", event = "VeryLazy", opts = {} },
 
 	-- Telescope
 	{

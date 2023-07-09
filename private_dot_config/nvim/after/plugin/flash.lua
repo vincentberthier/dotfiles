@@ -20,7 +20,7 @@ local keys = {
 		},
 		S = {
 			function()
-				require("flash").treesitter({})
+				require("flash").treesitter()
 			end,
 			"Flash Treesitter",
 		},
@@ -60,10 +60,10 @@ wk.register({
 }, { mode = "x" })
 
 wk.register({
-	["<C-s>"] = {
+	["<c-s>"] = {
 		function()
 			require("flash").toggle()
 		end,
-		"Flash Treesitter Search",
+		"Toggle Flash Search",
 	},
 }, { mode = "c" })
