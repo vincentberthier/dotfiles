@@ -21,7 +21,7 @@ local keys = {
 			},
 			S = {
 				function()
-					require("flash").treesitter()
+					require("flash").treesitter({})
 				end,
 				"Flash Treesitter",
 			},
