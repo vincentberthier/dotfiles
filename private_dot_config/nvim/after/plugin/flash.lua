@@ -4,6 +4,19 @@ if not status_wk then
 	return
 end
 
+local status_f, flash = pcall(require, "flash")
+if not status_f then
+	print("Could not load flash")
+	return
+end
+
+flash.setup({
+	char = {
+		label = { exclude = "tsrniardc" },
+		keys = {},
+	},
+})
+
 local keys = {
 	f = {
 		s = {
