@@ -78,6 +78,9 @@ lazy.setup({
 	"nvim-lua/popup.nvim", -- an implementation of the popup API from vim in Neovim
 	"nvim-lua/plenary.nvim", -- useful lua functions used by lots of plugins
 
+	-- Movements
+	{ "folke/flash.nvim", event = "VeryLazy" },
+
 	-- Telescope
 	{
 		"nvim-telescope/telescope.nvim",
