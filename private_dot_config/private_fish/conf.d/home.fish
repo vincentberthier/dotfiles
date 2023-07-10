@@ -73,11 +73,6 @@ alias snx_start='doas modprobe tun && doas snx'
 alias regen_initramfs='doas mkinitcpio --config /etc/mkinitcpio.conf --generate /boot/initramfs-custom.img --kernel $(\ls /usr/lib/modules/)'
 alias htop='btop'
 
-# Cassandra
-alias cassandra_start='doas systemctl start cassandra'
-alias cassandra_status='doas systemctl status cassandra'
-alias cassandra_stop='doas systemctl stop cassandra'
-
 # Postgress
 alias pg='doas -u postgres'
 
