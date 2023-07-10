@@ -56,6 +56,7 @@ alias ls="colorls --gs --sd --dark"
 
 # Miscellaneous
 alias diff='colordiff'
+alias sudo='doas'
 
 function compdb --description "Builds compilation guide from build2"
     b -vn clean update 2>&1 | compiledb
