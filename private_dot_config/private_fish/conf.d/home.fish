@@ -20,6 +20,23 @@ if [ -f "$HOME/.cargo/env" ]
     fish_add_path "$HOME/cargo/env"
 end
 
+# Bépo bindings
+function fish_user_key_bindings
+    bind -m default t backward-char
+    bind -m default s up-line
+    bind -m default r down-line
+    bind -m default n forward-char
+    bind -m default h forward-jump-till
+    bind -m visual h forward-jump-till
+    bind -m insert j delete-char repaint-mode
+    bind -M visual -m insert j kill-selection end-selection repaint-mode
+    bind -m replace_one k repaint-mode
+    bind -e l forward-char
+    bind -e -M visual l forward-char
+    bind -M insert \cc kill-whole-line repaint
+    bind -M insert -m default \ce backward-char force-repaint
+end
+
 # SSH Agent
 if status is-login
     and status is-interactive
