@@ -10,4 +10,6 @@ README.md
 .config/fish/conf.d/home.fish
 {{ else }}
 .config/fish/conf.d/cls.fish
+.condarc
+.xprofile
 {{- end }}
