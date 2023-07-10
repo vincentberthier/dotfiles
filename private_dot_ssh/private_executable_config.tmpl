@@ -2,7 +2,7 @@ Host *
 	ForwardAgent yes
 	ForwardX11Trusted=yes
     Compression=yes
-	IdentityFile ~/.ssh/cls
+	IdentityFile ~/.ssh/default
 
 {{- if (eq .chezmoi.hostname "px-1021") }}
 Host desktop
