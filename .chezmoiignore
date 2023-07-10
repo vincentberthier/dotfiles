@@ -8,6 +8,8 @@ README.md
 .config/spotifyd
 .config/waybar
 .config/fish/conf.d/home.fish
+.ssh/default
+.ssh/default.pub
 {{ else }}
 .config/fish/conf.d/cls.fish
 .condarc
