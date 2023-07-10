@@ -17,9 +17,9 @@ function find --wraps find --description "Don't output errors"
 end
 
 function ff --wraps find --description "Look into 1, for files with extension 2, matching 3"
-    set root $1; shift
-    set extension $1; shift
-    set pattern "$1"; shift
+    set root $argv[1]; shift
+    set extension $argv[1]; shift
+    set pattern "$argv[1]"; shift
     echo -e "Looking for $pattern in $root with extension $extension"
     find $root -name "*.$extension" $argv -exec grep --color="auto" -Hn $pattern {} \;
 end
@@ -62,51 +62,51 @@ alias gdb='gdb --ex run --args'
 alias weather='clear && curl wttr.in'
 alias t='tail -f'
 function mkcd --wraps mkdir --description "Create a folder and cd into it"
-    mkdir -pv $1
-    cd $1
+    mkdir -pv $argv[1]
+    cd $argv[1]
 end
 
 function cut_wallpaper --description "cuts an image into regular 1920x1080 pieces"
-    set filename (path basename $1)
+    set filename (path basename $argv[1])
     set extension (path extension $filename)
     set filename (string split -r -m1 . $filename)[1]
     mkdir -p {$HOME}/Images/Wallpapers
-    convert -crop 1920x1080 $1 {$HOME}/Images/Wallpapers/{$filename}-%d.{$extension}
+    convert -crop 1920x1080 $argv[1] {$HOME}/Images/Wallpapers/{$filename}-%d.{$extension}
 end
 
 # Extract archives
 function ex --description "Extract common archives"
-    if [ -f $1 ]
-        switch $1
+    if [ -f $argv[1] ]
+        switch $argv[1]
             case "*.tar.bz2" 
-                tar -jxf   $1
+                tar -jxf   $argv[1]
             case "*.tar.gz"  
-                tar -zxf   $1
+                tar -zxf   $argv[1]
             case "*.tar.xz"  
-                tar -xf   $1
+                tar -xf   $argv[1]
             case "*.bz2"     
-                bunzip2    $1
+                bunzip2    $argv[1]
             case "*.rar"     
-                unrar -x   $1
+                unrar -x   $argv[1]
             case "*.gz"      
-                gunzip     $1
+                gunzip     $argv[1]
             case "*.tar"     
-                tar -xf    $1
+                tar -xf    $argv[1]
             case "*.tbz2"    
-                tar -jxf   $1
+                tar -jxf   $argv[1]
             case "*.tgz"     
-                tar -zxf   $1
+                tar -zxf   $argv[1]
             case "*.zip"     
-                unzip      $1
+                unzip      $argv[1]
             case "*.Z"       
-                uncompress $1
+                uncompress $argv[1]
             case "*.7z"      
-                7z -x      $1
+                7z -x      $argv[1]
             case "*"         
-                echo "'$1' cannot be extracted via ex()"
+                echo "'$argv[1]' cannot be extracted via ex()"
         end
     else
-        echo "'$1' is not a valid file."
+        echo "'$argv[1]' is not a valid file."
     end
 end
 
@@ -147,7 +147,16 @@ alias cpuinfo='lscpu'
 # alias gpumeminfo='grep -i --color memory /var/log/Xorg.0.log'
 
 # Git
-alias gac='git add . && git commit -a -m '
+alias gmr='git rebase'
+alias gd='git diff'
+alias gl='git log'
+alias gll='git log -1 HEAD --stat'
+function gmr --wraps git --description "Performs an interactive rebase"
+    git rebase -i "HEAD~$argv[1]"
+end
+function gcb --wraps git --description "Creates and checkout a new branch"
+    git checkout -b $argv[1]
+end
 
 # Chezmoi
 alias cme='chezmoi edit'
