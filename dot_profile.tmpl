@@ -2,7 +2,7 @@
 export EDITOR="nvim"
 export TERMINAL="kitty"
 export BROWSER="firefox"
-#export SHELL={{ if (or (eq .chezmoi.hostname "athena") (eq .chezmoi.hostname "gaia")) }}"fish"{{ else }}"${HOME}/.local/bin/fish"{{ end }}
+export SHELL={{ if (or (eq .chezmoi.hostname "athena") (eq .chezmoi.hostname "gaia")) }}"fish"{{ else }}"${HOME}/.local/bin/fish"{{ end }}
 
 # XDG config paths
 export XDG_CONFIG_HOME=$HOME/.config
@@ -10,7 +10,7 @@ export XDG_CACHE_HOME=$HOME/.cache
 export XDG_DATA_HOME=$HOME/.local/share
 
 # ZSH configuration path
-# export ZDOTDIR=$HOME/.config/zsh
+export ZDOTDIR=$HOME/.config/zsh
 
 # Locales
 export LC_ALL="fr_FR.UTF-8"
