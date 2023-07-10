@@ -149,6 +149,7 @@ alias cpuinfo='lscpu'
 # Git
 alias gmr='git rebase'
 alias gd='git diff'
+alias gdt='git difftool'
 alias gl='git log'
 alias gll='git log -1 HEAD --stat'
 function gmr --wraps git --description "Performs an interactive rebase"
