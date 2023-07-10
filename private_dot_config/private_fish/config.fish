@@ -3,7 +3,7 @@ if status is-interactive
 end
 
 zoxide init fish | source
-starship init fish | source
+# starship init fish | source
 
 # Disable fish greetings
 set -U fish_greeting
