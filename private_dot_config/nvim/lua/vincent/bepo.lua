@@ -28,7 +28,7 @@ local motions = {
 }
 
 wk.register(motions, { mode = "n" })
-wk.register(motions, { mode = "v" })
+--[[ wk.register(motions, { mode = "v" }) ]]
 wk.register(motions, { mode = "x" })
 wk.register(motions, { mode = "o" })
 
