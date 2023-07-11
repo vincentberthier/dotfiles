@@ -13,7 +13,7 @@ alias fgrep='fgrep --color=auto'
 
 # Find
 function find --wraps find --description "Don't output errors"
-    find $argv -print 2> /dev/null
+    /usr/bin/find $argv -print 2> /dev/null
 end
 
 function ff --wraps find --description "Look into 1, for files with extension 2, matching 3"
@@ -167,11 +167,23 @@ alias cma='chezmoi apply'
 alias cmA='chezmoi add'
 alias cmAC='chezmoi add --encrypt'
 
-# Tmux
-alias t='tmux'
-alias ta='t a -t'
-alias tn='t new -s'
-alias tls='t ls'
+# # Tmux
+# alias t='tmux'
+# alias ta='t a -t'
+# alias tn='t new -s'
+# alias tls='t ls'
+
+# Zellij
+function za --wraps zellij --description "Attaches on an existing session or relaunches one"
+    set sessions_list (zellij list-sessions)
+    switch $sessions_list
+    case "*$hostname*"
+        zellij attach $hostname
+    case "*"
+        zellij --layout $HOME/.config/zellij/layouts/default.kdl -s $hostname
+    end
+end
+    
 
 # Kitty custom
 if [ "$TERM" = "xterm-kitty" ]

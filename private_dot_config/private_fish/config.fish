@@ -8,6 +8,9 @@ zoxide init fish | source
 # Disable fish greetings
 set -U fish_greeting
 
+# Only remove wrong commands in history on exit
+set sponge_purge_only_on_exit true
+
 # Prompt navigation
 function mark_prompt_start --on-event fish_prompt
     echo -en "\e]133;A\e\\"
