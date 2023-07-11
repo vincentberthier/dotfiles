@@ -77,3 +77,18 @@ alias htop='btop'
 # Postgress
 alias pg='doas -u postgres'
 
+# Scylla
+alias scylla_start='systemctl start scylla-server'
+alias scylla_enable='systemctl enable scylla-server'
+alias scylla_start='systemctl start scylla-server'
+
+function scylla --wraps scylla --description "Control the Scylla server"
+    set op ""
+    if [ (count $argv) > 0 ]
+        set op (string match $argv[1] 'start' 'stop' 'disable' 'enable' 'status')
+    end
+    if [ -z $op ]
+        set op "start"
+    end
+    doas systemctl $op scylla-server
+end
