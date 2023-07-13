@@ -23,10 +23,10 @@ end
 
 # Netcdf
 function nchead ()
-    if [ -f $1 ]
-        ncdump -h $1 | less
+    if [ -f $argv[1] ]
+        ncdump -h $argv[1] | less
     else
-        echo "'$1' does not exist."
+        echo "'$argv[1]' does not exist."
     end
 end
 

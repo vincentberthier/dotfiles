@@ -1,8 +1,12 @@
 Host *
 	ForwardAgent yes
 	ForwardX11Trusted=yes
-    Compression=yes
+     {{- if (eq .chezmoi.hostname "px-1021") }}
+	IdentityFile ~/.ssh/cls
+    {{- else }}
 	IdentityFile ~/.ssh/default
+    {{- end }}
+   Compression=yes
 
 {{- if (eq .chezmoi.hostname "px-1021") }}
 Host desktop
@@ -49,7 +53,7 @@ Host s3
 Host rebond-obso
     Hostname ssh-obso.obso-mgmt.cls.fr
     User vberthier
-    ProxyJump alten
+    ProxyJump s3
 
 Host cryosat
     Hostname ipfcryocean-dev.obso-qt.cls.fr
