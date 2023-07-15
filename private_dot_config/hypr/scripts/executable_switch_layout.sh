@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 CONFIG_FILE="$HOME/.config/hypr/hyprland.conf"
 REGEX="kb_variant = ([a-z]+)  # binding physical map"

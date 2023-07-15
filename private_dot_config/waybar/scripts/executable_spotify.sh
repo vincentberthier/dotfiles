@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 metadata=$(playerctl -p spotifyd metadata 2> /dev/null)
 

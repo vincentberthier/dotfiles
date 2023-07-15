@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 WOFI_HOME="$HOME/.config/hypr/wofi"
 CONFIG="$WOFI_HOME/config"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Cron job to backup locally
 # To init a new repository: duplicacy init --repository FOLDER_TO_BACKUP --storage-name Aegis BACKUP_NAME /mnt/aegis/backup/

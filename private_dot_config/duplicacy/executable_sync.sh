@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Prune old snapshots
 # 1 revision per day for a week, then 1 per week for a month then 1 per month after six months

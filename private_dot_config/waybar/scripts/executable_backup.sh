@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 BACKUP_PATH="/mnt/aegis/backup/"
 LOG_PATH="$HOME/.local/share/duplicacy"

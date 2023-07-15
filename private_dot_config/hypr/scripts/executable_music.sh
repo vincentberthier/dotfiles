@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 daemon=$(pidof spotifyd)
 if [[ -z $daemon ]]; then
