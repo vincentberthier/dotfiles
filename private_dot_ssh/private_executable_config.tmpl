@@ -11,6 +11,10 @@ Host *
 {{- if (eq .chezmoi.hostname "px-1021") }}
 Host desktop
 {{- else }}
+Host athena
+    Hostname 192.168.1.20
+    User vincent
+
 Host cls
 {{- end }}
 	Hostname desktop.px.cls.fr
