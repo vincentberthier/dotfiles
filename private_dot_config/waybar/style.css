@@ -54,6 +54,7 @@ tooltip {
     border-radius: 10px;
 }
 
+#custom-logout,
 #custom-language,
 #custom-updates,
 #custom-caffeine,
@@ -149,6 +150,9 @@ tooltip {
 
 #pulseaudio.microphone {
     color: @mauve;
+}
+
+#custom-logout {
     margin-right: 5px;
     border-radius: 0 10px 10px 0;
 }

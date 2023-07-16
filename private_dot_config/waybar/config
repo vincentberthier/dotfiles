@@ -21,7 +21,8 @@
         "cpu",
         "memory",
         "pulseaudio",
-        "pulseaudio#microphone"
+        "pulseaudio#microphone",
+        "custom/logout"
     ],
 
     "hyprland/window": {
@@ -96,6 +97,11 @@
         "on-click-forward": "playerctl -p spotifyd next",
         "on-click-backward": "playerctl -p spotifyd previous",
         "exec": "~/.config/waybar/scripts/track_spotify.sh"
+    },
+    "custom/logout": {
+        "tooltip": false,
+        "format": "",
+        "on-click": "wlogout --layout $HOME/.config/wlogout/layout"
     },
     "tray": {
         "icon-size": 13,
