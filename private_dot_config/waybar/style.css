@@ -90,11 +90,6 @@ tooltip {
     margin-right: 10px;
 }
 
-#custom-spotify {
-    border-radius: 10px;
-    margin-right: 10px;
-}
-
 #workspaces {
     background: @base;
     border-radius: 10px;
