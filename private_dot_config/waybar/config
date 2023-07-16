@@ -13,13 +13,13 @@
     ],
     // "modules-center": ["hyprland/window"],
     "modules-right": [
-        "custom/spotify",
         "tray",
         "custom/updates",
         "custom/vpn",
         "custom/backup",
         "cpu",
         "memory",
+        "custom/spotify",
         "pulseaudio",
         "pulseaudio#microphone",
         "custom/logout"
