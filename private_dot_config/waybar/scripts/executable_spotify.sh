@@ -18,15 +18,15 @@ if [[ $metadata =~ $ART_RE ]]; then
 fi
 TITLE=""
 if [[ $metadata =~ $TITLE_RE ]]; then
-    TITLE="${BASH_REMATCH[1]}"
+    TITLE=$("${BASH_REMATCH[1]}") | xarg)
 fi
 ALBUM=""
 if [[ $metadata =~ $ALBUM_RE ]]; then
-    ALBUM="${BASH_REMATCH[1]}"
+    ALBUM=$("${BASH_REMATCH[1]}" | xarg)
 fi
 ARTIST=""
 if [[ $metadata =~ $ARTIST_RE ]]; then
-    ARTIST="${BASH_REMATCH[1]}"
+    ARTIST=$("${BASH_REMATCH[1]}" | xarg)
 fi
 
 if [[ "$ARTIST - $TITLE" == $(cat "$TARGET" 2> /dev/null) ]]; then
