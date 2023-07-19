@@ -18,7 +18,7 @@ if [[ $metadata =~ $ART_RE ]]; then
 fi
 TITLE=""
 if [[ $metadata =~ $TITLE_RE ]]; then
-    TITLE=$("${BASH_REMATCH[1]}") | xarg)
+    TITLE=$("${BASH_REMATCH[1]}" | xarg)
 fi
 ALBUM=""
 if [[ $metadata =~ $ALBUM_RE ]]; then
