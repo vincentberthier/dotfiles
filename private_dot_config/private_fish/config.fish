@@ -11,6 +11,10 @@ set -U fish_greeting
 # Only remove wrong commands in history on exit
 set sponge_purge_only_on_exit true
 
+# Configure done
+set -U __done_allow_nongraphical 1
+set -U __done_notification_command "notify-send -i /usr/share/icons/hicolor/scalable/apps/foot.svg -a fish \"\$title\" \"\$message\""
+
 # Prompt navigation
 function mark_prompt_start --on-event fish_prompt
     echo -en "\e]133;A\e\\"
