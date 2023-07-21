@@ -1,7 +1,7 @@
 # Default applications
 set -Ux EDITOR "nvim"
 set -Ux TERMINAL "foot"
-set -Ux BROWSER "firefox"
+set -Ux BROWSER "librewolf"
 set -Ux SHELL "fish"
 
 # XDG config paths
