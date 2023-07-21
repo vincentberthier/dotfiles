@@ -12,6 +12,8 @@ set -U fish_greeting
 set sponge_purge_only_on_exit true
 
 # Configure done
+set -U __done_exclude 'nvim'
+set -U __done_exclude 'git (?!push|pull)'
 set -U __done_allow_nongraphical 1
 set -U __done_notification_command "notify-send -i /usr/share/icons/hicolor/scalable/apps/foot.svg -a fish \"\$title\" \"\$message\""
 
