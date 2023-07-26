@@ -4,7 +4,6 @@ set -e
 function move_librewolf {
     readarray -t windows < <(hyprctl clients -j | jq -r '[.[] | select((.title | startswith("'"$1"'")) and (.class=="LibreWolf"))]' | jq -r '.[].address')
     for w in "${windows[@]}"; do
-        echo "moving window $w"
         hyprctl dispatch movetoworkspacesilent name:"$2",address:"$w"
     done
 }
@@ -20,7 +19,7 @@ readarray -t <<< "$foots"
 move_foot "${MAPFILE[0]}" dev
 move_foot "${MAPFILE[1]}" dev
 move_foot "${MAPFILE[2]}" misc
-# sleep 5
+sleep 5
 move_librewolf "General" general
 move_librewolf "Dev’" webdev
 move_librewolf "Work" work
