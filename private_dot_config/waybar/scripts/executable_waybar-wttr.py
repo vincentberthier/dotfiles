@@ -6,7 +6,7 @@ from datetime import datetime
 import requests
 
 WEATHER_CODES = {
-    "113": "🌈",
+    "113": "☀️",
     "116": "⛅️",
     "119": "☁️",
     "122": "☁️",
@@ -59,7 +59,7 @@ WEATHER_CODES = {
 data = {}
 
 
-weather = requests.get("https://wttr.in/?format=j1").json()
+weather = requests.get("https://wttr.in/nice?format=j1").json()
 
 
 def format_time(time):

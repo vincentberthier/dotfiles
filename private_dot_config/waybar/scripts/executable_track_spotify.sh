@@ -6,8 +6,8 @@ if [[ ! -f $TARGET ]]; then
     touch "$TARGET"
 fi
 
-STATUS=$(playerctl -p spotifyd status 2> /dev/null)
-TRACK=$(cat /tmp/spotify_currently_playing.txt)
+STATUS=$(playerctl -p spotify status 2> /dev/null)
+TRACK=$(playerctl -p spotify metadata --format "[{{ artist }}] {{ album }} - {{ title }}")
 RES=""
 
 if [[ $STATUS == "Playing" ]]; then

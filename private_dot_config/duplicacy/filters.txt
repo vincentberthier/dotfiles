@@ -1,12 +1,12 @@
 # ============================ useless files anywhere, by extension
-# e:(?i).*.msf*$
-# e:(?i)\.bac$
-# e:(?i)\.back$
-# e:(?i)\.bak$
-# e:(?i)\.bkp$
-# e:(?i)\.obj$
-# e:(?i)\.old$
-# e:(?i)\.part$
+e:(?i).*.msf*$
+e:(?i)\.bac$
+e:(?i)\.back$
+e:(?i)\.bak$
+e:(?i)\.bkp$
+e:(?i)\.obj$
+e:(?i)\.old$
+e:(?i)\.part$
 
 e:(?i)\.!ut$
 e:(?i)\.bup$

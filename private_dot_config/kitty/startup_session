@@ -1,0 +1,7 @@
+# General window
+cd ~
+launch --title " PbF" hx pbf.txt
+
+# Misc session
+new_os_window
+launch --title "󰈺 Misc" sh -c "fish -c sleep 5; maj_upgrade && fish"

@@ -1,0 +1,21 @@
+default-timeout=4000
+# icon-path=/run/current-system/sw/share/icons
+
+# Colors
+background-color=#1e1e2e
+text-color=#cdd6f4
+border-color=#89b4fa
+progress-color=over #313244
+
+[urgency=low]
+background-color=#1E1E2E
+text-color=#CDD6F4
+
+[urgency=normal]
+background-color=#1E1E2E
+text-color=#CDD6F4
+
+[urgency=critical]
+background-color=#1E1E2E
+text-color=#CDD6F4
+border-color=#FAB387

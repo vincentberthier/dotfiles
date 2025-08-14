@@ -3,9 +3,9 @@
 * {
     border: none;
     border-radius: 0;
-    font-family: FiraCode Nerd Font, monospace;
+    font-family: Dank Mono;
     font-weight: bold;
-    font-size: 12px;
+    font-size: 14px;
     min-height: 0;
 }
 
@@ -22,38 +22,7 @@ tooltip {
     border-color: @crust;
 }
 
-#workspaces button {
-    padding: 5px;
-    color: @surface0;
-    margin-right: 5px;
-}
-
-#workspaces button {
-    color: @text;
-}
-
-#workspaces button.active {
-    color: @subtext0;
-}
-
-#workspaces button.focused {
-    color: @subtext0;
-    background: @mantle;
-    border-radius: 10px;
-}
-
-#workspaces button.urgent {
-    color: @crust;
-    background: @green;
-    border-radius: 10px;
-}
-
-#workspaces button:hover {
-    background: @crust;
-    color: @text;
-    border-radius: 10px;
-}
-
+(??)
 #custom-logout,
 #custom-language,
 #custom-updates,
@@ -85,6 +54,7 @@ tooltip {
 }
 
 #custom-backup {
+    border-radius: 10px 0px 0px 10px;
     padding: 0px 5px;
 }
 
@@ -92,16 +62,45 @@ tooltip {
     border-radius: 10px 0px 0px 10px;
 }
 
-#tray {
-    border-radius: 10px 0px 0px 10px;
-}
-
+(??)
 #workspaces {
     background: @base;
     border-radius: 10px;
     margin-left: 10px;
     padding-right: 0px;
     padding-left: 5px;
+}
+
+#workspaces button {
+    padding: 5px;
+    color: @surface0;
+    margin-right: 5px;
+}
+
+#workspaces button {
+    color: @text;
+}
+
+#workspaces button.active {
+    color: @peach;
+}
+
+#workspaces button.focused {
+    color: @subtext0;
+    background: @mantle;
+    border-radius: 10px;
+}
+
+#workspaces button.urgent {
+    color: @crust;
+    background: @green;
+    border-radius: 10px;
+}
+
+#workspaces button:hover {
+    background: @crust;
+    color: @text;
+    border-radius: 10px;
 }
 
 #custom-caffeine {
@@ -117,13 +116,7 @@ tooltip {
     border-right: 0px;
 }
 
-#custom-updates {
-    color: @pink;
-    border-left: 0px;
-    border-right: 0px;
-    border-radius: 10px 0px 0px 10px;;
-}
-
+(??)
 #window {
     border-radius: 10px;
     margin-left: 60px;
@@ -162,8 +155,8 @@ tooltip {
 
 #battery {
     color: @green;
-    border-radius: 0 10px 10px 0;
-    margin-right: 10px;
+    border-radius: 10px 0 0 10px;
+    margin-right: 0px;
     border-left: 0px;
 }
 
@@ -171,6 +164,10 @@ tooltip {
     border-radius: 0px 10px 10px 0px;
     border-right: 0px;
     margin-left: 0px;
+}
+
+#cpu {
+  border-radius: 10px 0px 0px 10px;
 }
 
 #cpu.critical {

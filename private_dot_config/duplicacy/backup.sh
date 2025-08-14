@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+export DUPLICACY_PASSWORD="MotDePasse"
+export DUPLICACY_RSA_PASSPHRASE="MotDePasse"
+
+BIN=$1
+FOLDERS=("$HOME/code" "$HOME/Documents" "$HOME/Images" "$XDG_CONFIG_HOME")
+LOG_PATH="${XDG_DATA_HOME}/duplicacy"
+mkdir -p "$LOG_PATH"
+
+# Create the new log file
+DATE=$($2 +%Y-%m-%d)
+LOG_FILE="$LOG_PATH/${DATE}.log"
+
+echo "-------------------------------------------------------" >> "$LOG_FILE"
+echo "Début de la sauvegarde: $($2)" >> "$LOG_FILE"
+echo "-------------------------------------------------------" >> "$LOG_FILE"
+
+for dir in "${FOLDERS[@]}"; do
+    echo "------------- Traitement de $dir -------------" >> "$LOG_FILE"
+    cd "$dir" || continue
+    $BIN backup -threads 4 >> "$LOG_FILE"
+done
+CHECK_LOG="$LOG_PATH/${DATE}-check.log"
+echo "------------- Vérification d’intégrité -------------" >> "$CHECK_LOG"
+$BIN check -stats -tabular -threads 4 >> "$CHECK_LOG"

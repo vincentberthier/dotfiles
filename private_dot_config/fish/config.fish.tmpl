@@ -1,0 +1,330 @@
+# Only execute this file once per shell.
+set -q __fish_home_manager_config_sourced; and exit
+set -g __fish_home_manager_config_sourced 1
+
+source "{{ .chezmoi.homeDir }}/.config/fish/session-vars.fish"
+
+status is-login; and begin
+
+    # Login shell initialisation
+
+end
+
+status is-interactive; and begin
+
+    # Abbreviations
+
+    # Aliases
+    alias c clear
+    alias cat bat
+    alias chgrp 'chgrp --preserve-root'
+    alias chmod 'chmod --preserve-root'
+    alias chown 'chown --preserve-root'
+    alias clippy 'cargo clippy --all-features --workspace --all-targets'
+    alias cp 'cp -i'
+    alias cpuinfo lscpu
+    alias cpv 'rsync -ah --info=progress2'
+    alias df duf
+    alias du dust
+    alias egrep 'egrep --color=auto'
+    alias fgrep 'fgrep --color=auto'
+    alias free 'free -m'
+    alias grep 'grep --color=auto'
+    alias htop btop
+    alias la 'ls --all'
+    alias le 'll --sort=mod'
+    alias less cat
+    alias ll 'ls --header --long --binary --git'
+    alias lla 'll --all'
+    alias lll 'll --group --created --modified --accessed --total-size'
+    alias ln 'ln -i'
+    alias ls 'eza --classify --icons'
+    alias lst 'eza --long --tree --level=2'
+    alias meminfo 'free -m -l -t'
+    alias mkdir 'mkdir -pv'
+    alias mv 'mv -i'
+    alias ping 'ping -c 5'
+    alias pscpu 'ps auxf | sort -nr -k 3'
+    alias pscpu10 'ps auxf | sort -nr -k 3 | head -10'
+    alias psmem 'ps auxf | sort -nr -k 4'
+    alias psmem10 'ps auxf | sort -nr -k 4 | head -10'
+    alias rm 'rm -I --preserve-root'
+    alias rms 'shred -uz'
+    alias rsync 'rsync -azv --progress'
+    alias scp rsync
+    alias t 'tail -f'
+    alias top htop
+    alias weather 'clear && curl wttr.in/nice'
+    alias wget 'wget -c'
+    alias z zoxide
+
+    # Interactive shell initialisation
+    set fish_greeting # Disables the greeting
+    # Only remove wrong commands in history on exit
+    set sponge_purge_only_on_exit true
+
+    # Configure done
+    if [ $TERM = foot ]
+        set -U __done_allow_nongraphical 1
+        set -U __done_exclude 'n?vim?'
+        set -U __done_notification_command "notify-send -i /usr/share/icons/hicolor/scalable/apps/foot.svg -a fish \"\$title\" \"\$message\""
+    end
+
+    # Terminal title
+    function fish_title
+        set -q argv[1]; or set argv fish
+        set CMD (string split -f 1 ' ' $argv[1])
+
+        set folder $(basename $(pwd))
+
+        switch $CMD
+            case hx
+                set res " $folder"
+            case bat less more
+                set res "󰭟 $folder"
+            case bash
+                if test \( $folder = home-manager -o $folder == nixos \)
+                    set res "󱄅 $folder"
+                end
+            case shell
+                set res "󱄅 $folder"
+            case fish
+                set res "󰈺 $folder"
+            case python
+                set res " $folder"
+            case yazi
+                set res "󱏒 $folder"
+            case cargo rustc clippy
+                set res " $folder"
+            case btop
+                set res ""
+            case docker
+                set res " $folder"
+            case "*"
+                set res "$CMD $folder"
+        end
+
+        echo "$res"
+    end
+
+    # Prompt navigation
+    function mark_prompt_start --on-event fish_prompt
+        echo -en "\e]133;A\e\\"
+    end
+
+    # Initialize zoxide
+    zoxide init fish | source
+    # Initialize direnv
+    # direnv hook fish | source
+
+    # Yazi shell wrapper
+    function yy
+        set tmp (mktemp -t "yazi-cwd.XXXXXX")
+        yazi $argv --cwd-file="$tmp"
+        if set cwd (cat -- "$tmp"); and [ -n "$cwd" ]; and [ "$cwd" != "$PWD" ]
+            cd -- "$cwd"
+        end
+        rm -f -- "$tmp"
+    end
+
+    # Vi mode
+    fish_vi_key_bindings
+    # Emulates vim's cursor shape behavior
+    # Set the normal and visual mode cursors to a block
+    set fish_cursor_default block
+    # Set the insert mode cursor to a line
+    set fish_cursor_insert line
+    # Set the replace mode cursor to an underscore
+    set fish_cursor_replace_one underscore
+    # The following variable can be used to configure cursor shape in
+    # visual mode, but due to fish_cursor_default, is redundant here
+    set fish_cursor_visual block
+
+    # Auto warpify some commands
+    printf '\eP$f{"hook": "SourcedRcFileForWarp", "value": { "shell": "fish" }}\x9c'
+
+    if test "$TERM" != dumb
+        starship init fish | source
+        enable_transience
+    end
+
+    if set -q KITTY_INSTALLATION_DIR
+        set --global KITTY_SHELL_INTEGRATION no-rc
+        source "$KITTY_INSTALLATION_DIR/shell-integration/fish/vendor_conf.d/kitty-shell-integration.fish"
+        set --prepend fish_complete_path "$KITTY_INSTALLATION_DIR/shell-integration/fish/vendor_completions.d"
+    end
+
+    if command -q keychain
+        SHELL=fish eval (keychain --eval --quiet vincent tyrex)
+    end
+
+# Only execute this file once per shell.
+set -q __fish_home_manager_config_sourced; and exit
+set -g __fish_home_manager_config_sourced 1
+
+source "{{ .chezmoi.homeDir }}/.config/fish/session-vars.fish"
+
+status is-login; and begin
+
+    # Login shell initialisation
+
+end
+
+status is-interactive; and begin
+
+    # Abbreviations
+
+    # Aliases
+    alias c clear
+    alias cat bat
+    alias chgrp 'chgrp --preserve-root'
+    alias chmod 'chmod --preserve-root'
+    alias chown 'chown --preserve-root'
+    alias clippy 'cargo clippy --all-features --workspace --all-targets'
+    alias cp 'cp -i'
+    alias cpuinfo lscpu
+    alias cpv 'rsync -ah --info=progress2'
+    alias df duf
+    alias du dust
+    alias egrep 'egrep --color=auto'
+    alias fgrep 'fgrep --color=auto'
+    alias free 'free -m'
+    alias grep 'grep --color=auto'
+    alias htop btop
+    alias la 'ls --all'
+    alias le 'll --sort=mod'
+    alias less cat
+    alias ll 'ls --header --long --binary --git'
+    alias lla 'll --all'
+    alias lll 'll --group --created --modified --accessed --total-size'
+    alias ln 'ln -i'
+    alias ls 'eza --classify --icons'
+    alias lst 'eza --long --tree --level=2'
+    alias meminfo 'free -m -l -t'
+    alias mkdir 'mkdir -pv'
+    alias mv 'mv -i'
+    alias ping 'ping -c 5'
+    alias pscpu 'ps auxf | sort -nr -k 3'
+    alias pscpu10 'ps auxf | sort -nr -k 3 | head -10'
+    alias psmem 'ps auxf | sort -nr -k 4'
+    alias psmem10 'ps auxf | sort -nr -k 4 | head -10'
+    alias rm 'rm -I --preserve-root'
+    alias rms 'shred -uz'
+    alias rsync 'rsync -azv --progress'
+    alias scp rsync
+    alias shell 'nix develop --no-warn-dirty --command'
+    alias shellf 'nix develop --no-warn-dirty --command fish'
+    alias t 'tail -f'
+    alias top htop
+    alias weather 'clear && curl wttr.in/nice'
+    alias wget 'wget -c'
+    alias z zoxide
+
+    # Interactive shell initialisation
+    set fish_greeting # Disables the greeting
+    # Only remove wrong commands in history on exit
+    set sponge_purge_only_on_exit true
+
+    # Configure done
+    if [ $TERM = foot ]
+        set -U __done_allow_nongraphical 1
+        set -U __done_exclude 'n?vim?'
+        set -U __done_notification_command "notify-send -i /usr/share/icons/hicolor/scalable/apps/foot.svg -a fish \"\$title\" \"\$message\""
+    end
+
+    # Terminal title
+    function fish_title
+        set -q argv[1]; or set argv fish
+        set CMD (string split -f 1 ' ' $argv[1])
+
+        set folder $(basename $(pwd))
+
+        switch $CMD
+            case hx
+                set res " $folder"
+            case bat less more
+                set res "󰭟 $folder"
+            case bash
+                if test \( $folder = home-manager -o $folder == nixos \)
+                    set res "󱄅 $folder"
+                end
+            case shell
+                set res "󱄅 $folder"
+            case fish
+                set res "󰈺 $folder"
+            case python
+                set res " $folder"
+            case yazi
+                set res "󱏒 $folder"
+            case cargo rustc clippy
+                set res " $folder"
+            case btop
+                set res ""
+            case docker
+                set res " $folder"
+            case "*"
+                set res "$CMD $folder"
+        end
+
+        echo "$res"
+    end
+
+    # Prompt navigation
+    function mark_prompt_start --on-event fish_prompt
+        echo -en "\e]133;A\e\\"
+    end
+
+    # Initialize zoxide
+    zoxide init fish | source
+    # Initialize direnv
+    # direnv hook fish | source
+
+    # Yazi shell wrapper
+    function yy
+        set tmp (mktemp -t "yazi-cwd.XXXXXX")
+        yazi $argv --cwd-file="$tmp"
+        if set cwd (cat -- "$tmp"); and [ -n "$cwd" ]; and [ "$cwd" != "$PWD" ]
+            cd -- "$cwd"
+        end
+        rm -f -- "$tmp"
+    end
+
+    # Vi mode
+    fish_vi_key_bindings
+    # Emulates vim's cursor shape behavior
+    # Set the normal and visual mode cursors to a block
+    set fish_cursor_default block
+    # Set the insert mode cursor to a line
+    set fish_cursor_insert line
+    # Set the replace mode cursor to an underscore
+    set fish_cursor_replace_one underscore
+    # The following variable can be used to configure cursor shape in
+    # visual mode, but due to fish_cursor_default, is redundant here
+    set fish_cursor_visual block
+
+    # Auto warpify some commands
+    printf '\eP$f{"hook": "SourcedRcFileForWarp", "value": { "shell": "fish" }}\x9c'
+
+    if test "$TERM" != dumb
+        /nix/store/6hq21mqkmdm1ds9974w9xw00blym6fh5-starship-1.23.0/bin/starship init fish | source
+        enable_transience
+    end
+
+    if set -q KITTY_INSTALLATION_DIR
+        set --global KITTY_SHELL_INTEGRATION no-rc
+        source "$KITTY_INSTALLATION_DIR/shell-integration/fish/vendor_conf.d/kitty-shell-integration.fish"
+        set --prepend fish_complete_path "$KITTY_INSTALLATION_DIR/shell-integration/fish/vendor_completions.d"
+    end
+
+    SHELL=fish eval (/usr/bin/keychain --eval --quiet vincent tyrex)
+
+    # Update completions path for chezmoi instead of home-manager
+    begin
+        set -l joined (string join " " $fish_complete_path)
+        set -l prev_joined (string replace --regex "[^\s]*generated_completions.*" "" $joined)
+        set -l post_joined (string replace $prev_joined "" $joined)
+        set -l prev (string split " " (string trim $prev_joined))
+        set -l post (string split " " (string trim $post_joined))
+        set fish_complete_path $prev "/home/vincent/.local/share/fish/home-manager_generated_completions" $post
+    end
+end

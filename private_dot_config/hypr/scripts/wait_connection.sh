@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -e
+
+until ping -c1 www.google.com >/dev/null 2>&1; do :; done

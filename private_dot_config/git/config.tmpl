@@ -1,0 +1,91 @@
+[alias]
+	fpush = "push --force-with-lease"
+	staash = "stash --all"
+
+[branch]
+	sort = "-committerdate"
+
+[column]
+	ui = "auto"
+
+[commit]
+	gpgSign = true
+	template = "{{ .chezmoi.homeDir }}/.config/git/message"
+
+[core]
+	editor = "hx"
+	pager = "bat"
+
+[credential]
+	helper = "store"
+
+[diff]
+	guitool = "nvimdiff"
+	tool = "nvimdiff"
+
+[difftool]
+	prompt = false
+
+[filter "lfs"]
+	clean = "git-lfs clean -- %f"
+	process = "git-lfs filter-process"
+	required = true
+	smudge = "git-lfs smudge -- %f"
+
+[gpg]
+	format = "ssh"
+
+[gpg "ssh"]
+	allowedSignersFile = "{{ .chezmoi.homeDir }}/.config/git/allowed_signers"
+	program = "/usr/bin/ssh-keygen"
+
+[http]
+	postBuffer = 524288000
+
+[https]
+	postBuffer = 524288000
+
+[init]
+	defaultBranch = "main"
+
+[log]
+	showSignature = true
+
+[maintenance]
+	repo = "{{ .chezmoi.homeDir }}/.config/home-manager"
+	repo = "/etc/nixos/"
+	repo = "{{ .chezmoi.homeDir }}/code/tyrex/tyrex-io"
+	repo = "{{ .chezmoi.homeDir }}/code/tyrex/t-scanner"
+	repo = "{{ .chezmoi.homeDir }}/code/tyrex/t-gate"
+	repo = "{{ .chezmoi.homeDir }}/code/tyrex/t-sftp"
+
+[merge]
+	conflictstyle = "diff3"
+	tool = "nvimdiff"
+
+[mergetool]
+	keepBackup = false
+	prompt = true
+	trustExitCode = false
+
+[mergetool "vimdiff"]
+	layout = "LOCAL,MERGED,REMOTE"
+	path = "nvim"
+
+[pull]
+	rebase = true
+
+[rerere]
+	autoUpdate = true
+	enabled = true
+
+[safe]
+	directory = "{{ .chezmoi.homeDir }}/.config/chezmoi"
+
+[tag]
+	gpgSign = true
+
+[user]
+	email = "{{ .email }}"
+	name = "{{ .name }}"
+	signingKey = "{{ .chezmoi.homeDir }}/.ssh/vincent.pub"

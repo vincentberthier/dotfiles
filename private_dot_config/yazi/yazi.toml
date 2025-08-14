@@ -1,0 +1,16 @@
+[manager]
+linemode = "mtime"
+scrolloff = 8
+show_hidden = true
+sort_by = "natural"
+sort_dir_first = true
+sort_sensitive = false
+sort_translit = true
+
+[[opener.edit]]
+block = true
+run = "hx $@"
+
+[preview]
+max_height = 1000
+max_width = 1000

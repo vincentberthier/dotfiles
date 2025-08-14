@@ -1,0 +1,219 @@
+{{- $waybar := index .waybar .chezmoi.hostname -}}
+[
+  {
+{{- if hasKey $waybar "battery" }}
+    "battery": {
+      "bat": "BAT0",
+      "format": "{capacity}% {icon}",
+      "format-icons": [
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "interval": 60,
+      "max-length": 25,
+      "states": {
+        "critical": 15,
+        "warning": 30
+      }
+    },
+{{- end }}
+    "clock": {
+      "format": " {:%R   %A %d %B}",
+      "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+    },
+    "cpu": {
+      "format": " {usage:02d}%",
+      "interval": 1,
+      "max-length": 10,
+      "on-click": "",
+      "states": {
+        "critical": 80,
+        "warning": 60
+      }
+    },
+    "custom/backup": {
+      "exec": "XDG_DATA_HOME={{ .chezmoi.homeDir }}/.local/share ~/.config/waybar/scripts/backup.sh",
+      "format": "{}",
+      "interval": 1,
+      "return-type": "json"
+    },
+    "custom/logout": {
+      "format": "",
+      "on-click": "wleave --layout $HOME/.config/wleave/layout.json -p xdg",
+      "tooltip": false
+    },
+    "custom/spotify": {
+      "exec": "{{ .chezmoi.homeDir }}/.config/waybar/scripts/track_spotify.sh",
+      "format": "{}",
+      "interval": 1,
+      "max-length": 60,
+      "on-click": "playerctl -p spotify play-pause",
+      "on-click-backward": "playerctl -p spotify previous",
+      "on-click-forward": "playerctl -p spotify next",
+      "on-scroll-down": "playerctl -p spotify volume 0.05-",
+      "on-scroll-up": "playerctl -p spotify volume 0.05+"
+    },
+    "custom/vpn": {
+      "exec": "{{ .chezmoi.homeDir }}/.config/waybar/scripts/vpn.sh",
+      "format": "{}",
+      "interval": 15
+    },
+    "custom/weather": {
+      "exec": "{{ .chezmoi.homeDir }}/.config/waybar/scripts/waybar-wttr.py",
+      "format": "{}",
+      "restart-interval": 300,
+      "return-type": "json",
+      "tooltip": true
+    },
+    "height": 0,
+    "hyprland/window": {
+      "format": "{}"
+    },
+    "hyprland/workspaces": {
+      "all-outputs": true,
+      "format": "{icon}",
+      "format-icons": {
+{{- if eq .chezmoi.hostname "athena" }}
+        "1": "",
+        "2": "",
+        "3": "",
+        "4": "",
+        "5": "",
+        "6": "",
+        "7": "",
+        "8": "",
+        "9": "",
+        "10": "",
+        "11": "",
+{{- else }}
+        "astro": "󰭎",
+        "chat": "",
+        "default": "",
+        "dev": "",
+        "gaming": "󰊖",
+        "general": "",
+        "misc": "",
+        "obsidian": "󰠮",
+        "remote": "󰢹",
+        "spotify": "",
+        "urgent": "",
+        "webdev": "󰾔",
+        "work": "󰬱"
+{{- end }}
+        "default": "",
+        "urgent": ""
+      },
+      "on-click": "activate",
+      "on-scroll-down": "hyprctl dispatch workspace e-1",
+      "on-scroll-up": "hyprctl dispatch workspace e+1",
+      "persistent-workspaces": {
+{{- if eq .chezmoi.hostname "athena" }}
+        "1": [],
+        "2": [],
+        "3": [],
+        "4": [],
+        "5": [],
+        "6": [],
+        "7": [],
+        "8": [],
+        "9": [],
+        "10": [],
+        "11": []
+{{- else }}
+        "{{ $waybar.workspace1 }}": [],
+        "{{ $waybar.workspace2 }}": [],
+        "{{ $waybar.workspace3 }}": [],
+        "{{ $waybar.workspace4 }}": [],
+        "{{ $waybar.workspace5 }}": [],
+        "{{ $waybar.workspace6 }}": [],
+        "{{ $waybar.workspace7 }}": [],
+        "{{ $waybar.workspace8 }}": [],
+        "{{ $waybar.workspace9 }}": [],
+        "{{ $waybar.workspace10 }}": [],
+        "{{ $waybar.workspace11 }}": []
+{{- end }}
+      }
+    },
+    "layer": "top",
+    "memory": {
+      "format": " {percentage:02d}%",
+      "format-alt": " {used:02.1f}G",
+      "interval": 1,
+      "max-length": 10,
+      "states": {
+        "critical": 80,
+        "warning": 60
+      }
+    },
+    "modules-left": [
+      "clock",
+      "custom/weather",
+      "hyprland/workspaces"
+    ],
+    "modules-right": [
+{{- range $i, $module := $waybar.modules_right }}
+{{- if $i }},{{ end }}
+      "{{ $module }}"
+{{- end }}
+    ],
+    "network": {
+      "format": "{ifname}",
+      "format-disconnected": "󰖪",
+      "format-ethernet": "{ipaddr}/{cidr} ",
+      "format-wifi": "",
+      "interface": "{{ $waybar.wifi }}",
+      "max-length": 50,
+      "tooltip-format": "{ifname} via {gwaddr} ",
+      "tooltip-format-disconnected": "Disconnected",
+      "tooltip-format-ethernet": "{ifname} ",
+      "tooltip-format-wifi": "{essid} ({signalStrength}%) "
+    },
+    "output": [
+{{- range $i, $output := $waybar.output }}
+{{- if $i }},{{ end }}
+      "{{ $output }}"
+{{- end }}
+    ],
+    "pulseaudio": {
+      "format": "{icon} {volume}%",
+      "format-icons": {
+        "car": "",
+        "default": [
+          "",
+          "",
+          ""
+        ],
+        "hands-free": "",
+        "headphone": "",
+        "headset": "",
+        "phone": "",
+        "portable": ""
+      },
+      "format-muted": " Muted",
+      "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+      "on-click-middle": "{{ .chezmoi.homeDir }}/.config/waybar/scripts/cycle_audio_sinks.sh",
+      "on-scroll-down": "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%-",
+      "on-scroll-up": "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+",
+      "scroll-step": 5,
+      "tooltip": false
+    },
+    "pulseaudio#microphone": {
+      "format": "{format_source}",
+      "format-source": " {volume}%",
+      "format-source-muted": " Muted",
+      "on-click": "pamixer --default-source -t",
+      "on-scroll-down": "pamixer --default-source -d 5",
+      "on-scroll-up": "pamixer --default-source -i 5",
+      "scroll-step": 5,
+      "tooltip": false
+    },
+    "tray": {
+      "icon-size": 13,
+      "spacing": 10,
+      "tooltip": false
+    }
+  }
+]

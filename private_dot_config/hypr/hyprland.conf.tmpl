@@ -1,0 +1,366 @@
+{{- $hyprland := index .hyprland .chezmoi.hostname -}}
+exec-once = /usr/bin/dbus-update-activation-environment --systemd DISPLAY HYPRLAND_INSTANCE_SIGNATURE WAYLAND_DISPLAY XDG_CURRENT_DESKTOP && systemctl --user stop hyprland-session.target && systemctl --user start hyprland-session.target
+$browser={{ $hyprland.browser }}
+$chatCord={{ $hyprland.discord }}
+$files=thunar
+$hyprDir=$HOME/.config/hypr
+$localBin=$HOME/.local/bin
+$logout=wleave
+$mainMod=SUPER
+$menu=$scriptDir/menu.sh
+$scriptDir=$HOME/.config/hypr/scripts
+$term=wezterm
+{{- range $hyprland.env }}
+env={{ . }}
+{{- end }}
+env=HYPRCURSOR_THEME,HyprCatppuccinMochaMauve
+env=TERM_STARTUP_MODE,secundary
+{{- range $hyprland.monitors }}
+monitor={{ . }}
+{{- end }}
+monitor=,preferred, auto, 1
+#
+# Please note not all available settings / options are set here.
+# For a full list, see the wiki
+#
+# Change theme with nwg-look
+# https://mixkit.co/free-sound-effects/notification/
+#
+# exec-once = dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP &
+
+# https://wiki.hyprland.org/Configuring/Workspace-Rules/
+workspace = {{ $hyprland.workspace1 }}, monitor:{{ $hyprland.monitor1 }}, default:true
+workspace = {{ $hyprland.workspace2 }}, monitor:{{ $hyprland.monitor2 }}, default:true
+workspace = {{ $hyprland.workspace3 }}, monitor:{{ $hyprland.monitor2 }}, default:false
+workspace = {{ $hyprland.workspace4 }}, monitor:{{ $hyprland.monitor3 }}, default:true
+workspace = {{ $hyprland.workspace5 }}, monitor:{{ $hyprland.monitor3 }}, default:false
+workspace = {{ $hyprland.workspace6 }}, monitor:{{ $hyprland.monitor1 }}, default:false
+workspace = {{ $hyprland.workspace7 }}, monitor:{{ $hyprland.monitor3 }}, default:false
+workspace = {{ $hyprland.workspace8 }}, monitor:{{ $hyprland.monitor2 }}, default:false
+workspace = {{ $hyprland.workspace9 }}, monitor:{{ $hyprland.monitor1 }}, default:false
+workspace = {{ $hyprland.workspace10 }}, monitor:{{ $hyprland.monitor2 }}, default:false
+workspace = {{ $hyprland.workspace11 }}, monitor:{{ $hyprland.monitor2 }}, default:false
+
+# See https://wiki.hyprland.org/Configuring/Keywords/ for more
+
+# Source a file (multi-file configs)
+# source = ~/.config/hypr/myColors.conf
+
+# For all categories, see https://wiki.hyprland.org/Configuring/Variables/
+input {
+    kb_layout = fr
+    kb_variant = {{ .keyboard }}  # binding physical map
+    follow_mouse = 1
+
+    touchpad {
+        natural_scroll = no
+    }
+
+    sensitivity = 0 # -1.0 - 1.0, 0 means no modification.false
+}
+
+general {
+    # See https://wiki.hyprland.org/Configuring/Variables/ for more
+
+    gaps_in = 2
+    gaps_out = 2
+    border_size = 2
+    no_border_on_floating = true
+    # col.active_border = rgba(33ccffee) rgba(00ff99ee) 45deg
+    col.active_border = rgba(cba6f7ee) rgba(f6c2e7ee) 45deg
+    col.inactive_border = rgba(595959aa)
+    # cursor_inactive_timeout = 0 # set to 0 for never
+
+    layout = dwindle
+}
+
+decoration {
+    # See https://wiki.hyprland.org/Configuring/Variables/ for more
+    rounding = 5
+    blur {
+      enabled = no
+      size = 3
+      passes = 1
+      new_optimizations = on
+    }
+
+    shadow {
+      enabled = true
+      range = 4
+      render_power = 3
+      color = rgba(1a1a1aee)
+    }
+}
+
+animations {
+    enabled = yes
+
+    # Some default animations, see https://wiki.hyprland.org/Configuring/Animations/ for more
+
+    bezier = myBezier, 0.05, 0.9, 0.1, 1.05
+
+    animation = windows, 1, 7, myBezier
+    animation = windowsOut, 1, 7, default, popin 80%
+    animation = border, 1, 10, default
+    animation = fade, 1, 7, default
+    animation = workspaces, 1, 6, default
+}
+
+dwindle {
+    # See https://wiki.hyprland.org/Configuring/Dwindle-Layout/ for more
+    pseudotile = yes # master switch for pseudotiling. Enabling is bound to mainMod + P in the keybinds section below
+    preserve_split = yes # you probably want this
+}
+
+master {
+    # See https://wiki.hyprland.org/Configuring/Master-Layout/ for more
+    new_status = slave
+}
+
+gestures {
+    # See https://wiki.hyprland.org/Configuring/Variables/ for more
+    workspace_swipe = off
+}
+
+misc {
+    mouse_move_enables_dpms = false
+    key_press_enables_dpms = true
+    focus_on_activate = false
+}
+
+# Example per-device config
+# See https://wiki.hyprland.org/Configuring/Keywords/#executing for more
+device {
+    name = epic mouse V1
+    sensitivity = -0.5
+}
+
+# Azerty keyboard
+device {
+    name = razer-razer-ornata-chroma
+    kb_layout = fr
+    kb_variant = azerty
+    kb_model =
+    kb_options =
+    kb_rules =
+    numlock_by_default = true
+}
+
+# Athena's keyboard
+device {
+    name = at-translated-set-2-keyboard
+    kb_layout = us
+    kb_variant =
+    kb_model =
+    kb_options =
+    kb_rules =
+    numlock_by_default = false
+}
+
+# Typematrix keyboard
+device {
+    name = typematrix.com-usb-keyboard
+    kb_layout = fr
+    kb_variant = {{ .keyboard }}
+    kb_model =
+    kb_options =
+    kb_rules =
+    numlock_by_default = false
+}
+
+# Moonlander
+device {
+    name = zsa-technology-labs-moonlander-mark-i
+    kb_layout = fr
+    kb_variant = {{ .keyboard }}
+    kb_model =
+    kb_options =
+    kb_rules =
+    numlock_by_default = true
+}
+
+# Example windowrule v1
+# https://wiki.hyprland.org/Configuring/Workspace-Rules/windowrule = float, ^(kitty)$
+# Example windowrule v2
+# windowrulev2 = float,class:^(kitty)$,title:^(kitty)$
+# See https://wiki.hyprland.org/Configuring/Window-Rules/ for more
+# hyprctl clients to get a list of the windows
+windowrule = workspace {{ $hyprland.workspace1 }} silent, class:^(thunderbird)$
+windowrule = workspace {{ $hyprland.workspace1 }} silent, class:^(Signal)$
+windowrule = workspace {{ $hyprland.workspace1 }} silent, class:^(WebCord)$
+windowrule = workspace {{ $hyprland.workspace1 }} silent, class:^(discord)$
+windowrule = workspace {{ $hyprland.workspace1 }} silent, class:^(Element)$
+windowrule = workspace {{ $hyprland.workspace7 }} silent, class:^(obsidian)$
+windowrule = workspace {{ $hyprland.workspace9 }} silent, class:^(Spotify)$
+windowrule = workspace {{ $hyprland.workspace8 }} silent, class:^(steam)$
+windowrulev2 = workspace {{ $hyprland.workspace6 }} silent,class:^(org.telegram.desktop)$
+windowrulev2 = workspace {{ $hyprland.workspace6 }} silent,class:^(teams-for-linux)$
+windowrule = workspace {{ $hyprland.workspace2 }} silent, class:^( PbF)$
+windowrule = workspace {{ $hyprland.workspace3 }} silent, class:^( OffChain)$
+windowrule = workspace {{ $hyprland.workspace4 }} silent, class:^(󰈺 Misc)$
+windowrule = workspace {{ $hyprland.workspace8 }} silent, class:^(Guild Wars 2)$
+windowrule = workspace {{ $hyprland.workspace10 }}, class:^(Darktable)$
+windowrule = workspace {{ $hyprland.workspace10 }}, class:^(starstax.exe)$
+windowrule = workspace {{ $hyprland.workspace10 }}, title:^(GraXpert | )(.*)$
+windowrule = workspace {{ $hyprland.workspace10 }}, class:^(siril)$
+windowrule = workspace {{ $hyprland.workspace10 }}, class:^(sequator.exe)$
+windowrule = workspace {{ $hyprland.workspace10 }}, title:^(Stellarium)(.*)$
+windowrule = workspace {{ $hyprland.workspace11 }}, class:^(org.remmina.Remmina)$
+windowrule = tile, class:^(sequator.exe)$
+windowrule = tile, class:^(starstax.exe)$
+windowrule = tile, title:^(Stellarium)(.*)$
+windowrule = suppressevent maximize fullscreen, title:^(Stellarium)(.*)$
+windowrule = fullscreenstate:3, title:^(Guild Wars 2)$
+windowrule = noblur, title:^(wezterm)$
+windowrule = noblur, title:^(kitty)$
+windowrule = maximize, title:^(LibreWolf)$
+windowrule = maximize, title:^(Firefox)$
+windowrule = maximize, title:^(zen)$
+windowrule = float, title:^(xdg-desktop-portal-gtk)$,title:^(Open Folder)$
+windowrule = float, title:^(Steam)$,title:^(Friends List)$
+windowrule = size 300,600, title:^(Steam)$,title:^(Friends List)$
+windowrule = float, title:^(Steam)$,title:^(Steam - News)$
+windowrule = float, title:^(thunderbird)$,title:^(rappel)$
+# windowrule = suppressevent maximize fullscreen, title:^(wleave)$
+# windowrule = float, title:^(wleave)$
+# windowrule = center, title:^(wleave)$
+# windowrule = size 400 200, title:^(wleave)$
+windowrule = float, title:^(thunar)$
+windowrule = size 1000 600, title:^(thunar)$
+windowrule = stayfocused,title:^(wofi)$
+# windowrule = float,title:^(org.wezfurlong.wezterm)$  # temporary fix for Wezterm
+windowrule = idleinhibit fullscreen,title:^(vlc)$
+windowrule = float, title:^(Export Image as)(.*)$
+windowrule = float, title:^(Enregistrer le fichier)(.*)$
+windowrule = suppressevent maximize fullscreen, title:^(Enregistrer le fichier)(.*)$
+windowrule = center, title:^(Enregistrer le fichier)(.*)$
+windowrule = size 800 600, title:^(Enregistrer le fichier)(.*)$
+windowrule = float, class:^(thunar)$,title:^(Renommer)(.*)$
+windowrule = suppressevent maximize fullscreen, class:^(thunar)$,title:^(Renommer)(.*)$
+windowrule = center, class:^(thunar)$,title:^(Renommer)(.*)$
+windowrule = size 500 200, class:^(thunar)$,title:^(Renommer)(.*)$
+windowrule = float, title:^(Open FITS File)(.*)$
+windowrule = suppressevent maximize fullscreen, title:^(Open FITS File)(.*)$
+windowrule = center, title:^(Open FITS File)(.*)$
+windowrule = size 500 200, title:^(Open FITS File)(.*)$
+windowrule = float, class:^(script-fu)(.*)$
+windowrule = suppressevent maximize fullscreen, class:^(script-fu)(.*)$
+windowrule = center, class:^(script-fu)(.*)$
+windowrule = size 500 200, class:^(script-fu)(.*)$
+
+# See https://wiki.hyprland.org/Configuring/Keywords/ for more
+
+# Navigation
+# Focus
+bind = $mainMod, t, movefocus, l
+bind = $mainMod, n, movefocus, r
+bind = $mainMod, s, movefocus, u
+bind = $mainMod, r, movefocus, d
+bind = $mainMod, c, cyclenext,
+bind = $mainMod, c, bringactivetotop,
+# bind = $mainMod, c, layoutmsg, swapwithmaster
+# bind = $mainMod, Tab, layoutmsg, swapwithmaster
+bind = $mainMod, c, layoutmsg, movetoroot
+bind = $mainMod, Tab, layoutmsg, movetoroot
+
+# Workspaces
+bind = $mainMod SHIFT, d, workspace, m-1       # Go to previous workspace
+bind = $mainMod SHIFT, l, workspace, m+1       # Go to next workspace
+bind = $mainMod, d, focusmonitor, l            # Go to a monitor on the left
+bind = $mainMod, l, focusmonitor, r            # Go to a monitor on the right
+bind = $mainMod ALT, d, movetoworkspace, r-1   # Move focused window to previous workspace
+bind = $mainMod ALT, l, movetoworkspace, r+1   # Move focused window to next workspace
+bind = $mainMod, o, workspace, empty           # Creates a new workspace
+
+
+# Misc
+bind = $mainMod, m, exec, hyprctl dispatch fullscreen 1
+bind = $mainMod SHIFT, m, fullscreen
+bind = $mainMod, f, togglefloating,
+bind = $mainMod, K, exec, $scriptDir/kill_window.sh
+bind = $mainMod ALT, R, exec, hyprctl reload
+bind = $mainMod ALT, K, exec, $logout --layout $HOME/.config/wleave/layout.json -p xdg
+bind = $mainMod, V, exec, hyprlock
+# Sound control
+binde = $mainMod, code:16, exec, wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%+ # +
+binde = $mainMod, code:17, exec, wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%- # -
+bind = $mainMod, code:19, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle        # *
+
+# Applications
+bind = $mainMod, g, exec, $menu
+# bind = $mainMod, q, exec, $term start -- fish -C fastfetch
+bind = $mainMod, q, exec, $term
+bind = $mainMod, e, exec, $files
+bind = $mainMod, b, exec, $browser
+# Screens
+bind = $mainMod, p, exec,grim -g "$(slurp -d)" - | wl-copy
+bind = $mainMod ALT, p, exec, grim - | wl-copy && notify-send "Screenshot taken"
+bind = $mainMod SHIFT ALT, p, exec, wl-screenrec -f "/home/{{ .username }}/Vidéos/$(date +%Y-%m-%d-T-%H%M%S).mp4" -g "$(slurp)"
+
+# Switch workspaces with mainMod + [0-9]
+bind = $mainMod, F1, workspace, {{ $hyprland.workspace1 }}
+bind = $mainMod, F2, workspace, {{ $hyprland.workspace2 }}
+bind = $mainMod, F3, workspace, {{ $hyprland.workspace3 }}
+bind = $mainMod, F4, workspace, {{ $hyprland.workspace4 }}
+bind = $mainMod, F5, workspace, {{ $hyprland.workspace5 }}
+bind = $mainMod, F6, workspace, {{ $hyprland.workspace6 }}
+bind = $mainMod, F7, workspace, {{ $hyprland.workspace7 }}
+bind = $mainMod, F8, workspace, {{ $hyprland.workspace8 }}
+bind = $mainMod, F9, workspace, {{ $hyprland.workspace9 }}
+bind = $mainMod, F10, workspace, {{ $hyprland.workspace10 }}
+bind = $mainMod, F11, workspace, {{ $hyprland.workspace11 }}
+
+# Move active window to a workspace with mainMod + SHIFT + [0-9]
+bind = $mainMod SHIFT, F1, movetoworkspace, {{ $hyprland.workspace1 }}
+bind = $mainMod SHIFT, F2, movetoworkspace, {{ $hyprland.workspace2 }}
+bind = $mainMod SHIFT, F3, movetoworkspace, {{ $hyprland.workspace3 }}
+bind = $mainMod SHIFT, F4, movetoworkspace, {{ $hyprland.workspace4 }}
+bind = $mainMod SHIFT, F5, movetoworkspace, {{ $hyprland.workspace5 }}
+bind = $mainMod SHIFT, F6, movetoworkspace, {{ $hyprland.workspace6 }}
+bind = $mainMod SHIFT, F7, movetoworkspace, {{ $hyprland.workspace7 }}
+bind = $mainMod SHIFT, F8, movetoworkspace, {{ $hyprland.workspace8 }}
+bind = $mainMod SHIFT, F9, movetoworkspace, {{ $hyprland.workspace9 }}
+bind = $mainMod SHIFT, F10, movetoworkspace, {{ $hyprland.workspace10 }}
+bind = $mainMod SHIFT, F11, movetoworkspace, {{ $hyprland.workspace11 }}
+
+# Nove the current workspace to the next screen
+bind = $mainMod SHIFT ALT, N, movecurrentworkspacetomonitor, +1
+bind = $mainMod SHIFT ALT, T, movecurrentworkspacetomonitor, -1
+
+# Scroll through existing workspaces with mainMod + scroll
+bind = $mainMod, mouse_down, workspace, m+1
+bind = $mainMod, mouse_up, workspace, m-1
+bind = $mainMod ALT, mouse_down, movetoworkspace, r+1
+bind = $mainMod ALT, mouse_up, movetoworkspace, r-1
+
+# Move/resize windows with mainMod + LMB/RMB and dragging
+bindm = $mainMod, mouse:272, movewindow
+bindm = $mainMod, mouse:273, resizewindow
+
+# Execute your favorite apps at launch
+exec = hyprpaper &
+exec-once = mako &
+exec-once = udiskie &
+exec-once = waybar &
+exec-once = configure-gtk &
+
+# exec-once = $term --session startup_session
+exec-once = TERM_STARTUP_MODE=initial $term &
+exec-once = $browser &
+exec-once = /usr/bin/env fd . /home/{{ .username }}/.local/share/duplicacy -e log --changed-before 7d -X rm {}
+exec-once = $scriptDir/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:home  /home/{{ .username }}/pcloud/
+exec-once = $scriptDir/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:vault /home/{{ .username }}/vault/
+exec-once = $scriptDir/wait_connection.sh; sleep 5; /usr/bin/env bash /home/{{ .username }}/duplicacy/restore.sh
+exec-once = $chatCord &
+exec-once = thunderbird &
+exec-once = $scriptDir/wait_connection.sh; signal-desktop &
+exec-once = sleep 2; $scriptDir/setup_environment.sh
+exec-once = obsidian &
+exec-once = telegram-desktop &
+exec-once = teams-for-linux &
+{{- if hasKey $hyprland "idle_config" }}
+exec-once = hypridle &
+{{- end }}
+exec-once = spotify &
+# exec-once = element-desktop &
+exec-once = onedrivegui --minimize &

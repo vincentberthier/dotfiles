@@ -1,0 +1,18 @@
+[[snippets]]
+prefix = "vi_err"
+body = '''
+  use core::result;
+  use std::error;
+
+  use derive_more::{Display, From};
+
+  pub type Result<T> = result::Result<T, Error>;
+
+  /// $1
+  #[derive(Debug, Display, From)]
+  pub enum Error {$0}
+
+  impl error::Error for Error {}
+'''
+scope = ["rust"]
+

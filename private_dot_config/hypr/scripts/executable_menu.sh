@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-WOFI_HOME="$HOME/.config/hypr/wofi"
+WOFI_HOME="$HOME/.config/wofi"
 CONFIG="$WOFI_HOME/config"
 STYLE="$WOFI_HOME/style.css"
 COLORS="$WOFI_HOME/colors"

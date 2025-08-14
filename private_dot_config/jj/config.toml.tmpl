@@ -1,0 +1,152 @@
+[[--scope]]
+[--scope.--when]
+repositories = ["{{ .chezmoi.homeDir }}/{{ .tyrex_code_root }}"]
+
+[--scope.revset-aliases]
+"immutable_heads()" = "trunk() | tags() | present(develop@origin | master@origin)"
+
+[--scope.signing]
+key = "{{ .chezmoi.homeDir }}/.ssh/tyrex.pub"
+
+[--scope.user]
+email = {{ .tyrex_mail }}
+name = {{ .tyrex_name }}
+
+[[--scope]]
+[--scope.--when]
+commands = ["diff"]
+
+[--scope.ui]
+diff-formatter = ":git"
+pager = "delta"
+
+[aliases]
+back = [
+    "util",
+    "exec",
+    "--",
+    "bash",
+    "-c",
+    '''resolve () { jj log --no-graph -r@ -T'change_id.short() ++ "\n"' "$@"; }
+current=$(resolve)
+jj op log --no-graph -T 'id.short() ++ "\n"' | while read op; do
+    old=$(resolve --at-op $op)
+    if [[ $old != $current ]]; then
+        if ! jj edit $old 2>/dev/null; then
+            old_commit=$(jj evolog -r $old --at-op $op --no-graph -T 'commit_id.short()')
+            jj edit $old_commit
+        fi
+        exit 0
+    fi
+done''',
+    "jj-back",
+]
+cat = ["file", "show"]
+desc- = ["describe", "-r", "@-"]
+ds = ["diff", "--stat"]
+info = ["log", "--no-graph"]
+l = ["log", "-r", "all()", "--limit", "10"]
+lg = ["log", "-T", "brief"]
+ll = ["log", "-r", "all()", "-T", "builtin_log_detailed"]
+logme = ["log", "-r", "mine() & mutable()"]
+ls = [
+    "util",
+    "exec",
+    "--",
+    "sh",
+    "-c",
+    '''jj stack --limit 10
+echo
+jj status''',
+    "jj-ls",
+]
+lst = ["info", "-T", "brief", "-r", "heads(ancestors(visible_heads() ~ immutable(), 2) ~ (empty() & description(exact:'')))"]
+redo = ["new", "-r", "@--"]
+restack = ["rebase", "-r", "mine() & mutable()", "-d", "trunk()"]
+show- = ["show", "-r", "@-"]
+stack = ["log", "-r", "stack()"]
+tug = [
+    "bookmark",
+    "move",
+    "--from",
+    "closest_bookmark(@)",
+    "--to",
+    "closest_pushable(@)",
+]
+up = ["rebase", "-r", "mutable() & mine()"]
+
+[fsmonitor]
+backend = "watchman"
+
+[revset-aliases]
+"base_point(x)" = "heads(immutable_heads() & ::x)"
+"closest_bookmark(to)" = "heads(::to & bookmarks())"
+"closest_pushable(to)" = "heads(::to & mutable() & ~description(exact:'') & (~empty() | merges()))"
+"immutable_heads()" = "tags()"
+"open()" = "stack(trunk().. & mine(), 2)"
+"open(n)" = "stack(trunk().. & mine(), n)"
+"stack()" = "ancestors(mutable() & (..@ | @::), 2)"
+"stack(x)" = "ancestors(mutable() & (..x | x::), 2)"
+"stack(x, n)" = "ancestors(mutable() & (..x | x::), n)"
+"streams()" = "heads(::@ & bookmarks())"
+"streams(x)" = "heads(::x & bookmarks())"
+
+[signing]
+backend = "ssh"
+behavior = "own"
+key = "~/.ssh/vincent.pub"
+
+[signing.backends.ssh]
+allowedSignersFile = "{{ .chezmoi.homeDir }}/.config/git/allowed_signers"
+
+[template-aliases]
+brief = 'brief_line ++ "\n"'
+brief_line = '''separate(" ",
+  format_short_change_id_with_hidden_and_divergent_info(self),
+  self.bookmarks(),
+  self.tags(),
+  self.working_copies(),
+  if(empty, label("empty", "(no changes)")),
+  if(description,
+    description.first_line(),
+    label(if(empty, "empty"), description_placeholder),
+  ),
+)'''
+default_commit_description = '''JJ: Title: Summary, imperative, don't end with a period
+JJ: start with a type (fix, feat, build, chore, ci, docs, style, refactor, perf, test)
+JJ: possibly followed by a scope (such as 'feat(api): blabla')
+JJ: No more than 100 chars. #: 50 chars is here:                                                       #
+
+JJ: Remember blank line between title and body.
+
+JJ: Body: Explain *what* and *why* (not *how*).
+JJ: Wrap at 100 chars. ##############################: which is here:                                  #
+
+JJ: At the end, include 'BREAKING CHANGE: desc' if needed, and/or a 'Ref: #989'
+
+'''
+"format_short_id(id)" = "id.shortest(4)"
+"format_timestamp(ts)" = "ts.ago()"
+
+[templates]
+draft_commit_description = '''concat(
+  coalesce(description, default_commit_description, "\n"),
+  surround(
+    "\nJJ: This commit contains the following changes:\n", "",
+    indent("JJ:     ", diff.stat(72)),
+  ),
+  "\nJJ: ignore-rest\n",
+  diff.git(),
+)'''
+
+[ui]
+color = "always"
+default-command = "ls"
+diff-editor = "meld-3"
+editor = "hx"
+merge-editor = "meld"
+pager = "bat -p"
+
+[user]
+email = "{{ .email }}"
+name = "{{ .name }}"

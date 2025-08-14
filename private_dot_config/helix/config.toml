@@ -1,0 +1,174 @@
+theme = "catppuccin_mocha_transparent"
+
+[editor]
+scrolloff = 8
+line-number = "relative"
+mouse = false
+auto-format = true
+color-modes = true
+cursorline = true
+completion-replace = true
+bufferline = "multiple"
+end-of-line-diagnostics = "hint"
+
+[editor.inline-diagnostics]
+cursor-line = "warning"
+
+[editor.statusline]
+left = ["mode", "spinner", "file-name", "version-control"]
+mode.normal = "NORMAL"
+mode.insert = "INSERT"
+mode.select = "SELECT"
+
+[editor.soft-wrap]
+enable =  true
+wrap-at-text-width = false
+
+[editor.lsp]
+display-inlay-hints = true
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"
+
+[editor.auto-pairs]
+'(' = ')'
+'{' = '}'
+'[' = ']'
+'"' = '"'
+'`' = '`'
+'<' = '>'
+'“' = '”'
+
+[editor.file-picker]
+hidden = false
+
+[editor.indent-guides]
+render = true
+character = "┊"
+
+[keys.normal]
+t = "move_char_left"
+s = "move_visual_line_down"
+S = "join_selections"
+"A-s" = "join_selections_space"
+r = "move_visual_line_up"
+R = "keep_selections"
+"A-r" = "remove_selections"
+n = "move_char_right"
+h = "find_till_char"
+H = "till_prev_char"
+j = "select_regex"
+J = "split_selection"
+C-j = "save_selection"
+"A-j" = "split_selection_on_newline"
+k = "replace"
+K = "replace_with_yanked"
+l = "search_next"
+L = "search_prev"
+X = ["extend_to_line_bounds", "extend_line_up"]
+A-x = "extend_to_line_bounds"
+C-f = [":new", ":insert-output xplr", "select_all", "split_selection_on_newline", "goto_file", "goto_last_modified_file", ":buffer-close!", ":redraw"]
+C-g = [":new", ":insert-output lazygit", ":buffer-close!", ":redraw", ":reload-all"]
+C-h = [":insert-output ./scripts/auto-header.fish", ":reload-all"]
+
+[keys.normal."space"] # space mode
+c = ["yank_to_clipboard", "delete_selection"]
+
+[keys.normal.z]
+h = "align_view_top"
+s = "scroll_down"
+r = "scroll_up"
+
+[keys.normal.g] # goto mode
+h = "goto_window_top"
+j = "goto_line_start"
+r = "move_line_up"
+t = "goto_first_nonwhitespace"
+R = "goto_reference"
+k = "no_op"
+n = "goto_line_end"
+s = "move_line_down"
+l = "goto_next_buffer"
+
+[keys.normal."C-w"] # window mode
+h = "hsplit"
+t = "jump_view_left"
+s = "jump_view_down"
+r = "jump_view_up"
+n = "jump_view_right"
+C-t = "jump_view_left"
+C-s = "jump_view_down"
+C-r = "jump_view_up"
+C-n = "jump_view_right"
+T = "swap_view_left"
+S = "swap_view_down"
+R = "swap_view_up"
+N = "swap_view_right"
+
+[keys.normal."«"] # unimpaired
+d = "goto_prev_diag"
+D = "goto_first_diag"
+f = "goto_prev_function"
+t = "goto_prev_class"
+a = "goto_prev_parameter"
+c = "goto_prev_comment"
+p = "goto_prev_paragraph"
+T = "goto_prev_test"
+g = "goto_prev_change"
+G = "goto_first_change"
+space = "add_newline_above"
+
+[keys.normal."»"] # unimpaired
+d = "goto_next_diag"
+D = "goto_last_diag"
+f = "goto_next_function"
+t = "goto_next_class"
+a = "goto_next_parameter"
+c = "goto_next_comment"
+T = "goto_next_test"
+p = "goto_next_paragraph"
+g = "goto_next_change"
+G = "goto_last_change"
+space = "add_newline_below"
+
+
+[keys.insert]
+C-e = "normal_mode"
+C-space = "completion"
+up = "no_op"
+down = "no_op"
+left = "no_op"
+right = "no_op"
+pageup = "no_op"
+pagedown = "no_op"
+home = "no_op"
+end = "no_op"
+C-t = "move_char_left"
+C-s = "move_line_up"
+C-r = "move_line_down"
+C-n = "move_char_right"
+
+[keys.select]
+t = "move_char_left"
+s = "move_visual_line_down"
+r = "move_visual_line_up"
+n = "move_char_right"
+h = "find_till_char"
+H = "till_prev_char"
+l = "search_next"
+L = "search_prev"
+X = ["extend_to_line_bounds", "extend_line_up"]
+A-x = "extend_to_line_bounds"
+
+[keys.select.g] # goto mode
+h = "goto_window_top"
+t = "goto_line_start"
+r = "move_line_up"
+j = "goto_first_nonwhitespace"
+R = "goto_reference"
+k = "no_op"
+n = "goto_line_end"
+s = "move_line_down"
+l = "goto_next_buffer"

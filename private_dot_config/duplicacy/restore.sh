@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+export DUPLICACY_PASSWORD="MotDePasse"
+export DUPLICACY_RSA_PASSPHRASE="MotDePasse"
+
+FOLDERS=("$HOME/.config" "$HOME/Images" "$HOME/code" "$HOME/Documents")
+HOST=$(hostname)
+NAMES=("config_${HOST}" "images" "code" "documents")
+
+mkdir -p "${HOME}/vault"
+rclone mount --vfs-cache-mode full pcloud:vault "${HOME}/vault" &
+
+function restore_folder {
+    FOLDER=$1
+    NAME=$2
+    cd "$FOLDER" || return
+    if [ ! -d ".duplicacy" ]; then
+        echo ".. Initializing $FOLDER"
+        /usr/bin/env duplicacy init -e -key "${HOME}/.ssh/duplicacy.pub" "$NAME" "${HOME}"/vault
+        sd "\"filters\": \"\"" "\"filters\": \"${XDG_CONFIG_HOME}/duplicacy/filters.txt\"" .duplicacy/preferences
+    fi
+    REV=$(/usr/bin/env duplicacy list 2> /dev/null | tail -n 1 | awk '{print $4}')
+    if ! [[ $REV =~ ^[0-9]+$ ]] ; then return; fi
+    /usr/bin/env duplicacy restore -ignore-owner -r "$REV" -key "${HOME}/.ssh/duplicacy"
+}
+
+NFOLDERS=${#FOLDERS[@]}
+for i in $(seq 1 "$NFOLDERS"); do
+    echo "Setting up ${FOLDERS[((i - 1))]} (with name ${NAMES[((i - 1))]})"
+    restore_folder "${FOLDERS[((i - 1))]}" "${NAMES[((i - 1))]}"
+done

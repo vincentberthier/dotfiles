@@ -1,0 +1,120 @@
+[language-server.rust-analyzer.config]
+check = { command = "clippy", args = ["--all-targets", "--workspace"] }
+
+# [language-server.scls]
+# command = "simple-completion-language-server"
+
+# [language-server.scls.config]
+# max_completion_items = 20            # set max completion results len for each group: words, snippets, unicode-input
+# snippets_first = true                # completions will return before snippets by default
+# snippets_inline_by_word_tail = false # suggest snippets by WORD tail, for example text `xsq|` become `x^2|` when snippet `sq` has body `^2`
+# feature_words = true                 # enable completion by word
+# feature_snippets = true              # enable snippets
+# feature_unicode_input = true         # enable "unicode input"
+# feature_paths = true                 # enable path completion
+# feature_citations = false            # enable citation completion (only on `citation` feature enabled)
+
+
+# # write logs to /tmp/completion.log
+# [language-server.scls.environment]
+# RUST_LOG = "info,simple-completion-language-server=info"
+# LOG_FILE = "/tmp/completion.log"
+
+[[language]]
+name = "rust"
+# language-servers = [ "scls", "rust-analyzer"]
+language-servers = [ "rust-analyzer"]
+
+[[language]]
+name = "latex"
+language-servers = ["ltex-ls"]
+
+[[language]]
+name = "markdown"
+language-servers = ["ltex-ls"]
+
+[language-server.ltex-ls]
+command = "ltex-ls"
+
+[language-server.ltex-ls.config]
+ltex.language = "en-GB"
+ltex.dictionary = { "en-GB" = [] }
+
+[language-server.eslint]
+command = "eslint"
+args = ["--stdin"]
+
+[language-server.eslint.config]
+codeActionsOnSave = { mode = "all", "source.fixAll.eslint" = true }
+format = { enable = true }
+nodePath = ""
+quiet = false
+rulesCustomizations = []
+run = "onType"
+validate = "on"
+experimental = {}
+problems = { shortenToSingleLine = false }
+
+[[language]]
+name = "typescript"
+language-servers = ["typescript-language-server", "emmet-ls", "eslint"]
+formatter = { command = "dprint", args = [ "fmt", "--stdin", "typescript" ]}
+auto-format = true
+
+[[language]]
+name = "tsx"
+language-servers = ["typescript-language-server", "emmet-ls", "eslint"]
+formatter = { command = "dprint", args = [ "fmt", "--stdin", "tsx" ]}
+auto-format = true
+
+[[language]]
+name = "javascript"
+language-servers = ["typescript-language-server", "emmet-ls", "eslint"]
+formatter = { command = "dprint", args = [ "fmt", "--stdin", "javascript" ]}
+auto-format = true
+
+[[language]]
+name = "jsx"
+language-servers = ["typescript-language-server", "emmet-ls", "eslint"]
+formatter = { command = "dprint", args = [ "fmt", "--stdin", "jsx" ]}
+auto-format = true
+
+[[language]]
+name = "json"
+formatter = { command = "dprint", args = [ "fmt", "--stdin", "json" ]}
+auto-format = true
+
+[[language]]
+name = "html"
+language-servers = ["emmet-ls", "vscode-html-language-server"]
+formatter = { command = "prettier", args = [ "--parser", "html" ]}
+auto-format = true
+
+[[language]]
+name = "css"
+language-servers = ["emmet-ls", "css-languageserver"]
+formatter = { command = "prettier", args = [ "--parser", "css" ]}
+auto-format = true
+
+[[language]]
+name = "nix"
+formatter = { command = "nixfmt" }
+auto-format = true
+
+[language-server.emmet-ls]
+args = ["--stdio"]
+command="emmet-ls"
+
+[[language]]
+name = "python"
+language-servers = [ "pylsp" ]
+formatter = { command = "black", args = ["--quiet", "-"] }
+
+[language-server.pylsp.config.pylsp.plugins.pycodestyle]
+maxLineLength = 120
+
+[language-server.pylsp.config.pylsp.plugins.flake8]
+maxLineLength = 120
+
+[language-server.pylsp.config.pylsp.plugins.autopep8]
+max-line-length = 120
