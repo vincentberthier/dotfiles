@@ -156,6 +156,13 @@ status is-interactive; and begin
         set --prepend fish_complete_path "$KITTY_INSTALLATION_DIR/shell-integration/fish/vendor_completions.d"
     end
 
+    # Start ssh-agent if not already running
+    if not set -q SSH_AUTH_SOCK
+        eval (ssh-agent -c)
+        ssh-add ~/.ssh/vincent
+        ssh-add ~/.ssh/tyrex
+    end
+
     if command -q keychain
         SHELL=fish eval (keychain --eval --quiet vincent tyrex)
     end
