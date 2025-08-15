@@ -295,7 +295,7 @@ bind = $mainMod, b, exec, $browser
 # Screens
 bind = $mainMod, p, exec,grim -g "$(slurp -d)" - | wl-copy
 bind = $mainMod ALT, p, exec, grim - | wl-copy && notify-send "Screenshot taken"
-bind = $mainMod SHIFT ALT, p, exec, wl-screenrec -f "/home/{{ .username }}/Vidéos/$(date +%Y-%m-%d-T-%H%M%S).mp4" -g "$(slurp)"
+bind = $mainMod SHIFT ALT, p, exec, wl-screenrec -f "/home/{{ .chezmoi.homeDir }}/Vidéos/$(date +%Y-%m-%d-T-%H%M%S).mp4" -g "$(slurp)"
 
 # Switch workspaces with mainMod + [0-9]
 bind = $mainMod, F1, workspace, {{ $hyprland.workspace1 }}
@@ -347,10 +347,10 @@ exec-once = configure-gtk &
 # exec-once = $term --session startup_session
 exec-once = TERM_STARTUP_MODE=initial $term &
 exec-once = $browser &
-exec-once = /usr/bin/env fd . /home/{{ .username }}/.local/share/duplicacy -e log --changed-before 7d -X rm {}
-exec-once = $scriptDir/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:home  /home/{{ .username }}/pcloud/
-exec-once = $scriptDir/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:vault /home/{{ .username }}/vault/
-exec-once = $scriptDir/wait_connection.sh; sleep 5; /usr/bin/env bash /home/{{ .username }}/duplicacy/restore.sh
+exec-once = /usr/bin/env fd . /home/{{ .chezmoi.homeDir }}/.local/share/duplicacy -e log --changed-before 7d -X rm {}
+exec-once = $scriptDir/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:home  /home/{{ .chezmoi.homeDir }}/pcloud/
+exec-once = $scriptDir/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:vault /home/{{ .chezmoi.homeDir }}/vault/
+exec-once = $scriptDir/wait_connection.sh; sleep 5; /usr/bin/env bash /home/{{ .chezmoi.homeDir }}/duplicacy/restore.sh
 exec-once = $chatCord &
 exec-once = thunderbird &
 exec-once = $scriptDir/wait_connection.sh; signal-desktop &

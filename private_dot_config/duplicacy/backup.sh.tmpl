@@ -1,15 +1,12 @@
 #!/usr/bin/env bash
 
-export DUPLICACY_PASSWORD="MotDePasse"
-export DUPLICACY_RSA_PASSPHRASE="MotDePasse"
+export DUPLICACY_PASSWORD={{ onepasswordRead "op:://Personal/Duplicacy/backup_pwd" }}
+export DUPLICACY_RSA_PASSPHRASE={{ onepasswordRead "op:://Personal/Duplicacy/backup_rsa_pwd" }}
 
 BIN=$1
 FOLDERS=("$HOME/code" "$HOME/Documents" "$HOME/Images" "$XDG_CONFIG_HOME")
 LOG_PATH="${XDG_DATA_HOME}/duplicacy"
 mkdir -p "$LOG_PATH"
-
-# Remove log files older than a week
-find "$LOG_PATH" -type f -mtime 6 -delete
 
 # Create the new log file
 DATE=$($2 +%Y-%m-%d)
@@ -26,4 +23,4 @@ for dir in "${FOLDERS[@]}"; do
 done
 CHECK_LOG="$LOG_PATH/${DATE}-check.log"
 echo "------------- Vérification d’intégrité -------------" >> "$CHECK_LOG"
-$BIN check -stats -tabular >> "$CHECK_LOG"
+$BIN check -stats -tabular -threads 4 >> "$CHECK_LOG"
