@@ -9,8 +9,8 @@ repositories = ["{{ .chezmoi.homeDir }}/{{ .tyrex_code_root }}"]
 key = "{{ .chezmoi.homeDir }}/.ssh/tyrex.pub"
 
 [--scope.user]
-email = {{ .tyrex_mail }}
-name = {{ .tyrex_name }}
+email = "{{ .tyrex_mail }}"
+name = "{{ .tyrex_name }}"
 
 [[--scope]]
 [--scope.--when]
