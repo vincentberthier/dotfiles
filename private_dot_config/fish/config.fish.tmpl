@@ -158,7 +158,7 @@ status is-interactive; and begin
     end
 
     if command -q keychain
-        keychain --eval --quiet ~/.ssh/vincent ~/.ssh/tyrex | source
+        eval (keychain --eval --quiet ~/.ssh/vincent ~/.ssh/tyrex)
     end
 end
 
