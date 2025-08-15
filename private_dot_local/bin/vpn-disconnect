@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Work VPN disconnect script
+
+echo "Disconnecting VPN..."
+doas pkill -f openconnect
+
+# Restore DNS
+if [[ -f /etc/resolv.conf.pre-vpn ]]; then
+    doas cp /etc/resolv.conf.pre-vpn /etc/resolv.conf
+fi
+
+# Restart NetworkManager to clean up
+doas systemctl restart NetworkManager
+
+echo "VPN disconnected"

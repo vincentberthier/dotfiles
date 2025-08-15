@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Work VPN connection script
+
+# Backup current resolv.conf
+doas cp /etc/resolv.conf /etc/resolv.conf.pre-vpn
+
+# Connect to VPN (adjust as needed for your setup)
+echo "Connecting to work VPN..."
+echo "You may need to configure this script with your specific VPN details"
+doas openconnect --background --protocol=gp {{ onepasswordRead "op://Tyrex/Microsoftonline/VPN" }} --user={{ onepasswordRead "op://Tyrex/Microsoftonline/username" }}
+
+# Wait for connection
+echo "Waiting for VPN connection..."
+sleep 5
+
+doas /usr/bin/ip link set dev tun0 up
+doas /usr/bin/ip link set dev tun0 mtu 1360
+doas /usr/bin/ip route flush cache
+doas /usr/bin/iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
