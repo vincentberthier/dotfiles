@@ -5,7 +5,6 @@ format = "   $username$os$hostname$localip$shlvel$directory$git_branch$git_commi
 palette = "catppuccin_mocha"
 scan_timeout = 30
 
-(??)
 [character]
 error_symbol = "[󰳠](red)"
 success_symbol = "[󰳠](lavender)"
@@ -65,7 +64,6 @@ disabled = false
 [package]
 disabled = true
 
-(??)
 [palettes.catppuccin_mocha]
 base = "#1e1e2e"
 blue = "#89b4fa"
@@ -81,7 +79,6 @@ overlay1 = "#7f849c"
 overlay2 = "#9399b2"
 peach = "#fab387"
 pink = "#f5c2e7"
-(??)
 red = "#f38ba8"
 rosewater = "#f5e0dc"
 sapphire = "#74c7ec"
