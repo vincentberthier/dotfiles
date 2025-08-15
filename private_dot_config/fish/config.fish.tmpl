@@ -158,7 +158,8 @@ status is-interactive; and begin
     end
 
     if command -q keychain
-        eval (keychain --eval --quiet ~/.ssh/vincent ~/.ssh/tyrex)
+        set -xg SSH_ENV (keychain --eval --quiet ~/.ssh/vincent ~/.ssh/tyrex | psub)
+        eval $SSH_ENV
     end
 end
 
