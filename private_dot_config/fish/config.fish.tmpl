@@ -158,7 +158,9 @@ status is-interactive; and begin
     end
 
     if command -q keychain
-        eval (keychain --eval --quiet ~/.ssh/vincent ~/.ssh/tyrex)
+        for line in (keychain --eval --quiet ~/.ssh/vincent ~/.ssh/tyrex)
+            eval $line
+        end
     end
 end
 
