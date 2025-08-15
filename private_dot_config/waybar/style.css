@@ -22,7 +22,6 @@ tooltip {
     border-color: @crust;
 }
 
-(??)
 #custom-logout,
 #custom-language,
 #custom-updates,
@@ -62,7 +61,6 @@ tooltip {
     border-radius: 10px 0px 0px 10px;
 }
 
-(??)
 #workspaces {
     background: @base;
     border-radius: 10px;
@@ -116,7 +114,6 @@ tooltip {
     border-right: 0px;
 }
 
-(??)
 #window {
     border-radius: 10px;
     margin-left: 60px;
