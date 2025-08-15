@@ -1,0 +1,18 @@
+function setup_hm_session_vars;
+# Only source this once.
+if [ -n "$__HM_SESS_VARS_SOURCED" ]
+  return
+end
+set -gx __HM_SESS_VARS_SOURCED '1'
+set -gx BAT_THEME 'Catppuccin-mocha'
+set -gx BROWSER 'zen'
+set -gx EDITOR 'hx'
+set -gx PAGER 'bat'
+set -gx SHELL 'fish'
+set -gx STARSHIP_CONFIG '{{ .chezmoi.homeDir }}/.config/starship.toml'
+set -gx TERMINAL 'wezterm'
+set -gx XDG_CACHE_HOME '{{ .chezmoi.homeDir }}/.cache'
+set -gx XDG_CONFIG_HOME '{{ .chezmoi.homeDir }}/.config'
+set -gx XDG_DATA_HOME '{{ .chezmoi.homeDir }}/.local/share'
+end
+setup_hm_session_vars
