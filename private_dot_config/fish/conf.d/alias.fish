@@ -47,9 +47,6 @@ abbr --add hr hyprctl reload
 abbr --add hw hyprctl workspaces
 abbr --add hd hyprctl dispatch
 
-# Misc
-abbr --add hm home-manager switch --flake "$HOME/.config/home-manager/#$(hostname)" --impure
-
 # Don’t use vim but nvim
 alias svi="doas nvim"
 alias vdev='nvim --cmd "set rtp+=./" .'
