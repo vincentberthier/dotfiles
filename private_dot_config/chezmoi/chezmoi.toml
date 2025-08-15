@@ -44,7 +44,7 @@
         workspace10 = "name:astro"
         workspace11 = "name:remote"
         discord = "discord"
-        browser = "zen"
+        browser = "zen-browser"
         monitors = [
             "DP-1, 1920x1080@144, 0x0, 1",
             "DP-2, 1920x1080@144, 1920x0, 1", 
@@ -68,7 +68,7 @@
         workspace10 = "10"
         workspace11 = "11"
         discord = "webcord"
-        browser = "zen"
+        browser = "zen-browser"
         monitors = ["eDP-1, 1920x1080@60, 0x0, 1"]
         monitor1 = "eDP-1"
         monitor2 = "eDP-1" 
@@ -97,7 +97,7 @@
         workspace10 = "name:astro"
         workspace11 = "name:remote"
         discord = "discord"
-        browser = "zen"
+        browser = "zen-browser"
         monitors = [
             "DP-1, 1920x1080@60, 0x0, 1",
             "DP-2, 1920x1080@60, 1920x0, 1",
