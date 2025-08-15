@@ -338,7 +338,7 @@ function initial_setup(cmd)
 	pbf_tab:set_title(" PbF")
 
 	local update_tab, pane, _ = pbf_window:spawn_tab {
-		args = { "fish", "-C", "maj_upgrade" },
+		args = { "fish" },
 	}
 	update_tab:set_title("󰚰 Update")
 end
