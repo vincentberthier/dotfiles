@@ -141,6 +141,7 @@
         output = ["DP-1", "DP-2", "DP-3"]
         
     [data.waybar.athena]
+        battery = "true"
         workspace1 = "1"
         workspace2 = "2"
         workspace3 = "3"

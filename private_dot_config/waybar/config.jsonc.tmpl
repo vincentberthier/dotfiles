@@ -6,11 +6,11 @@
       "bat": "BAT0",
       "format": "{capacity}% {icon}",
       "format-icons": [
-        "",
-        "",
-        "",
-        "",
-        ""
+        "",
+        "",
+        "",
+        "",
+        ""
       ],
       "interval": 60,
       "max-length": 25,
@@ -21,11 +21,11 @@
     },
 {{- end }}
     "clock": {
-      "format": " {:%R   %A %d %B}",
+      "format": " {:%R   %A %d %B}",
       "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
     },
     "cpu": {
-      "format": " {usage:02d}%",
+      "format": " {usage:02d}%",
       "interval": 1,
       "max-length": 10,
       "on-click": "",
@@ -41,7 +41,7 @@
       "return-type": "json"
     },
     "custom/logout": {
-      "format": "",
+      "format": "",
       "on-click": "wleave --layout $HOME/.config/wleave/layout.json -p xdg",
       "tooltip": false
     },
@@ -88,12 +88,9 @@
         "9": "",
         "10": "󰭎",
         "11": "󰢹",
-        "urgent": "",
-        "default": "",
 {{- else }}
         "astro": "󰭎",
         "chat": "",
-        "default": "",
         "dev": "",
         "gaming": "󰊖",
         "general": "",
@@ -101,12 +98,11 @@
         "obsidian": "󰠮",
         "remote": "󰢹",
         "spotify": "",
-        "urgent": "",
         "webdev": "󰾔",
         "work": "󰬱"
 {{- end }}
-        "default": "",
-        "urgent": ""
+        "urgent": "",
+        "default": "",
       },
       "on-click": "activate",
       "on-scroll-down": "hyprctl dispatch workspace e-1",
@@ -135,8 +131,8 @@
     },
     "layer": "top",
     "memory": {
-      "format": " {percentage:02d}%",
-      "format-alt": " {used:02.1f}G",
+      "format": " {percentage:02d}%",
+      "format-alt": " {used:02.1f}G",
       "interval": 1,
       "max-length": 10,
       "states": {
@@ -158,14 +154,14 @@
     "network": {
       "format": "{ifname}",
       "format-disconnected": "󰖪",
-      "format-ethernet": "{ipaddr}/{cidr} ",
-      "format-wifi": "",
-      "interface": "{{ $waybar.wifi }}",
+      "format-ethernet": "{ipaddr}/{cidr} ",
+      "format-wifi": "",
+      "interface": "wlp16s0",
       "max-length": 50,
-      "tooltip-format": "{ifname} via {gwaddr} ",
+      "tooltip-format": "{ifname} via {gwaddr} ",
       "tooltip-format-disconnected": "Disconnected",
-      "tooltip-format-ethernet": "{ifname} ",
-      "tooltip-format-wifi": "{essid} ({signalStrength}%) "
+      "tooltip-format-ethernet": "{ifname} ",
+      "tooltip-format-wifi": "{essid} ({signalStrength}%) "
     },
     "output": [
 {{- range $i, $output := $waybar.output }}
@@ -176,19 +172,19 @@
     "pulseaudio": {
       "format": "{icon} {volume}%",
       "format-icons": {
-        "car": "",
+        "car": "",
         "default": [
-          "",
-          "",
-          ""
+          "",
+          "",
+          ""
         ],
-        "hands-free": "",
-        "headphone": "",
-        "headset": "",
-        "phone": "",
-        "portable": ""
+        "hands-free": "",
+        "headphone": "",
+        "headset": "",
+        "phone": "",
+        "portable": ""
       },
-      "format-muted": " Muted",
+      "format-muted": " Muted",
       "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
       "on-click-middle": "{{ .chezmoi.homeDir }}/.config/waybar/scripts/cycle_audio_sinks.sh",
       "on-scroll-down": "wpctl set-volume -l 1.5 @DEFAULT_AUDIO_SINK@ 5%-",
@@ -198,8 +194,8 @@
     },
     "pulseaudio#microphone": {
       "format": "{format_source}",
-      "format-source": " {volume}%",
-      "format-source-muted": " Muted",
+      "format-source": " {volume}%",
+      "format-source-muted": " Muted",
       "on-click": "pamixer --default-source -t",
       "on-scroll-down": "pamixer --default-source -d 5",
       "on-scroll-up": "pamixer --default-source -i 5",

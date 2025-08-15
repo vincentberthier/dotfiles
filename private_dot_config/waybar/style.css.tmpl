@@ -1,3 +1,4 @@
+{{- $waybar := index .waybar .chezmoi.hostname -}}
 @import "mocha.css";
 
 * {
@@ -7,14 +8,15 @@
     font-weight: bold;
     font-size: 14px;
     min-height: 0;
+    color: @text;
 }
 
 window#waybar {
     background: rgba(21, 18, 27, 0);
-    color: @text;
 }
 
 tooltip {
+    color: @text;
     background: @base;
     border-radius: 10px;
     border-width: 2px;
@@ -52,10 +54,16 @@ tooltip {
     margin-right: 10px;
 }
 
+{{- if hasKey $waybar "battery" }}
+#custom-backup {
+    padding: 0px 5px;
+}
+{{- else }}
 #custom-backup {
     border-radius: 10px 0px 0px 10px;
     padding: 0px 5px;
 }
+{{- end }}
 
 #custom-spotify {
     border-radius: 10px 0px 0px 10px;
