@@ -157,6 +157,7 @@ status is-interactive; and begin
     if command -q keychain
         SHELL=fish eval (keychain --eval --quiet vincent tyrex)
     end
+end
 
 # Only execute this file once per shell.
 set -q __fish_home_manager_config_sourced; and exit
