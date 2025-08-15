@@ -26,7 +26,7 @@ abbr --add jjr jj rebase
 abbr --add jjs jj squash
 abbr --add jjt jj tug
 
-# chezoi
+# chezmoi
 abbr --add cme chezmoi edit --apply
 abbr --add cmu chezmoi update
 
