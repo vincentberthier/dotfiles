@@ -78,7 +78,7 @@ alias cd='z'
 alias ..="cd .."
 alias ...="cd ../.."
 alias ....="cd ../../.."
-alias cz="cd (zoxide query -l | fzf)" # Fuzzy jump with zoxide + fzf
+alias czf="cd (zoxide query -l | fzf)" # Fuzzy jump with zoxide + fzf
 alias cls="clear; ls"
 
 # Colour on grep, even though I’m using rg
