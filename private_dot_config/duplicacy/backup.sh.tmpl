@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-export DUPLICACY_PASSWORD={{ onepasswordRead "op:://Personal/Duplicacy/backup_pwd" }}
-export DUPLICACY_RSA_PASSPHRASE={{ onepasswordRead "op:://Personal/Duplicacy/backup_rsa_pwd" }}
+export DUPLICACY_PASSWORD={{ onepasswordRead "op://Personal/Duplicacy/backup_pwd" }}
+export DUPLICACY_RSA_PASSPHRASE={{ onepasswordRead "op://Personal/Duplicacy/backup_rsa_pwd" }}
 
 BIN=$1
 FOLDERS=("$HOME/code" "$HOME/Documents" "$HOME/Images" "$XDG_CONFIG_HOME")

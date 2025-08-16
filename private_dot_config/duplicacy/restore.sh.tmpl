@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-export DUPLICACY_PASSWORD={{ onepasswordRead "op:://Personal/Duplicacy/backup_pwd" }}
-export DUPLICACY_RSA_PASSPHRASE={{ onepasswordRead "op:://Personal/Duplicacy/backup_rsa_pwd" }}
+export DUPLICACY_PASSWORD={{ onepasswordRead "op://Personal/Duplicacy/backup_pwd" }}
+export DUPLICACY_RSA_PASSPHRASE={{ onepasswordRead "op://Personal/Duplicacy/backup_rsa_pwd" }}
 
 FOLDERS=("$HOME/.config" "$HOME/Images" "$HOME/code" "$HOME/Documents")
 HOST=$(hostname)
