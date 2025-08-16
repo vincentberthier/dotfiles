@@ -152,16 +152,15 @@
 {{- end }}
     ],
     "network": {
-      "format": "{ifname}",
+      "format": "{ifname} 󰦿 {bandwidthDownBytes} 󰧇 {bandwidthUpBytes}",
       "format-disconnected": "󰖪",
-      "format-ethernet": "{ipaddr}/{cidr} ",
-      "format-wifi": "",
-      "interface": "wlp16s0",
+      "format-ethernet": "󰛳 󰦿 {bandwidthDownBytes} 󰧇 {bandwidthUpBytes}",
+      "format-wifi": " 󰦿 {bandwidthDownBytes} 󰧇 {bandwidthUpBytes}",
       "max-length": 50,
-      "tooltip-format": "{ifname} via {gwaddr} ",
+      "tooltip-format": "{ipaddr} via {gwaddr} ",
       "tooltip-format-disconnected": "Disconnected",
-      "tooltip-format-ethernet": "{ifname} ",
-      "tooltip-format-wifi": "{essid} ({signalStrength}%) "
+      "tooltip-format-ethernet": "{ipaddr} ",
+      "tooltip-format-wifi": "{ipaddr} - {essid} ({signalStrength}%) "
     },
     "output": [
 {{- range $i, $output := $waybar.output }}
