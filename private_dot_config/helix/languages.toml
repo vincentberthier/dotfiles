@@ -1,18 +1,18 @@
 [language-server.rust-analyzer.config]
 check = { command = "clippy", args = ["--all-targets", "--workspace"] }
 
-# [language-server.scls]
-# command = "simple-completion-language-server"
+[language-server.scls]
+command = "simple-completion-language-server"
 
-# [language-server.scls.config]
-# max_completion_items = 20            # set max completion results len for each group: words, snippets, unicode-input
-# snippets_first = true                # completions will return before snippets by default
-# snippets_inline_by_word_tail = false # suggest snippets by WORD tail, for example text `xsq|` become `x^2|` when snippet `sq` has body `^2`
-# feature_words = true                 # enable completion by word
-# feature_snippets = true              # enable snippets
-# feature_unicode_input = true         # enable "unicode input"
-# feature_paths = true                 # enable path completion
-# feature_citations = false            # enable citation completion (only on `citation` feature enabled)
+[language-server.scls.config]
+max_completion_items = 20            # set max completion results len for each group: words, snippets, unicode-input
+snippets_first = true                # completions will return before snippets by default
+snippets_inline_by_word_tail = false # suggest snippets by WORD tail, for example text `xsq|` become `x^2|` when snippet `sq` has body `^2`
+feature_words = true                 # enable completion by word
+feature_snippets = true              # enable snippets
+feature_unicode_input = true         # enable "unicode input"
+feature_paths = true                 # enable path completion
+feature_citations = false            # enable citation completion (only on `citation` feature enabled)
 
 
 # # write logs to /tmp/completion.log
@@ -22,8 +22,7 @@ check = { command = "clippy", args = ["--all-targets", "--workspace"] }
 
 [[language]]
 name = "rust"
-# language-servers = [ "scls", "rust-analyzer"]
-language-servers = [ "rust-analyzer"]
+language-servers = [ "scls", "rust-analyzer"]
 
 [[language]]
 name = "latex"
@@ -31,7 +30,8 @@ language-servers = ["ltex-ls"]
 
 [[language]]
 name = "markdown"
-language-servers = ["ltex-ls"]
+language-servers = ["marksman"]
+formatter = { command = "dprint", args = [ "fmt", "--config", "~/.config/dprint.json", "--stdin", "markdown"] }
 
 [language-server.ltex-ls]
 command = "ltex-ls"
@@ -58,30 +58,30 @@ problems = { shortenToSingleLine = false }
 [[language]]
 name = "typescript"
 language-servers = ["typescript-language-server", "emmet-ls", "eslint"]
-formatter = { command = "dprint", args = [ "fmt", "--stdin", "typescript" ]}
+formatter = { command = "dprint", args = [ "fmt", "--config", "~/.config/dprint.json", "--stdin", "typescript" ]}
 auto-format = true
 
 [[language]]
 name = "tsx"
 language-servers = ["typescript-language-server", "emmet-ls", "eslint"]
-formatter = { command = "dprint", args = [ "fmt", "--stdin", "tsx" ]}
+formatter = { command = "dprint", args = [ "fmt", "--config", "~/.config/dprint.json", "--stdin", "tsx" ]}
 auto-format = true
 
 [[language]]
 name = "javascript"
 language-servers = ["typescript-language-server", "emmet-ls", "eslint"]
-formatter = { command = "dprint", args = [ "fmt", "--stdin", "javascript" ]}
+formatter = { command = "dprint", args = [ "fmt", "--config", "~/.config/dprint.json", "--stdin", "javascript" ]}
 auto-format = true
 
 [[language]]
 name = "jsx"
 language-servers = ["typescript-language-server", "emmet-ls", "eslint"]
-formatter = { command = "dprint", args = [ "fmt", "--stdin", "jsx" ]}
+formatter = { command = "dprint", args = [ "fmt", "--config", "~/.config/dprint.json", "--stdin", "jsx" ]}
 auto-format = true
 
 [[language]]
 name = "json"
-formatter = { command = "dprint", args = [ "fmt", "--stdin", "json" ]}
+formatter = { command = "dprint", args = [ "fmt", "--config", "~/.config/dprint.json", "--stdin", "json" ]}
 auto-format = true
 
 [[language]]
@@ -109,6 +109,23 @@ command="emmet-ls"
 name = "python"
 language-servers = [ "pylsp" ]
 formatter = { command = "black", args = ["--quiet", "-"] }
+
+[[language]]
+name = "marksman"
+formatter = { command = "shfmt" }
+
+[[language]]
+name = "dockerfile"
+formatter = { command = "dprint", args = [ "fmt", "--config", "~/.config/dprint.json", "--stdin", "dockerfile" ] }
+
+[[language]]
+name = "toml"
+formatter = { command = "dprint", args = [ "fmt", "--config", "~/.config/dprint.json", "--stdin", "toml" ] }
+
+[[language]]
+name = "yaml"
+formatter = { command = "dprint", args = [ "fmt", "--config", "~/.config/dprint.json", "--stdin", "yaml" ] }
+
 
 [language-server.pylsp.config.pylsp.plugins.pycodestyle]
 maxLineLength = 120
