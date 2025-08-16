@@ -178,8 +178,8 @@ alias record='wl-screenrec -f "/home/vincent/Vidéos/$(date +%Y-%m-%d-T-%H%M%S).
 # Copy RBFocus files
 alias astro_copy="cpv RBFocus@192.168.1.2:/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/ /run/media/vincent/Corrbolg/Astro/Raws/"
 
-function shx --description "Execute helix as root with user config"
-    doas hx --config $XDG_CONFIG_HOME/helix/config.toml $argv
+function shx --wraps helix --description "Execute helix as root with user config"
+    doas helix --config $XDG_CONFIG_HOME/helix/config.toml $argv
 end
 
 function gmr --wraps git --description "Performs an interactive rebase"

@@ -200,7 +200,7 @@
 
 [edit]
     # Configure editor for chezmoi edit commands
-    command = "hx"
+    command = "helix"
 
 [git]
     # Git configuration for chezmoi
