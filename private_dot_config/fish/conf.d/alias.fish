@@ -40,7 +40,7 @@ abbr --add cb cargo build
 abbr --add cbr cargo build --release
 abbr --add cr cargo run
 abbr --add crr cargo run --release
-abbr --add ct cargo nexttest run
+abbr --add ct cargo nextest run
 abbr --add ccl cargo clippy
 abbr --add cfmt cargo fmt
 abbr --add cdoc cargo doc --open
