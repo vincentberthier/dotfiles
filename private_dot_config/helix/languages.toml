@@ -111,7 +111,7 @@ language-servers = [ "pylsp" ]
 formatter = { command = "black", args = ["--quiet", "-"] }
 
 [[language]]
-name = "marksman"
+name = "bash"
 formatter = { command = "shfmt" }
 
 [[language]]
