@@ -44,6 +44,7 @@ e:(?i)(^|/)\.mypy_cache/
 # Git Folders
 e:(?i)(^|/)\.git/
 e:(?i)(^|/)\.svn/
+e:(?i)(^|/)\.jj/
 
 # Rust
 e:(?i)(^|/)target/
