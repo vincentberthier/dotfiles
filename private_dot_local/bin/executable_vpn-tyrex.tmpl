@@ -7,7 +7,7 @@ doas cp /etc/resolv.conf /etc/resolv.conf.pre-vpn
 # Connect to VPN (adjust as needed for your setup)
 echo "Connecting to work VPN..."
 echo "You may need to configure this script with your specific VPN details"
-doas openconnect --background --protocol=gp {{ onepasswordRead "op://Tyrex/Microsoftonline/VPN" }} --user={{ onepasswordRead "op://Tyrex/Microsoftonline/username" }}
+op read "op://Tyrex/Microsoftonline/password" | doas openconnect --background --protocol=gp {{ onepasswordRead "op://Tyrex/Microsoftonline/VPN" }} --user={{ onepasswordRead "op://Tyrex/Microsoftonline/username" }} --passwd-on-stdin
 
 # Wait for connection
 echo "Waiting for VPN connection..."
