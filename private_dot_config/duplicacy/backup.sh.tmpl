@@ -18,7 +18,7 @@ echo "-------------------------------------------------------" >> "$LOG_FILE"
 for dir in "${FOLDERS[@]}"; do
     echo "------------- Traitement de $dir -------------" >> "$LOG_FILE"
     cd "$dir" || continue
-    duplicac backup -threads 4 >> "$LOG_FILE"
+    duplicacy backup -threads 4 >> "$LOG_FILE"
 done
 CHECK_LOG="$LOG_PATH/${DATE}-check.log"
 echo "------------- Vérification d’intégrité -------------" >> "$CHECK_LOG"
