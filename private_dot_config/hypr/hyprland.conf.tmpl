@@ -344,8 +344,8 @@ exec-once = configure-gtk &
 exec-once = TERM_STARTUP_MODE=initial $term &
 exec-once = $browser &
 exec-once = /usr/bin/env fd . /home/{{ .chezmoi.homeDir }}/.local/share/duplicacy -e log --changed-before 7d -X rm {}
-exec-once = $scriptDir/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:home  /home/{{ .chezmoi.homeDir }}/pcloud/
-exec-once = $scriptDir/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:vault /home/{{ .chezmoi.homeDir }}/vault/
+exec-once = $scriptDir/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:home  {{ .chezmoi.homeDir }}/pcloud/
+exec-once = $scriptDir/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:vault {{ .chezmoi.homeDir }}/vault/
 exec-once = $scriptDir/wait_connection.sh; sleep 5; /usr/bin/env bash /home/{{ .chezmoi.homeDir }}/duplicacy/restore.sh
 exec-once = $chatCord &
 exec-once = thunderbird &
