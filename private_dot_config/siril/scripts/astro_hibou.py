@@ -877,6 +877,7 @@ def main():
     except sirilpy.SirilConnectionError as e:
         print(f"Failed to connect to Siril: {e}")
         quit()
+    siril.ensure_installed("ttkthemes", "numpy", "astropy")
 
     root_dir = Path(siril.get_siril_wd())
 
