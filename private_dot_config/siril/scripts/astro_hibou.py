@@ -7,6 +7,17 @@ import sirilpy
 import sys
 import time
 import tkinter as tk
+
+siril = sirilpy.SirilInterface()
+try:
+    siril.connect()
+    print("Siril connected successfully")
+except sirilpy.SirilConnectionError as e:
+    print(f"Failed to connect to Siril: {e}")
+    quit()
+siril.ensure_installed("ttkthemes", "numpy", "astropy")
+
+
 from astropy.io import fits
 from enum import Enum
 from pathlib import Path
@@ -870,14 +881,6 @@ def get_shooting_mode(siril, day):
 
 
 def main():
-    siril = sirilpy.SirilInterface()
-    try:
-        siril.connect()
-        print("Siril connected successfully")
-    except sirilpy.SirilConnectionError as e:
-        print(f"Failed to connect to Siril: {e}")
-        quit()
-    siril.ensure_installed("ttkthemes", "numpy", "astropy")
 
     root_dir = Path(siril.get_siril_wd())
 
