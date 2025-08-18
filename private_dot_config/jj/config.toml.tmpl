@@ -112,6 +112,10 @@ brief_line = """separate(" ",
     label(if(empty, "empty"), description_placeholder),
   ),
 )"""
+"format_short_id(id)" = "id.shortest(4)"
+"format_timestamp(ts)" = "ts.ago()"
+
+[templates]
 default_commit_description = """JJ: Title: Summary, imperative, don't end with a period
 JJ: start with a type (fix, feat, build, chore, ci, docs, style, refactor, perf, test)
 JJ: possibly followed by a scope (such as 'feat(api): blabla')
@@ -125,10 +129,6 @@ JJ: Wrap at 100 chars. ##############################: which is here:           
 JJ: At the end, include 'BREAKING CHANGE: desc' if needed, and/or a 'Ref: #989'
 
 """
-"format_short_id(id)" = "id.shortest(4)"
-"format_timestamp(ts)" = "ts.ago()"
-
-[templates]
 draft_commit_description = """concat(
   coalesce(description, default_commit_description, "\n"),
   surround(
@@ -138,6 +138,7 @@ draft_commit_description = """concat(
   "\nJJ: ignore-rest\n",
   diff.git(),
 )"""
+
 
 [ui]
 color = "always"
