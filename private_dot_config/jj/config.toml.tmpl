@@ -55,9 +55,9 @@ ls = [
     "--",
     "sh",
     "-c",
-    '''jj stack --limit 10
+    """jj stack --limit 10
 echo
-jj status''',
+jj status""",
     "jj-ls",
 ]
 lst = ["info", "-T", "brief", "-r", "heads(ancestors(visible_heads() ~ immutable(), 2) ~ (empty() & description(exact:'')))"]
@@ -101,7 +101,7 @@ allowedSignersFile = "{{ .chezmoi.homeDir }}/.config/git/allowed_signers"
 
 [template-aliases]
 brief = 'brief_line ++ "\n"'
-brief_line = '''separate(" ",
+brief_line = """separate(" ",
   format_short_change_id_with_hidden_and_divergent_info(self),
   self.bookmarks(),
   self.tags(),
@@ -111,8 +111,8 @@ brief_line = '''separate(" ",
     description.first_line(),
     label(if(empty, "empty"), description_placeholder),
   ),
-)'''
-default_commit_description = '''JJ: Title: Summary, imperative, don't end with a period
+)"""
+default_commit_description = """JJ: Title: Summary, imperative, don't end with a period
 JJ: start with a type (fix, feat, build, chore, ci, docs, style, refactor, perf, test)
 JJ: possibly followed by a scope (such as 'feat(api): blabla')
 JJ: No more than 100 chars. #: 50 chars is here:                                                       #
@@ -124,12 +124,12 @@ JJ: Wrap at 100 chars. ##############################: which is here:           
 
 JJ: At the end, include 'BREAKING CHANGE: desc' if needed, and/or a 'Ref: #989'
 
-'''
+"""
 "format_short_id(id)" = "id.shortest(4)"
 "format_timestamp(ts)" = "ts.ago()"
 
 [templates]
-draft_commit_description = '''concat(
+draft_commit_description = """concat(
   coalesce(description, default_commit_description, "\n"),
   surround(
     "\nJJ: This commit contains the following changes:\n", "",
@@ -137,7 +137,7 @@ draft_commit_description = '''concat(
   ),
   "\nJJ: ignore-rest\n",
   diff.git(),
-)'''
+)"""
 
 [ui]
 color = "always"
