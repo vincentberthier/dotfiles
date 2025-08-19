@@ -130,11 +130,11 @@
             "pulseaudio",
             "pulseaudio#microphone",
             "custom/updates",
-            "custom/vpn",
             "cpu",
             "memory",
             "custom/backup",
             "network",
+            "custom/vpn",
             "tray",
             "custom/logout"
         ]
