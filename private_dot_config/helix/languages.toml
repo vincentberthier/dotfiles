@@ -1,25 +1,3 @@
-[language-server.rust-analyzer.config]
-check = { command = "clippy", args = ["--all-targets", "--workspace"] }
-
-[language-server.scls]
-command = "simple-completion-language-server"
-
-[language-server.scls.config]
-max_completion_items = 20            # set max completion results len for each group: words, snippets, unicode-input
-snippets_first = true                # completions will return before snippets by default
-snippets_inline_by_word_tail = false # suggest snippets by WORD tail, for example text `xsq|` become `x^2|` when snippet `sq` has body `^2`
-feature_words = true                 # enable completion by word
-feature_snippets = true              # enable snippets
-feature_unicode_input = true         # enable "unicode input"
-feature_paths = true                 # enable path completion
-feature_citations = false            # enable citation completion (only on `citation` feature enabled)
-
-
-# # write logs to /tmp/completion.log
-# [language-server.scls.environment]
-# RUST_LOG = "info,simple-completion-language-server=info"
-# LOG_FILE = "/tmp/completion.log"
-
 [[language]]
 name = "rust"
 language-servers = [ "scls", "rust-analyzer"]
@@ -32,28 +10,6 @@ language-servers = ["ltex-ls"]
 name = "markdown"
 language-servers = ["marksman"]
 formatter = { command = "dprint", args = [ "fmt", "--config", "~/.config/dprint.json", "--stdin", "markdown"] }
-
-[language-server.ltex-ls]
-command = "ltex-ls"
-
-[language-server.ltex-ls.config]
-ltex.language = "en-GB"
-ltex.dictionary = { "en-GB" = [] }
-
-[language-server.eslint]
-command = "eslint"
-args = ["--stdin"]
-
-[language-server.eslint.config]
-codeActionsOnSave = { mode = "all", "source.fixAll.eslint" = true }
-format = { enable = true }
-nodePath = ""
-quiet = false
-rulesCustomizations = []
-run = "onType"
-validate = "on"
-experimental = {}
-problems = { shortenToSingleLine = false }
 
 [[language]]
 name = "typescript"
@@ -101,10 +57,6 @@ name = "nix"
 formatter = { command = "nixfmt" }
 auto-format = true
 
-[language-server.emmet-ls]
-args = ["--stdio"]
-command="emmet-ls"
-
 [[language]]
 name = "python"
 language-servers = [ "pylsp" ]
@@ -120,12 +72,63 @@ formatter = { command = "dprint", args = [ "fmt", "--config", "~/.config/dprint.
 
 [[language]]
 name = "toml"
+language-servers = ["taplo"]
 formatter = { command = "dprint", args = [ "fmt", "--config", "~/.config/dprint.json", "--stdin", "toml" ] }
 
 [[language]]
 name = "yaml"
 formatter = { command = "dprint", args = [ "fmt", "--config", "~/.config/dprint.json", "--stdin", "yaml" ] }
 
+[language-server.rust-analyzer.config]
+cargo = { allFeatures = true, targetDir = true }
+check = { command = "clippy", args = ["--all-targets", "--workspace", "--all-features"] }
+except-features = ["format"]
+
+[language-server.scls]
+command = "simple-completion-language-server"
+
+[language-server.scls.config]
+max_completion_items = 20            # set max completion results len for each group: words, snippets, unicode-input
+snippets_first = true                # completions will return before snippets by default
+snippets_inline_by_word_tail = false # suggest snippets by WORD tail, for example text `xsq|` become `x^2|` when snippet `sq` has body `^2`
+feature_words = true                 # enable completion by word
+feature_snippets = true              # enable snippets
+feature_unicode_input = true         # enable "unicode input"
+feature_paths = true                 # enable path completion
+feature_citations = false            # enable citation completion (only on `citation` feature enabled)
+
+
+# # write logs to /tmp/completion.log
+# [language-server.scls.environment]
+# RUST_LOG = "info,simple-completion-language-server=info"
+# LOG_FILE = "/tmp/completion.log"
+
+[language-server.ltex-ls]
+command = "ltex-ls"
+
+[language-server.ltex-ls.config]
+ltex.language = "en-GB"
+ltex.dictionary = { "en-GB" = [":{{ .chezmoi.homeDir }}/.config/helix/en_gb.dic"], "fr-FR" = [":{{ .chezmoi.homeDir }}/helix/fr_fr.dic"] }
+
+[language-server.eslint]
+command = "eslint"
+args = ["--stdin"]
+
+[language-server.eslint.config]
+codeActionsOnSave = { mode = "all", "source.fixAll.eslint" = true }
+format = { enable = true }
+nodePath = ""
+quiet = false
+rulesCustomizations = []
+run = "onType"
+validate = "on"
+experimental = {}
+problems = { shortenToSingleLine = false }
+
+
+[language-server.emmet-ls]
+args = ["--stdio"]
+command="emmet-ls"
 
 [language-server.pylsp.config.pylsp.plugins.pycodestyle]
 maxLineLength = 120
