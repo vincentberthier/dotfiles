@@ -1,18 +1,129 @@
 [[snippets]]
-prefix = "vi_err"
-body = '''
-  use core::result;
-  use std::error;
-
-  use derive_more::{Display, From};
-
-  pub type Result<T> = result::Result<T, Error>;
-
-  /// $1
-  #[derive(Debug, Display, From)]
-  pub enum Error {$0}
-
-  impl error::Error for Error {}
-'''
+prefix = "moderror"
 scope = ["rust"]
+body = """use core::error;
+use derive_more::derive::{Display, From};
 
+/// Errors of the $1 module.
+#[derive(Debug, Display, From)]
+#[display(": {_variant}")]
+pub enum Error {}
+
+impl error::Error for Error {}"""
+description = "the template of an error module"
+
+[[snippets]]
+prefix = "modtest"
+scope = ["rust"]
+body = """// grcov exclude start
+#[expect(clippy::panic_in_result_fn, reason = "test module")]
+#[cfg(test)]
+mod tests {
+    use core::{error, result};
+
+    use test_log::test;
+  
+    use super::super::Error;
+    use super::*;
+    type TestResult = result::Result<(), Box<dyn error::Error>>;
+
+    #[test]
+    fn $1() -> TestResult {
+        // Given
+        $0
+
+        // When
+
+
+        // Then
+
+
+        Ok(())
+    }
+}
+// grcov exclude stop"""
+description = "add a test module"
+
+[[snippets]]
+prefix = "test"
+scope = ["rust"]
+body = """#[test]
+fn $1() -> TestResult {
+    // Given
+    $0
+
+    // When
+
+
+    // Then
+
+
+    Ok(())
+}
+"""
+description = "Add a test"
+
+[[snippets]]
+prefix = "atest"
+scope = ["rust"]
+body = """#[test(tokio::test)]
+async fn $1() -> TestResult {
+    // Given
+    $0
+
+    // When
+
+
+    // Then
+
+
+    Ok(())
+}"""
+description = "Add an asynchronous test"
+
+[[snippets]]
+prefix = "doc"
+scope = ["rust"]
+body = """
+/// ${1:Description.}$0
+///
+/// # Parameters
+/// * `${2:`argument_name`}` - ${3:type and description},
+///
+/// # Example
+/// ```rust
+/// # use ${4:crate_name}::Error;
+/// // ${5:write me later}
+/// # Ok::<(), Error>(())
+/// ```"""
+description = "A rust comment with description, parameters, returns and examples."
+
+[[snippets]]
+prefix = "adoc"
+scope = ["rust"]
+body = """
+/// ${1:Description.}$0
+///
+/// # Parameters
+/// * `${2:`argument_name`}` - ${3:type and description},
+///
+/// # Example
+/// ```rust
+/// # use ${4:crate_name}::Error;
+/// # tokio_test::block_on(async {
+/// // ${5:write me later}
+/// # Ok::<(), Error>(())
+/// # });
+/// ```"""
+description = "A rust comment with description, parameters, returns and examples."
+
+[[snippets]]
+prefix = "//!"
+"body" = """
+//! ${1:Description.}$0
+//!
+//! # Examples
+//! ```rust
+//! ${2:write me later}
+//! ```"""
+description = "A special Rust comment to describe a crate, with description and examples."
