@@ -83,6 +83,7 @@ formatter = { command = "dprint", args = [ "fmt", "--config", "~/.config/dprint.
 cargo = { allFeatures = true, targetDir = true }
 check = { command = "clippy", args = ["--all-targets", "--workspace", "--all-features"] }
 except-features = ["format"]
+diagnostics.experimental.enable = true
 
 [language-server.scls]
 command = "simple-completion-language-server"
