@@ -158,6 +158,8 @@ status is-interactive; and begin
         set --prepend fish_complete_path "$KITTY_INSTALLATION_DIR/shell-integration/fish/vendor_completions.d"
     end
 
+    set -uX RUSTFMT_CONFIG_PATH "$HOME/.config/rustfmt/rustfmt.toml"
+
     if command -q keychain
         for line in (keychain --eval --quiet ~/.ssh/vincent ~/.ssh/tyrex)
             eval $line
