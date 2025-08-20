@@ -1,0 +1,43 @@
+[[sources]]
+name = "friendly-snippets"
+git = "https://github.com/rafamadriz/friendly-snippets.git"
+
+[[sources.paths]] 
+scope = ["rust"]  
+path = "snippets/rust" 
+
+[[sources.paths]] 
+scope = ["cpp"]  
+path = "snippets/cpp"
+
+[[sources.paths]] 
+scope = ["docker"]  
+path = "snippets/docker" 
+
+[[sources.paths]] 
+scope = ["latex"]  
+path = "snippets/latex.json"
+
+[[sources.paths]] 
+scope = ["latex"]  
+path = "snippets/latex/latex-snippets.json" 
+
+[[sources.paths]] 
+scope = ["python"]  
+path = "snippets/python"
+
+[[sources.paths]] 
+scope = ["shell"]  
+path = "snippets/shell" 
+
+[[sources.paths]]
+scope = ["cmake"]
+path = "snippets/cmake.json"
+
+[[sources.paths]]
+scope = ["make"]
+path = "snippets/make.json"
+
+[[sources.paths]]
+scope = ["markdown"]
+path = "snippets/markdown.json"
