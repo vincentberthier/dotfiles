@@ -4,6 +4,6 @@ Host tyrex-gl01-dev.kub.local gitlab-tyrex
 	IdentityFile ~/.ssh/tyrex
 
 Host station station-dev
-	HostName 192.168.1.113
+	HostName 192.168.1.12
 	User netlor
 	IdentityFile ~/.ssh/tyrex
