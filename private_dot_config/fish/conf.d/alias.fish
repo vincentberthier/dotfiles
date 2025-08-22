@@ -176,7 +176,8 @@ alias docker="podman"
 alias record='wl-screenrec -f "/home/vincent/Vidéos/$(date +%Y-%m-%d-T-%H%M%S).mp4" -g "$(slurp)"'
 
 # Copy RBFocus files
-alias astro_copy="cpv RBFocus@192.168.1.3:/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/ /run/media/vincent/Corrbolg/Astro/Raws/"
+alias astro_copy="cpv gaius:/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/ /run/media/vincent/Corrbolg/Astro/Raws/"
+alias astro_sd="ssh gaius 'shutdown /s /t 0'"
 
 function shx --wraps helix --description "Execute helix as root with user config"
     doas helix --config $XDG_CONFIG_HOME/helix/config.toml $argv
