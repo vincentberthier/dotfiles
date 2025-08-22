@@ -60,6 +60,7 @@ status is-interactive; and begin
 
     fish_add_path ~/.cargo/bin/
     fish_add_path ~/.local/bin/
+    set -Ux LD_LIBRARY_PATH "/usr/local/lib:$LD_LIBRARY_PATH"
     
 
     # Interactive shell initialisation
