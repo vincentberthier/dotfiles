@@ -1,0 +1,18 @@
+Host *
+	ServerAliveInterval 60
+	Compression yes
+	ForwardAgent yes
+	StrictHostKeyChecking accept-new
+	Port 22
+	
+Host gaius
+	HostName 192.168.1.3
+	User RBFocus
+	IdentityFile ~/.ssh/vincent
+	IdentitiesOnly yes
+
+Host station
+	HostName 192.168.1.113
+	User netlor
+	IdentityFile ~/.ssh/tyrex
+	IdentitiesOnly yes
