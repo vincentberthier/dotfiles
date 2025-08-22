@@ -27,7 +27,7 @@ abbr --add jjs jj squash
 abbr --add jjt jj tug
 
 # chezmoi
-abbr --add cme chezmoi edit --apply
+abbr --add cme chezmoi edit --watch --apply
 abbr --add cmu chezmoi update
 abbr --add cma chezmoi apply
 abbr --add cz chezmoi
