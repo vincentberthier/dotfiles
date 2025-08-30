@@ -9,7 +9,7 @@ Host *
 	Port 22
 	
 Host gaius
-	HostName 192.168.1.3
+	HostName 192.168.1.2
 	User RBFocus
 	IdentityFile ~/.ssh/vincent
 
