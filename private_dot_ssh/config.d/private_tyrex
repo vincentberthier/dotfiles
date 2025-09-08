@@ -7,7 +7,7 @@ Host bastion.kub.local
 Host tyrex-gl01-dev.kub.local gitlab-tyrex
 	HostName tyrex-gl01-dev.kub.local
 	User git
-	ProxyJump vincent.berthier@TYREX-GL01-DEV@bastion.kub.local 10.103.254.249
+	ProxyJump vincent.berthier@bastion.kub.local 10.103.254.249
 	IdentityFile ~/.ssh/tyrex
 	IdentitiesOnly yes
 	PreferredAuthentications publickey
