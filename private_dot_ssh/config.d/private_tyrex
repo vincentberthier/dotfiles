@@ -1,5 +1,5 @@
 Host TYREX-GL01-DEV 10.103.254.249
-	User vincent.berthier@kub-cleaner.com
+	User vincent.berthier@tyrex-cyber.com
 	ControlMaster auto
 	ControlPath ~/.ssh/tyrex-bastion-%h-%p-%r
 
@@ -8,6 +8,8 @@ Host tyrex-gl01-dev.kub.local gitlab-tyrex
 	User git
 	ProxyJump TYREX-GL01-DEV 10.103.254.249
 	IdentityFile ~/.ssh/tyrex
+	IdentitiesOnly yes
+	PreferredAuthentications publickey
 
 Host station station-dev
 	HostName 192.168.1.12
