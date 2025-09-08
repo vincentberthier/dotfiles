@@ -3,8 +3,14 @@ Host TYREX-GL01-DEV bastion.tyrex.local 10.103.254.249 bastion-tyrex
 	ControlMaster auto
 	ControlPath ~/.ssh/tyrex-bastion-%h-%p-%r
 
+Host bastion.tyrex.local
+	HostName 10.103.254.249
+	User vincent.berthier
+	ControlMaster auto
+	ControlPath ~/.ssh/tyrex-bastion-%h-%p-%r
+
 Host tyrex-gl01-dev.kub.local gitlab-tyrex
-	Hostname tyrex-gl01-dev.kub.local
+	HostName tyrex-gl01-dev.kub.local
 	User git
 	ProxyJump vincent.berthier@TYREX-GL01-DEV@bastion.tyrex.local 10.103.254.249
 	IdentityFile ~/.ssh/tyrex
