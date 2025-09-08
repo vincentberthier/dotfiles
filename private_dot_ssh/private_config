@@ -17,4 +17,3 @@ Host github.com github
 	Hostname github.com
 	User git
 	IdentityFile ~/.ssh/vincent
-
