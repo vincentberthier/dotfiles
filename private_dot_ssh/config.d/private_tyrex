@@ -1,5 +1,5 @@
-Host TYREX-GL01-DEV 10.103.254.249
-	User vincent.berthier@kub-cleaner.com
+Host TYREX-GL01-DEV 10.103.254.249 bastion-tyrex
+	User vincent.berthier
 	ControlMaster auto
 	ControlPath ~/.ssh/tyrex-bastion-%h-%p-%r
 
