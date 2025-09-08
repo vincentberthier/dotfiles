@@ -61,7 +61,6 @@ jj status""",
     "jj-ls",
 ]
 lst = ["info", "-T", "brief", "-r", "heads(ancestors(visible_heads() ~ immutable(), 2) ~ (empty() & description(exact:'')))"]
-redo = ["new", "-r", "@--"]
 restack = ["rebase", "-r", "mine() & mutable()", "-d", "trunk()"]
 show- = ["show", "-r", "@-"]
 stack = ["log", "-r", "stack()"]
