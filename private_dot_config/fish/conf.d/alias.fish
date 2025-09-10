@@ -377,7 +377,7 @@ function upload_package \
     set -l project_path "$base_path/$project_name"
 
     # GitLab instance URL
-    set -l GITLAB_URL "https://tyrex-gl01-dev.kub.local"
+    set -l GITLAB_URL "https://gitlab.example.com"
 
     # Get GitLab token via 1Password CLI
     set -l GITLAB_TOKEN (op read "op://Tyrex/Microsoftonline/gitlab_token" | string trim)
