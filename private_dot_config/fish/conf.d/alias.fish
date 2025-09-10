@@ -347,7 +347,7 @@ function upload_package \
     set -l project_name $argv[2]
 
     set -l base_path tyrex/research-and-development
-    set -l pkg_version (date +%Y-%m-%d)
+    set -l version (date +%Y-%m-%d)
 
     if test (count $argv) -lt 1
         echo "Usage: upload_package <file_path> [project_name]"
@@ -418,7 +418,7 @@ function upload_package \
         return 1
     end
 
-    echo "⬆️ Uploading '$FILE_NAME' as package '$PACKAGE_NAME', version '$pkg_version' to '$project_path'..."
+    echo "⬆️ Uploading '$FILE_NAME' as package '$PACKAGE_NAME', version '$version' to '$project_path'..."
 
     # Upload using GitLab Generic Package Registry API with progress for large files
     if test "$file_size_mb" -gt 50
@@ -432,13 +432,13 @@ function upload_package \
             "$GITLAB_URL/api/v4/projects/$PROJECT_ID/packages/generic/$PACKAGE_NAME/$pkg_version/$FILE_NAME"
     else
         # Silent for smaller files
-        curl --silent --show-error --fail \
+        curl --silent --show-error --fail --insecure \
             --request PUT \
             --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
             --upload-file "$file_path" \
             --connect-timeout 30 \
             --max-time 1800 \
-            "$GITLAB_URL/api/v4/projects/$PROJECT_ID/packages/generic/$PACKAGE_NAME/$pkg_version/$FILE_NAME"
+            "$GITLAB_URL/api/v4/projects/$PROJECT_ID/packages/generic/$PACKAGE_NAME/$version/$FILE_NAME"
     end
 
     if test $status -eq 0
