@@ -340,7 +340,7 @@ function dev-workspace
     # The background sleep+exit will now close the original pane after 1 second
 end
 
-function upload_package \
+function upload-package \
     --description 'Upload a file to GitLab Generic Package Registry'
 
     set -l file_path $argv[1]
@@ -377,7 +377,7 @@ function upload_package \
     set -l project_path "$base_path/$project_name"
 
     # GitLab instance URL
-    set -l GITLAB_URL "https://gitlab.example.com"
+    set -l GITLAB_URL "https://tyrex-gl01-dev.kub.local"
 
     # Get GitLab token via 1Password CLI
     set -l GITLAB_TOKEN (op read "op://Tyrex/Microsoftonline/gitlab_token" | string trim)
@@ -392,10 +392,10 @@ function upload_package \
     set -l PACKAGE_NAME (string replace -r '\.[^.]*$' '' $FILE_NAME)
 
     # Get GitLab project ID with improved error handling
-    set -l ENCODED_PATH (string replace '/' '%2F' $project_path)
+    set -l ENCODED_PATH (string replace --all '/' '%2F' $project_path)
     echo "🔍 Looking up project '$project_path'..."
 
-    set -l API_RESPONSE (curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_URL/api/v4/projects/$ENCODED_PATH")
+    set -l API_RESPONSE (curl --insecure -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "$GITLAB_URL/api/v4/projects/$ENCODED_PATH")
     set -l curl_status $status
 
     if test $curl_status -ne 0
@@ -423,13 +423,14 @@ function upload_package \
     # Upload using GitLab Generic Package Registry API with progress for large files
     if test "$file_size_mb" -gt 50
         # Show progress for files larger than 50MB
-        curl --show-error --fail --progress-bar \
+        curl --insecure --show-error --fail --progress-bar \
             --request PUT \
             --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
             --upload-file "$file_path" \
             --connect-timeout 30 \
             --max-time 3600 \
-            "$GITLAB_URL/api/v4/projects/$PROJECT_ID/packages/generic/$PACKAGE_NAME/$pkg_version/$FILE_NAME"
+            "$GITLAB_URL/api/v4/projects/$PROJECT_ID/packages/generic/$PACKAGE_NAME/$pkg_version/$FILE_NAME" \
+            --output /dev/null
     else
         # Silent for smaller files
         curl --silent --show-error --fail --insecure \
@@ -438,7 +439,8 @@ function upload_package \
             --upload-file "$file_path" \
             --connect-timeout 30 \
             --max-time 1800 \
-            "$GITLAB_URL/api/v4/projects/$PROJECT_ID/packages/generic/$PACKAGE_NAME/$pkg_version/$FILE_NAME"
+            "$GITLAB_URL/api/v4/projects/$PROJECT_ID/packages/generic/$PACKAGE_NAME/$pkg_version/$FILE_NAME" \
+            --output /dev/null
     end
 
     if test $status -eq 0
