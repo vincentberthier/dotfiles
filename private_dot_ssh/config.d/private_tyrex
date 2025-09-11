@@ -1,16 +1,24 @@
-Host bastion.kub.local
+CanonicalizeHostname yes
+CanonicalDomains kub.local
+
+Host bastion-tyrex
 	HostName 10.103.254.249
-	User vincent.berthier
+	User vincent.berthier@TYREX-GL01-DEV
+	ControlPersist yes
 	ControlMaster auto
-	ControlPath ~/.ssh/tyrex-bastion-%h-%p-%r
+	ControlPath ~/.ssh/tyrex-bastion-%r@%h:%p
+	ServerAliveInterval 30
+	ServerAliveCountMax 9999
+	TCPKeepAlive yes
 
 Host tyrex-gl01-dev.kub.local gitlab-tyrex
 	HostName tyrex-gl01-dev.kub.local
 	User git
-	ProxyJump vincent.berthier@TYREX-GL01-DEV@bastion.kub.local
+	ProxyJump bastion-tyrex
 	IdentityFile ~/.ssh/tyrex
 	IdentitiesOnly yes
 	PreferredAuthentications publickey
+
 
 Host station station-dev
 	HostName 192.168.1.12
