@@ -166,5 +166,12 @@ status is-interactive; and begin
             eval $line
         end
     end
+
+    # Go paths
+    set -Ux GOPATH "$HOME/.go"
+    fish_add_path "$HOME/.go"
+    set -Ux GO111MODULE "on"
+    set -Ux GOMODCACHE "$HOME/.go/pkg/mod"
+
 end
 
