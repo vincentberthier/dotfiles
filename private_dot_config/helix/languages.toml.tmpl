@@ -104,6 +104,9 @@ feature_citations = false            # enable citation completion (only on `cita
 # RUST_LOG = "info,simple-completion-language-server=info"
 # LOG_FILE = "/tmp/completion.log"
 
+[language-server]
+clangd = { command = "clangd", args = ["--clang-tidy"] }
+
 [language-server.ltex-ls]
 command = "ltex-ls"
 
