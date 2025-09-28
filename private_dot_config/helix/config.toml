@@ -10,7 +10,6 @@ cursorline = true
 completion-replace = true
 bufferline = "multiple"
 end-of-line-diagnostics = "hint"
-tab-width = 4
 
 [editor.inline-diagnostics]
 cursor-line = "warning"
