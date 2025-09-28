@@ -6,13 +6,13 @@ indent = { tab-width = 4, unit = "    " }
 [[language]]
 name = "cpp"
 formatter = { command = "clang-format", args = ["--assume-filename", ".cpp"] }
-auto-format = true
+auto-format = false
 indent = { tab-width = 4, unit = "    " }
 
 [[language]]
 name = "c"
 formatter = { command = "clang-format", args = ["--assume-filename", ".c"] }
-auto-format = true
+auto-format = false
 indent = { tab-width = 4, unit = "    " }
 
 [[language]]
@@ -118,7 +118,7 @@ feature_citations = false            # enable citation completion (only on `cita
 # LOG_FILE = "/tmp/completion.log"
 
 [language-server]
-clangd = { command = "clangd", args = ["--clang-tidy"] }
+clangd = { command = "clangd", args = ["--clang-tidy", "--header-insertion=iwyu"] }
 
 [language-server.ltex-ls]
 command = "ltex-ls"
