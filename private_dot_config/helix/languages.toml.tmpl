@@ -5,15 +5,11 @@ indent = { tab-width = 4, unit = "    " }
 
 [[language]]
 name = "cpp"
-formatter = { command = "clang-format", args = ["--assume-filename", ".cpp"] }
-auto-format = false
+scope = "source.cpp"
+file-types = ["cpp", "cc", "cxx", "hpp", "hxx", "h"]
 indent = { tab-width = 4, unit = "    " }
-
-[[language]]
-name = "c"
-formatter = { command = "clang-format", args = ["--assume-filename", ".c"] }
-auto-format = false
-indent = { tab-width = 4, unit = "    " }
+auto-format = true
+formatter = { command = "clang-format", args = ["--style=file", "--assume-filename=.cpp"] }
 
 [[language]]
 name = "latex"
