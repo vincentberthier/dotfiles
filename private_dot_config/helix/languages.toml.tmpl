@@ -1,16 +1,19 @@
 [[language]]
 name = "rust"
 language-servers = [ "scls", "rust-analyzer"]
+indent = { tab-width = 4, unit = "    " }
 
 [[language]]
 name = "cpp"
 formatter = { command = "clang-format", args = ["--assume-filename", ".cpp"] }
 auto-format = true
+indent = { tab-width = 4, unit = "    " }
 
 [[language]]
 name = "c"
 formatter = { command = "clang-format", args = ["--assume-filename", ".c"] }
 auto-format = true
+indent = { tab-width = 4, unit = "    " }
 
 [[language]]
 name = "latex"
