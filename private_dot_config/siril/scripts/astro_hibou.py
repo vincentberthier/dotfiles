@@ -538,7 +538,7 @@ class Interface:
         if self.history.check_step(self.cwd(), "extract_bg", step=filter_type):
             self.siril.log("Step already done, skipping")
             return
-        bg = self.siril.get_image_pixeldata(shape=[0, 0, 50, 50])
+        # bg = self.siril.get_image_pixeldata(shape=[0, 0, 50, 50])
         self.siril.cmd(
             "pyscript",
             "GraXpert-AI.py",
@@ -547,8 +547,8 @@ class Interface:
             "-smoothing 0.5",
             "-nogpu",
         )
-        while np.array_equal(self.siril.get_image_pixeldata(shape=[0, 0, 50, 50]), bg):
-            time.sleep(1)
+        # while np.array_equal(self.siril.get_image_pixeldata(shape=[0, 0, 50, 50]), bg):
+        #     time.sleep(1)
         self.siril.undo_save_state("GraXpert Background Extraction")
         self.siril.cmd("save", f"master_{filter_type}")
         self.history.complete_step(self.cwd(), "extract_bg", step=filter_type)
@@ -765,15 +765,15 @@ class Interface:
             self.siril.log("Step already done, skipping")
             self.open_image(f"starless_{image}_deconvolved")
             return
-        bg = self.siril.get_image_pixeldata(shape=[0, 0, 50, 50])
+        # bg = self.siril.get_image_pixeldata(shape=[0, 0, 50, 50])
         self.siril.cmd(
             "pyscript",
             "GraXpert-AI.py",
             "-deconv_obj",
             "-strength 0.8",
         )
-        while np.array_equal(self.siril.get_image_pixeldata(shape=[0, 0, 50, 50]), bg):
-            time.sleep(1)
+        # while np.array_equal(self.siril.get_image_pixeldata(shape=[0, 0, 50, 50]), bg):
+        #     time.sleep(1)
         self.siril.undo_save_state("GraXpert Deconvolve Object")
         self.siril.cmd("save", f"starless_{image}_deconvolved")
         self.open_image(f"starless_{image}_deconvolved")
@@ -785,15 +785,15 @@ class Interface:
             self.siril.log("Step already done, skipping")
             self.open_image(f"starless_{image}_denoised")
             return
-        bg = self.siril.get_image_pixeldata(shape=[0, 0, 50, 50])
+        # bg = self.siril.get_image_pixeldata(shape=[0, 0, 50, 50])
         self.siril.cmd(
             "pyscript",
             "GraXpert-AI.py",
             "-denoise",
             "-strength 0.5",
         )
-        while np.array_equal(self.siril.get_image_pixeldata(shape=[0, 0, 50, 50]), bg):
-            time.sleep(1)
+        # while np.array_equal(self.siril.get_image_pixeldata(shape=[0, 0, 50, 50]), bg):
+        #     time.sleep(1)
         self.siril.undo_save_state("GraXpert Denoise")
         self.siril.cmd("save", f"starless_{image}_denoised")
         self.open_image(f"starless_{image}_denoised")
