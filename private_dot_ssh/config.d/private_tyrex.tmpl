@@ -15,7 +15,7 @@ Host tyrex-gl01-dev.kub.local gitlab-tyrex
 	HostName tyrex-gl01-dev.kub.local
 	User git
 	# ProxyJump bastion-tyrex
-	ProxyCommand sshpass -p '{{ onepasswordRead "op://Tyrex/SSH/private_key" }}' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %h:%p -l vincent.berthier@kub-cleaner.com@TYREX-GL01-DEV 10.103.254.249
+	ProxyCommand sshpass -p '{{ onepasswordRead "op://Tyrex/Microsoftonline/password" }}' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %h:%p -l vincent.berthier@kub-cleaner.com@TYREX-GL01-DEV 10.103.254.249
 	IdentityFile ~/.ssh/tyrex
 	IdentitiesOnly yes
 	PreferredAuthentications publickey
