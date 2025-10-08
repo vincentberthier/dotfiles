@@ -4,6 +4,7 @@ set print static-members on
 set print vtbl on
 set print demangle on
 set demangle-style-gnu-v3
+set debuginfod enabled on
 #add-auto-load-safe-path /usr/local/lib64/libstdc++.so.6.0.29-gdb.py
 #set auto-load-safe-path /
 set debuginfod enabled off
