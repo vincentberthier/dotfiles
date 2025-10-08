@@ -12,11 +12,12 @@ CanonicalDomains kub.local
 # 	TCPKeepAlive yes
 
 Host tyrex-gl01-dev.kub.local gitlab-tyrex
-	HostName tyrex-gl01-dev.kub.local
+	# HostName tyrex-gl01-dev.kub.local
+	HostName 10.103.4.1
 	User git
 	ForwardAgent yes
-	# ProxyJump bastion-tyrex
 	ProxyCommand sshpass -p '{{ onepasswordRead "op://Tyrex/Microsoftonline/password" }}' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %h:%p -l "vincent.berthier@kub-cleaner.com@TYREX-GL01-DEV" 10.103.254.249
+	# ProxyJump bastion-tyrex
 	# IdentityFile ~/.ssh/tyrex
 	# IdentitiesOnly yes
 	# PreferredAuthentications publickey
