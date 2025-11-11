@@ -37,9 +37,11 @@ if [[ $(hostname) == "athena" ]]
     then
     hyprctl dispatch movetoworkspacesilent 3,address:"$(hyprctl clients -j | jq -r '[.[] | select ((.title == "󰚰 Update" ))]' | jq -r '.[].address' | head -n 1)"
     hyprctl dispatch movetoworkspacesilent 4,address:"$(hyprctl clients -j | jq -r '[.[] | select ((.title == "󰈺 Misc" ))]' | jq -r '.[].address' | head -n 1)"
+    hyprctl dispatch movetoworkspacesilent 9,address:"$(hyprctl clients -j | jq -r '[.[] | select ((.title == " Qobuz" ))]' | jq -r '.[].address' | head -n 1)"
 else
     hyprctl dispatch movetoworkspacesilent name:general,address:"$(hyprctl clients -j | jq -r '[.[] | select ((.title == "󰚰 Update" ))]' | jq -r '.[].address' | head -n 1)"
     hyprctl dispatch movetoworkspacesilent name:misc,address:"$(hyprctl clients -j | jq -r '[.[] | select ((.title == "󰈺 Misc" ))]' | jq -r '.[].address' | head -n 1)"
+    hyprctl dispatch movetoworkspacesilent name:qobuz,address:"$(hyprctl clients -j | jq -r '[.[] | select ((.title == " Qobuz" ))]' | jq -r '.[].address' | head -n 1)"
 fi
 
 while [ $WEB == 0 ]; do
