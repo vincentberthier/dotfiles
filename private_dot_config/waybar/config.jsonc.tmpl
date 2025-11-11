@@ -45,16 +45,16 @@
       "on-click": "wleave --layout $HOME/.config/wleave/layout.json -p xdg",
       "tooltip": false
     },
-    "custom/spotify": {
-      "exec": "{{ .chezmoi.homeDir }}/.config/waybar/scripts/track_spotify.sh",
+    "custom/qobuz": {
+      "exec": "{{ .chezmoi.homeDir }}/.config/waybar/scripts/track_qobuz.sh",
       "format": "{}",
       "interval": 1,
       "max-length": 60,
-      "on-click": "playerctl -p spotify play-pause",
-      "on-click-backward": "playerctl -p spotify previous",
-      "on-click-forward": "playerctl -p spotify next",
-      "on-scroll-down": "playerctl -p spotify volume 0.05-",
-      "on-scroll-up": "playerctl -p spotify volume 0.05+"
+      "on-click": "playerctl -p hifirs play-pause",
+      "on-click-backward": "playerctl -p hifirs previous",
+      "on-click-forward": "playerctl -p hifirs next",
+      "on-scroll-down": "playerctl -p hifirs volume 0.05-",
+      "on-scroll-up": "playerctl -p hifirs volume 0.05+"
     },
     "custom/vpn": {
       "exec": "{{ .chezmoi.homeDir }}/.config/waybar/scripts/vpn.sh",
@@ -97,7 +97,7 @@
         "misc": "",
         "obsidian": "󰠮",
         "remote": "󰢹",
-        "spotify": "",
+        "qobuz": "",
         "webdev": "󰾔",
         "work": "󰬱",
 {{- end }}
