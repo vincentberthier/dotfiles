@@ -50,11 +50,11 @@
       "format": "{}",
       "interval": 1,
       "max-length": 60,
-      "on-click": "playerctl -p hifirs play-pause",
-      "on-click-backward": "playerctl -p hifirs previous",
-      "on-click-forward": "playerctl -p hifirs next",
-      "on-scroll-down": "playerctl -p hifirs volume 0.05-",
-      "on-scroll-up": "playerctl -p hifirs volume 0.05+"
+      "on-click": "playerctl -p com.github.sofusa-quboz-player play-pause",
+      "on-click-backward": "playerctl -p com.github.sofusa-quboz-player previous",
+      "on-click-forward": "playerctl -p com.github.sofusa-quboz-player next",
+      "on-scroll-down": "playerctl -p com.github.sofusa-quboz-player volume 0.05-",
+      "on-scroll-up": "playerctl -p com.github.sofusa-quboz-player volume 0.05+"
     },
     "custom/vpn": {
       "exec": "{{ .chezmoi.homeDir }}/.config/waybar/scripts/vpn.sh",

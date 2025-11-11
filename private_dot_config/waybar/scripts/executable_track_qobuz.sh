@@ -6,8 +6,8 @@ if [[ ! -f $TARGET ]]; then
     touch "$TARGET"
 fi
 
-STATUS=$(playerctl -p hifirs status 2> /dev/null)
-TRACK=$(playerctl -p hifirs metadata --format "[{{ artist }}] {{ album }} - {{ title }}")
+STATUS=$(playerctl -p com.github.sofusa-quboz-player status 2> /dev/null)
+TRACK=$(playerctl -p com.github.sofusa-quboz-player metadata --format "[{{ artist }}] {{ album }} - {{ title }}")
 RES=""
 
 if [[ $STATUS == "Playing" ]]; then

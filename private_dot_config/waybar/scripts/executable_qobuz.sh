@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 
-metadata=$(playerctl -p hifirs metadata 2> /dev/null)
+metadata=$(playerctl -p com.github.sofusa-quboz-player metadata 2> /dev/null)
 TARGET="/tmp/qobuz_currently_playing.txt"
 
 if [[ ! -f $TARGET ]]; then
     touch "$TARGET"
 fi
 
-ART_RE="hifirs mpris:artUrl\s+([0-9A-Za-z_/\:\.-]+)"
-TITLE_RE="hifirs xesam:title\s+([0-9A-Za-z'’, \.\:-]+)"
-ALBUM_RE="hifirs xesam:album\s+([0-9A-Za-z'’, \.\:-]+)"
-ARTIST_RE="hifirs xesam:albumArtist\s+([0-9A-Za-z'’, \.\:-]+)"
+ART_RE="com mpris:artUrl\s+([0-9A-Za-z_/\:\.-]+)"
+TITLE_RE="com xesam:title\s+([0-9A-Za-z'’, \.\:-]+)"
+ALBUM_RE="com xesam:album\s+([0-9A-Za-z'’, \.\:-]+)"
+ARTIST_RE="com xesam:albumArtist\s+([0-9A-Za-z'’, \.\:-]+)"
 
 ART=""
 if [[ $metadata =~ $ART_RE ]]; then
