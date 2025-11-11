@@ -40,7 +40,7 @@
         workspace6 = "name:work"
         workspace7 = "name:obsidian"
         workspace8 = "name:gaming"
-        workspace9 = "name:spotify"
+        workspace9 = "name:qobuz"
         workspace10 = "name:astro"
         workspace11 = "name:remote"
         discord = "discord"
@@ -93,7 +93,7 @@
         workspace6 = "name:work"
         workspace7 = "name:obsidian"
         workspace8 = "name:gaming"
-        workspace9 = "name:spotify"
+        workspace9 = "name:qobuz"
         workspace10 = "name:astro"
         workspace11 = "name:remote"
         discord = "discord"
@@ -121,12 +121,12 @@
         workspace6 = "work"
         workspace7 = "obsidian"
         workspace8 = "gaming" 
-        workspace9 = "spotify"
+        workspace9 = "qobuz"
         workspace10 = "astro"
         workspace11 = "remote"
         wifi = "wlp16s0"
         modules_right = [
-            "custom/spotify",
+            "custom/qobuz",
             "pulseaudio",
             "pulseaudio#microphone",
             "custom/updates",
@@ -155,7 +155,7 @@
         workspace11 = "11"
         wifi = "wlp2s0"
         modules_right = [
-            "custom/spotify",
+            "custom/qobuz",
             "pulseaudio", 
             "pulseaudio#microphone",
             "custom/updates",
@@ -179,12 +179,12 @@
         workspace6 = "work"
         workspace7 = "obsidian"
         workspace8 = "gaming"
-        workspace9 = "spotify"
+        workspace9 = "qobuz"
         workspace10 = "astro"
         workspace11 = "remote"
         wifi = "wlp16s0"
         modules_right = [
-            "custom/spotify",
+            "custom/qobuz",
             "pulseaudio",
             "pulseaudio#microphone", 
             "custom/updates",
