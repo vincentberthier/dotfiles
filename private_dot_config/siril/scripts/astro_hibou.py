@@ -545,7 +545,6 @@ class Interface:
             "-bge",
             "-correction subtraction",
             "-smoothing 0.5",
-            "-nogpu",
         )
         # while np.array_equal(self.siril.get_image_pixeldata(shape=[0, 0, 50, 50]), bg):
         #     time.sleep(1)
