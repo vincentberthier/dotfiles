@@ -627,7 +627,7 @@ binds {
     // ...
 
     Mod+Shift+R              { focus-workspace-down; }
-    Mod+Shift+L              { focus-workspace-up; }
+    Mod+Shift+S              { focus-workspace-up; }
     Mod+Ctrl+L         { move-column-to-workspace-down; }
     Mod+Ctrl+D         { move-column-to-workspace-up; }
 
