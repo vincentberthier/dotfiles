@@ -450,6 +450,7 @@ window-rule {
     match app-id=r#"^obsidian$"#
 
     open-on-workspace "󰠮"
+    open-fullscreen true
 }
 
 // Astro
