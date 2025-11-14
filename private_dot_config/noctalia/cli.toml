@@ -1,0 +1,4 @@
+[components.shell]
+source = "release"
+installed = true
+version = "v3.0.11"
