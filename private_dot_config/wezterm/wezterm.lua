@@ -343,12 +343,12 @@ function initial_setup(cmd)
 	update_tab:set_title("󰚰 Update")
 
 	-- the Qobuz window
-	local _, _, pbf_window = mux.spawn_window {
+	local qob_tab, _, qob_window = mux.spawn_window {
 		args = { "fish", "-C", "qobuz-player open --web" },
 		cwd = cmd.cwd,
 		set_environment_variables = cmd.set_environment_variables,
 	}
-	pbf_tab:set_title(" Qobuz")
+	qob_tab:set_title(" Qobuz")
 end
 
 -- configure startup (with full session when launched by Hyprland)
