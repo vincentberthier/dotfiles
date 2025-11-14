@@ -610,10 +610,8 @@ binds {
     Mod+Ctrl+Home { move-column-to-first; }
     Mod+Ctrl+End  { move-column-to-last; }
 
-    Mod+Shift+T     { focus-monitor-left; }
-    Mod+Shift+R     { focus-monitor-down; }
-    Mod+Shift+S     { focus-monitor-up; }
-    Mod+Shift+N     { focus-monitor-right; }
+    Mod+D     { focus-monitor-left; }
+    Mod+L     { focus-monitor-right; }
 
     Mod+Shift+Ctrl+T     { move-column-to-monitor-left; }
     Mod+Shift+Ctrl+R     { move-column-to-monitor-down; }
@@ -628,8 +626,8 @@ binds {
     // Mod+Shift+Ctrl+Left  { move-workspace-to-monitor-left; }
     // ...
 
-    Mod+L              { focus-workspace-down; }
-    Mod+D              { focus-workspace-up; }
+    Mod+Shift+R              { focus-workspace-down; }
+    Mod+Shift+L              { focus-workspace-up; }
     Mod+Ctrl+L         { move-column-to-workspace-down; }
     Mod+Ctrl+D         { move-column-to-workspace-up; }
 
