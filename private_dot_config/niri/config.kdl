@@ -593,6 +593,7 @@ binds {
     Mod+R     { focus-window-down; }
     Mod+S     { focus-window-up; }
     Mod+N     { focus-column-right; }
+    Mod+C     { focus-column-right-or-first; }
 
     Mod+Ctrl+T     { move-column-left; }
     Mod+Ctrl+R     { move-window-down; }
