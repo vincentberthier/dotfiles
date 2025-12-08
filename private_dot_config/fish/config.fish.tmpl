@@ -87,10 +87,6 @@ status is-interactive; and begin
                 set res " $folder"
             case bat less more
                 set res "󰭟 $folder"
-            case bash
-                if test \( $folder = home-manager -o $folder == nixos \)
-                    set res "󱄅 $folder"
-                end
             case shell
                 set res "󱄅 $folder"
             case fish
