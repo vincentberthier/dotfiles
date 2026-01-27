@@ -101,7 +101,7 @@ allowedSignersFile = "{{ .chezmoi.homeDir }}/.config/git/allowed_signers"
 [template-aliases]
 brief = 'brief_line ++ "\n"'
 brief_line = """separate(" ",
-  format_short_change_id_with_hidden_and_divergent_info(self),
+  format_short_change_id_with_change_offset(self),
   self.bookmarks(),
   self.tags(),
   self.working_copies(),
