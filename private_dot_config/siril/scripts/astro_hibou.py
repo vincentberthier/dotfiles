@@ -83,7 +83,7 @@ class History:
 
 
 class Interface:
-    def __init__(self, root, siril, days_list):
+    def __init__(self, root, siril, days_list, root_dir):
         self.root = root
         self.root.title("Astro-Hibou processing")
         self.root.resizable(False, False)
@@ -93,6 +93,7 @@ class Interface:
 
         self.days_list = days_list
         self.history = History(self.cwd())
+        self.root_dir = root_dir
 
         # Variables
         self.day_vars = {}
@@ -269,8 +270,6 @@ class Interface:
     #############################################
 
     def on_proceed(self):
-        """Proceed button callback - placeholder"""
-        # TODO: Implement proceed logic
         valid, message = self.is_valid_selection()
         if not valid:
             messagebox.showwarning("Invalid Selection", message)
@@ -288,12 +287,22 @@ class Interface:
         print(f"Selected mode: {selected_mode}")
         print(f"Selected options: {selected_options}")
 
-        if len(selected_days) == 1:
-            self.process_single_day(selected_days[0], selected_mode, selected_options)
-        else:
-            self.process_multiple_days(selected_days, selected_mode, selected_options)
+        try:
+            if len(selected_days) == 1:
+                self.process_single_day(selected_days[0], selected_mode, selected_options)
+            else:
+                self.process_multiple_days(selected_days, selected_mode, selected_options)
 
-        messagebox.showinfo("Success", "Processing finished successfully")
+            messagebox.showinfo("Success", "Processing finished successfully")
+        except CommandError as e:
+            print(f"Error running command: {e}")
+        except SirilError as e:
+            print(f"Error initializing script: {str(e)}", file=sys.stderr)
+        except Exception as e:
+            print(f"unknown exception: {e}")
+        finally:
+            self.siril.cmd("cd", f'"{self.root_dir}"')
+            messagebox.showerror("failed to execute")
 
     def process_single_day(self, day, selected_mode, selected_options):
         start_dir = self.cwd()
@@ -899,7 +908,7 @@ def main():
 
     try:
         root = ThemedTk()
-        Interface(root, siril, days)
+        Interface(root, siril, days, root_dir)
         root.mainloop()
     except CommandError as e:
         print(f"Error running command: {e}")
