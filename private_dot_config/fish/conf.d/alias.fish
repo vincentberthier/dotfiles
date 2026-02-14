@@ -86,9 +86,19 @@ alias grep="grep --color=auto"
 alias egrep="egrep --color=auto"
 alias fgrep="fgrep --color=auto"
 
-# confirm before overwriting something
-alias cp="cp -i"
-alias mv="mv -i"
+# rsync-based cp/mv with progress and safety
+function cp --wraps cp --description "Copy with rsync progress (skips newer files on dest)"
+    command rsync -ah --info=progress2 --update $argv
+end
+function mv --wraps mv --description "Move with rsync progress"
+    command rsync -ah --info=progress2 --remove-source-files $argv
+    # Clean up empty directories left behind by rsync
+    for arg in $argv[1..-2]
+        if test -d "$arg"
+            command find "$arg" -type d -empty -delete 2>/dev/null
+        end
+    end
+end
 alias ln="ln -i"
 alias rm="rm -I --preserve-root"
 
@@ -119,10 +129,9 @@ alias less="cat"
 alias rms="shred -uz" # Shred (remove + overwrite) files
 alias ping="ping -c 5"
 alias rsync="rsync -azv --progress"
-alias scp="rsync"
+alias scp="command rsync -azv --progress"
 alias wget="wget -c" # Resume wget by default
 alias top="htop"
-alias cpv="rsync -ah --info=progress2" # copy with a progress bar
 alias c="clear"
 alias weather="clear && curl wttr.in/nice"
 alias t="tail -f"
@@ -176,7 +185,7 @@ alias docker="podman"
 alias record='wl-screenrec -f "/home/vincent/Vidéos/$(date +%Y-%m-%d-T-%H%M%S).mp4" -g "$(slurp)"'
 
 # Copy RBFocus files
-alias astro_copy="cpv gaius:/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/ /run/media/vincent/Corrbolg/Astro/Raws/"
+alias astro_copy="cp gaius:/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/ /run/media/vincent/Corrbolg/Astro/Raws/"
 alias astro_sd="ssh gaius 'shutdown /s /t 0'"
 
 function shx --wraps helix --description "Execute helix as root with user config"

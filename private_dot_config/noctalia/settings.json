@@ -21,7 +21,7 @@
         "volumeStep": 5
     },
     "bar": {
-        "backgroundOpacity": 1,
+        "backgroundOpacity": 0,
         "density": "compact",
         "exclusive": true,
         "floating": false,
@@ -29,7 +29,7 @@
         "marginVertical": 0.25,
         "monitors": [
         ],
-        "outerCorners": true,
+        "outerCorners": false,
         "position": "top",
         "showCapsule": true,
         "widgets": {
@@ -80,6 +80,8 @@
                     "drawerEnabled": true,
                     "id": "Tray",
                     "pinned": [
+                        "Microsoft Teams",
+                        "Discord"
                     ]
                 },
                 {
