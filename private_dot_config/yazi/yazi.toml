@@ -1,4 +1,4 @@
-[manager]
+[mgr]
 linemode = "mtime"
 scrolloff = 8
 show_hidden = true
