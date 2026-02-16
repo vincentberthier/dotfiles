@@ -60,17 +60,13 @@ abbr --add caudit 'cargo audit'
 abbr --add cbloat 'cargo bloat --release --crates'
 abbr --add cnx 'cargo nextest run'
 
+alias cc='claude --model opusplan'
+
 # Lint + Format all at once
 function ccheck
     cargo fmt --all
     cargo clippy --all-targets --all-features -- -D warnings
 end
-
-# Hyprland
-abbr --add hc hyprctl clients
-abbr --add hr hyprctl reload
-abbr --add hw hyprctl workspaces
-abbr --add hd hyprctl dispatch
 
 # Standard aliases
 # cd stuff
@@ -93,6 +89,18 @@ end
 function mv --wraps mv --description "Move with rsync progress"
     command rsync -ah --info=progress2 --remove-source-files $argv
     # Clean up empty directories left behind by rsync
+    for arg in $argv[1..-2]
+        if test -d "$arg"
+            command find "$arg" -type d -empty -delete 2>/dev/null
+        end
+    end
+end
+# Remote-oriented cp/mv with compression
+function rcp --description "Remote copy with rsync + compression"
+    command rsync -azh --info=progress2 --update $argv
+end
+function rmv --description "Remote move with rsync + compression"
+    command rsync -azh --info=progress2 --remove-source-files $argv
     for arg in $argv[1..-2]
         if test -d "$arg"
             command find "$arg" -type d -empty -delete 2>/dev/null
@@ -185,7 +193,7 @@ alias docker="podman"
 alias record='wl-screenrec -f "/home/vincent/Vidéos/$(date +%Y-%m-%d-T-%H%M%S).mp4" -g "$(slurp)"'
 
 # Copy RBFocus files
-alias astro_copy="cp gaius:/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/ /run/media/vincent/Corrbolg/Astro/Raws/"
+alias astro_copy="rmv gaius:/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/ /run/media/vincent/Corrbolg/Astro/Raws/"
 alias astro_sd="ssh gaius 'shutdown /s /t 0'"
 
 function shx --wraps helix --description "Execute helix as root with user config"
