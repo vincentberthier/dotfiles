@@ -61,6 +61,7 @@ abbr --add cbloat 'cargo bloat --release --crates'
 abbr --add cnx 'cargo nextest run'
 
 alias cc='claude --model opusplan'
+alias gw='ghostwriter'
 
 # Lint + Format all at once
 function ccheck
