@@ -60,7 +60,8 @@ abbr --add caudit 'cargo audit'
 abbr --add cbloat 'cargo bloat --release --crates'
 abbr --add cnx 'cargo nextest run'
 
-alias cc='claude --model opusplan'
+alias cperso='CLAUDE_CONFIG_DIR=$HOME/.claude-perso claude'
+alias ctyrex='CLAUDE_CONFIG_DIR=$HOME/.claude-tyrex claude'
 alias gw='ghostwriter'
 
 # Lint + Format all at once
