@@ -63,14 +63,6 @@ abbr --add cnx 'cargo nextest run'
 alias cc='claude --model opusplan'
 alias gw='ghostwriter'
 
-# update the system
-function maj
-    doas pacman -Syu --noconfirm
-    paru -Syu --noconfirm
-    claude update
-    /usr/bin/flatpak update -y
-end
-
 # Lint + Format all at once
 function ccheck
     cargo fmt --all
@@ -296,7 +288,10 @@ function maj --description "Update the system and cleanup"
     while ! ping -c1 www.google.fr >/dev/null 2>&1
         sleep 1
     end
-    paru -Syu
+    doas pacman -Syu --noconfirm
+    paru -Syu --noconfirm
+    claude update
+    /usr/bin/flatpak update -y
     paru -Rns
 end
 
