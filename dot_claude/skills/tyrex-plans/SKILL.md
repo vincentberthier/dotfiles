@@ -54,20 +54,21 @@ or feature that needs proper planning. Steps:
 This mode behaves like plan mode: read-only exploration of the codebase, interactive
 iteration with the user, writing only to the plan file. **Do not edit source files.**
 
-1. **Fetch from GitLab:**
+1. **Load `gitlab-tyrex` skill.**
+2. **Fetch from GitLab:**
    - `&NNN` -> fetch epic from GitLab group epics API.
    - `#NNN` -> fetch issue from current project's issues API.
-2. **Resolve project:** Use `references/project-mapping.md` to map cwd to an Obsidian
+3. **Resolve project:** Use `references/project-mapping.md` to map cwd to an Obsidian
    folder. Derive `{PLANS_PATH}` = `~/Documents/Perso/Projets/<Obsidian Folder>/Plans/`.
-3. **Read template:** Load `references/epic-template.md` or `references/issue-template.md`.
-4. **Fill metadata:** Populate the `# Metadata` block with epic/issue number, project
+4. **Read template:** Load `references/epic-template.md` or `references/issue-template.md`.
+5. **Fill metadata:** Populate the `# Metadata` block with epic/issue number, project
    path, and milestone (from the GitLab response).
-5. **Explore the codebase:** Understand the technical context before planning. Read
+6. **Explore the codebase:** Understand the technical context before planning. Read
    relevant source files, architecture docs, existing CLAUDE.md.
-6. **Build the plan interactively:** Ask the user questions, iterate on sections.
+7. **Build the plan interactively:** Ask the user questions, iterate on sections.
    For epic plans, design each phase with full substeps, files, testing, risks.
-7. **Run the planning checklist** (see below) before considering the plan complete.
-8. **Write the plan** to its final location:
+8. **Run the planning checklist** (see below) before considering the plan complete.
+9. **Write the plan** to its final location:
    - **Issue plan** → `{PLANS_PATH}/<iid> - <Title>.md`
      Written in final Obsidian form: prepend YAML frontmatter (see "Obsidian
      Frontmatter Reference" below), include `# Notes` section at the bottom.
@@ -76,8 +77,8 @@ iteration with the user, writing only to the plan file. **Do not edit source fil
      Written using the epic template structure with `# Metadata` block. No Obsidian
      frontmatter — that gets added during `/tyrex-plan:dispatch-epic`.
      `<slug>` is a short lowercase-kebab-case summary of the epic title.
-9. **STOP.** Do not implement. Do not suggest implementing. The plan is done.
-   For epic plans, tell the user to run `/tyrex-plan:dispatch-epic` when ready.
+10. **STOP.** Do not implement. Do not suggest implementing. The plan is done.
+    For epic plans, tell the user to run `/tyrex-plan:dispatch-epic` when ready.
 
 ### Epic Planning Checklist
 
