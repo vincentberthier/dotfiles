@@ -6,7 +6,7 @@ Maps local repository paths to Obsidian vault folders.
 
 | Local Path                        | Obsidian Folder      |
 |-----------------------------------|----------------------|
-| `~/code/tyrex/t-scanner-firmware` | `Tyrex/T-Scanner`    |
+| `~/code/tyrex/t-scanner`          | `Tyrex/T-Scanner`    |
 | `~/code/tyrex/kub-white-station`  | `Tyrex/White Station` |
 | `~/code/tyrex/tyrex-keysas`       | `Tyrex/Keysas`       |
 | `~/code/tyrex/tyrex-gate`         | `Tyrex/T-Gate`       |

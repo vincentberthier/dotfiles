@@ -16,10 +16,11 @@ description: >-
 
 Before any operation:
 
-1. Load the `gitlab-tyrex` skill (auth, hostname, API fallback).
-2. Detect the GitLab hostname from the git/jj remote. Use the API fallback pattern
+1. Load the `repo-management` skill (jj workflow, Conventional Commits).
+2. Load the `gitlab-tyrex` skill (auth, hostname, API fallback).
+3. Detect the GitLab hostname from the git/jj remote. Use the API fallback pattern
    if SSH resolves the hostname to an IP (see gitlab-tyrex skill).
-3. Read `references/project-mapping.md` to resolve the current project's Obsidian folder.
+4. Read `references/project-mapping.md` to resolve the current project's Obsidian folder.
 
 ---
 
@@ -197,18 +198,17 @@ need no dispatch step.
 4. **Detect standalone vs epic** from the `epic` frontmatter field.
 5. **Load relevant coding skills** based on the project (check project CLAUDE.md
    or detect from repo language — e.g., `rust-coding` for Rust projects).
-6. **Load `repo-management` skill** for jj workflow.
-7. **Update plan file:** set `statut` to `En cours` (unconditionally — covers both fresh start and resume).
+6. **Update plan file:** set `statut` to `En cours` (unconditionally — covers both fresh start and resume).
 
 ### Check Progress
 
-8. **Scan the `# Notes` section** for completed substeps.
+7. **Scan the `# Notes` section** for completed substeps.
    Completed substeps are marked: `- [x] Substep N completed`
    If some substeps are already done, resume from the first incomplete one.
 
 ### Implementation Loop
 
-9. For each incomplete substep:
+8. For each incomplete substep:
     a. **Create a described jj changeset:**
        `jj new -m 'type(scope): substep description (#<issue>)'`
     b. **Create scratch space:** `jj new`
@@ -221,12 +221,12 @@ need no dispatch step.
 
 ### Completion
 
-10. **Standalone issue:**
+9. **Standalone issue:**
     - Ensure the last changeset description includes `(closes #<issue>)`.
     - Update plan file: `statut: Terminé`.
     - Tell the user to run `/tyrex-plan:finalize #<issue>` when ready to push and open the MR.
 
-11. **Part of an epic:**
+10. **Part of an epic:**
     - Ensure the last changeset description includes `(closes #<issue>)`.
     - Squash remaining work: `jj squash`
     - Push: `jj git push`
