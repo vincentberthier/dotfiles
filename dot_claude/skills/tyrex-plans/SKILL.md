@@ -197,7 +197,7 @@ need no dispatch step.
 5. **Load relevant coding skills** based on the project (check project CLAUDE.md
    or detect from repo language — e.g., `rust-coding` for Rust projects).
 6. **Load `repo-management` skill** for jj workflow.
-7. **Update plan file:** change `statut: Planifié` to `statut: En cours`.
+7. **Update plan file:** set `statut` to `En cours` (unconditionally — covers both fresh start and resume).
 
 ### Check Progress
 
