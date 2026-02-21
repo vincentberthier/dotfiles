@@ -1,5 +1,5 @@
 ---
-allowed-tools: Write
+allowed-tools: Bash, Glob, Grep, Read, Write
 description: Pre-planning discovery session to specify a need before technical planning
 ---
 
@@ -8,8 +8,8 @@ description: Pre-planning discovery session to specify a need before technical p
 Discovery and specification workflow. The goal is to turn a vague idea or suspicion into
 a clear, written statement of need.
 
-**This is a conversation, not an investigation. Never read files, run commands, or look
-at code. Explore through questions only.**
+**This is a discovery session, not an implementation. Read and explore freely — files,
+code, commands — but never edit or create files (except the final brainstorm document).**
 
 The topic is: $ARGUMENTS
 
@@ -113,7 +113,7 @@ After saving, tell the user the file path and note:
 
 ## Anti-Patterns
 
-- Don't read files, run commands, or look at code. This is a conversation.
+- Don't edit files or create anything other than the final brainstorm document.
 - Don't jump to solutions. If you catch yourself writing "we should implement...", stop.
 - Don't write a design doc. Be honest about uncertainty — open questions are fine.
 - Don't resolve open questions with assumptions. If we don't know, say so.
