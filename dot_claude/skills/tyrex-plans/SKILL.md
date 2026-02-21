@@ -7,7 +7,7 @@ description: >-
   (2) /tyrex-plan:dispatch-epic to create GitLab issues and Obsidian structure from
   an epic plan, (3) /tyrex-plan:implement to load a plan and implement it with
   progress tracking, (4) /tyrex-plan:finalize to run the final audit and create the
-  MR for an epic.
+  MR for a standalone issue (#NNN) or epic (&NNN).
 ---
 
 # Tyrex Plans
@@ -220,37 +220,64 @@ need no dispatch step.
 ### Completion
 
 10. **Standalone issue:**
-    - Set jj bookmark: `jj bookmark set feature-<issue>-<slug>`
-    - Push: `jj git push --bookmark <bookmark> --allow-new`
-    - Load `gitlab-tyrex` skill and create MR:
-      - Ask user for target branch
-      - Title: conventional commit format
-      - Description: `Closes #<issue>` + summary of changes
-    - Update plan file: `statut: Terminé`
+    - Ensure the last changeset description includes `(closes #<issue>)`.
+    - Update plan file: `statut: Terminé`.
+    - Tell the user to run `/tyrex-plan:finalize #<issue>` when ready to push and open the MR.
 
 11. **Part of an epic:**
-    - Ensure the last changeset description includes `(closes #<issue>)`
+    - Ensure the last changeset description includes `(closes #<issue>)`.
     - Squash remaining work: `jj squash`
     - Push: `jj git push`
-    - Update plan file: `statut: Terminé`
+    - Update plan file: `statut: Terminé`.
     - Update `_overview_.md`: change this phase's status to `Terminé` in the
       Phase Summary table.
     - Do NOT create an MR — that's handled by `/tyrex-plan:finalize`.
 
 ---
 
-## Mode 4: Finalize Epic (`/tyrex-plan:finalize`)
+## Mode 4: Finalize (`/tyrex-plan:finalize`)
 
-**Argument:** Epic number (e.g., `&98`).
+**Argument:** `&NNN` (epic) or `#NNN` (issue).
 
-### Workflow
+Dispatch to the appropriate path based on the argument prefix.
+
+---
+
+### Issue Path (`#NNN`)
+
+1. **Find the plan file:** `~/Documents/Perso/Projets/Tyrex/*/Plans/<iid> - *.md`
+2. **Read the plan file.** Verify `statut: Terminé` (all substeps done).
+3. **Fetch the issue from GitLab** to get its milestone title (used when creating the MR).
+4. **Load `gitlab-tyrex` skill.**
+
+#### Audit
+
+5. **Read the Testing section** of the plan. Execute each criterion listed there.
+6. **If audit finds issues:** fix them (new changesets), re-run until clean.
+
+#### MR Creation
+
+7. **Set jj bookmark:** `jj bookmark set feature-<issue>-<slug>`
+8. **Push:** `jj git push --bookmark <bookmark> --allow-new`
+9. **Create MR** via `gitlab-tyrex` skill:
+   - Ask user for target branch
+   - Title: conventional commit format referencing the issue
+   - Description: `Closes #<issue>` + summary of changes
+   - Milestone: same as the issue (fetched in step 3, passed via `--milestone`)
+   - Delete source branch on merge: yes (`--remove-source-branch`)
+   - Squash: no
+
+---
+
+### Epic Path (`&NNN`)
 
 1. **Find the overview:** `~/Documents/Perso/Projets/Tyrex/*/Plans/<epic-iid> - */_overview_.md`
 2. **Read the Phase Summary table.** Verify all phases show `Terminé`.
-3. **Verify on GitLab** that all phase issues are closed.
+3. **Verify on GitLab** that all phase issues are closed. Also fetch the epic's milestone
+   title via the API (used when creating the MR).
 4. **Load `gitlab-tyrex` skill.**
 
-### Final Audit
+#### Final Audit
 
 5. **Read the Final Audit section** from the overview. Execute each criterion:
    - Load appropriate audit skills (e.g., `rust-audit`, `embedded-firmware-audit`)
@@ -264,7 +291,7 @@ need no dispatch step.
 6. **If audit finds issues:** report them, fix them (creating new changesets as
    needed), then re-run audit until clean.
 
-### MR Creation
+#### MR Creation
 
 7. **Set jj bookmark** for the epic branch.
 8. **Push:** `jj git push --bookmark <bookmark> --allow-new`
@@ -272,6 +299,9 @@ need no dispatch step.
    - Ask user for target branch (standard flow requires explicit target)
    - Title references the epic
    - Description lists all closed phase issues
+   - Milestone: same as the epic (fetched in step 3, passed via `--milestone`)
+   - Delete source branch on merge: yes (`--remove-source-branch`)
+   - Squash: no
 10. **Update `_overview_.md`:** `statut: Terminé`
 
 ---
