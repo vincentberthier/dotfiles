@@ -16,10 +16,10 @@ description: >-
 
 Before any operation:
 
-1. Read `references/project-mapping.md` to resolve the current project's Obsidian folder.
-2. Load the `gitlab-tyrex` skill for any GitLab operations (auth, hostname, API fallback).
-3. Detect the GitLab hostname from the git/jj remote. Use the API fallback pattern
+1. Load the `gitlab-tyrex` skill (auth, hostname, API fallback).
+2. Detect the GitLab hostname from the git/jj remote. Use the API fallback pattern
    if SSH resolves the hostname to an IP (see gitlab-tyrex skill).
+3. Read `references/project-mapping.md` to resolve the current project's Obsidian folder.
 
 ---
 
@@ -43,7 +43,8 @@ or feature that needs proper planning. Steps:
 1. **Summarize** what was discussed into a clear problem/feature statement.
 2. **Ask the user:** issue or epic?
 3. **Resolve project:** try cwd via `references/project-mapping.md`. If no match, ask.
-4. **Create on GitLab** via API:
+4. **Load `gitlab-tyrex` skill** if not already loaded from Prerequisites.
+5. **Create on GitLab** via API:
    - Issue: `POST /projects/:id/issues` with title + description from the conversation.
    - Epic: `POST /groups/:gid/epics` with title + description.
 5. **Continue** into the normal planning workflow below with the new `#NNN` or `&NNN`.
@@ -247,8 +248,8 @@ Dispatch to the appropriate path based on the argument prefix.
 
 1. **Find the plan file:** `~/Documents/Perso/Projets/Tyrex/*/Plans/<iid> - *.md`
 2. **Read the plan file.** Verify `statut: Terminé` (all substeps done).
-3. **Fetch the issue from GitLab** to get its milestone title (used when creating the MR).
-4. **Load `gitlab-tyrex` skill.**
+3. **Load `gitlab-tyrex` skill.**
+4. **Fetch the issue from GitLab** to get its milestone title (used when creating the MR).
 
 #### Audit
 
@@ -273,9 +274,9 @@ Dispatch to the appropriate path based on the argument prefix.
 
 1. **Find the overview:** `~/Documents/Perso/Projets/Tyrex/*/Plans/<epic-iid> - */_overview_.md`
 2. **Read the Phase Summary table.** Verify all phases show `Terminé`.
-3. **Verify on GitLab** that all phase issues are closed. Also fetch the epic's milestone
+3. **Load `gitlab-tyrex` skill.**
+4. **Verify on GitLab** that all phase issues are closed. Also fetch the epic's milestone
    title via the API (used when creating the MR).
-4. **Load `gitlab-tyrex` skill.**
 
 #### Final Audit
 
