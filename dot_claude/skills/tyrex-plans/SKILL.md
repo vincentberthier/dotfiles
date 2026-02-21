@@ -196,18 +196,17 @@ need no dispatch step.
 5. **Load relevant coding skills** based on the project (check project CLAUDE.md
    or detect from repo language — e.g., `rust-coding` for Rust projects).
 6. **Load `repo-management` skill** for jj workflow.
-7. **Update GitLab issue** to "In Progress" (add appropriate label via API).
-8. **Update plan file:** change `statut: Planifié` to `statut: En cours`.
+7. **Update plan file:** change `statut: Planifié` to `statut: En cours`.
 
 ### Check Progress
 
-9. **Scan the `# Notes` section** for completed substeps.
+8. **Scan the `# Notes` section** for completed substeps.
    Completed substeps are marked: `- [x] Substep N completed`
    If some substeps are already done, resume from the first incomplete one.
 
 ### Implementation Loop
 
-10. For each incomplete substep:
+9. For each incomplete substep:
     a. **Create a described jj changeset:**
        `jj new -m 'type(scope): substep description (#<issue>)'`
     b. **Create scratch space:** `jj new`
@@ -220,7 +219,7 @@ need no dispatch step.
 
 ### Completion
 
-11. **Standalone issue:**
+10. **Standalone issue:**
     - Set jj bookmark: `jj bookmark set feature-<issue>-<slug>`
     - Push: `jj git push --bookmark <bookmark> --allow-new`
     - Load `gitlab-tyrex` skill and create MR:
@@ -229,7 +228,7 @@ need no dispatch step.
       - Description: `Closes #<issue>` + summary of changes
     - Update plan file: `statut: Terminé`
 
-12. **Part of an epic:**
+11. **Part of an epic:**
     - Ensure the last changeset description includes `(closes #<issue>)`
     - Squash remaining work: `jj squash`
     - Push: `jj git push`
