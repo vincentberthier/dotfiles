@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PIDFILE="/tmp/dictation.pid"
+AUDIOFILE="/tmp/dictation.wav"
+MODEL="/usr/share/whisper.cpp-model-medium.en/ggml-medium.en.bin"
+
+notify() {
+    notify-send -a Dictation "Dictation" "$1"
+}
+
+# Currently recording? Stop and transcribe.
+if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    PID=$(cat "$PIDFILE")
+    kill "$PID"
+    rm -f "$PIDFILE"
+
+    # Give pw-record a moment to flush the WAV header
+    sleep 0.3
+
+    notify "Transcribing..."
+
+    TEXT=$(whisper-cli -m "$MODEL" -l en -nt -f "$AUDIOFILE" 2>/dev/null \
+        | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+    rm -f "$AUDIOFILE"
+
+    if [[ -n "$TEXT" ]]; then
+        wtype -- "$TEXT"
+        notify "Done"
+    else
+        notify "No speech detected"
+    fi
+else
+    # Clean stale PID file
+    rm -f "$PIDFILE" "$AUDIOFILE"
+
+    # Start recording: 16kHz mono 16-bit WAV (what Whisper expects)
+    pw-record --format=s16 --rate=16000 --channels=1 "$AUDIOFILE" &
+    echo $! > "$PIDFILE"
+
+    notify "Recording... (Super+A to stop)"
+fi
