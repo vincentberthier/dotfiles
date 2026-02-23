@@ -25,7 +25,7 @@ format = "$output"
 ignore_timeout = true
 shell = ["starship-jj", "--ignore-working-copy", "starship"]
 use_stdin = false
-when = true
+when = "test \"$PWD\" != \"$HOME/code/tyrex/station-refactor\" && jj root"
 
 [git_branch]
 style = "bold purple"
