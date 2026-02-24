@@ -78,6 +78,7 @@
       "WebFetch(*)"
     ],
     "deny": [
+      "Bash(pip *)",
       "Bash(rm *)",
       "Bash(sudo *)",
       "Bash(doas *)",
