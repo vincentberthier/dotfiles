@@ -1,0 +1,46 @@
+{
+  "version": 3,
+  "lines": [
+    [
+      {"id": "cwd", "type": "custom-command", "commandPath": "/home/vincent/.config/ccstatusline/cwd-stem.sh", "color": "hex:89b4fa", "bold": true},
+      {"id": "sep0", "type": "separator", "character": "│", "color": "hex:6c7086"},
+      {"id": "vcs-icon", "type": "custom-text", "customText": "", "color": "hex:cba6f7"},
+      {"id": "vcs", "type": "custom-command", "commandPath": "/home/vincent/.config/ccstatusline/vcs-info.sh", "color": "hex:cba6f7", "merge": true}
+    ],
+    [
+      {"id": "session-icon", "type": "custom-text", "customText": "", "color": "hex:b4befe"},
+      {"id": "session", "type": "session-name", "color": "hex:b4befe", "rawValue": true, "merge": true},
+      {"id": "sep1", "type": "separator", "character": "│", "color": "hex:6c7086"},
+      {"id": "model-icon", "type": "custom-text", "customText": "󰚩", "color": "hex:74c7ec"},
+      {"id": "model", "type": "model", "color": "hex:74c7ec", "rawValue": true, "merge": true},
+      {"id": "sep2", "type": "separator", "character": "│", "color": "hex:6c7086"},
+      {"id": "timer-icon", "type": "custom-text", "customText": "󰥔", "color": "hex:fab387"},
+      {"id": "timer", "type": "block-timer", "color": "hex:fab387", "rawValue": true, "merge": true},
+      {"id": "sep3", "type": "separator", "character": "│", "color": "hex:6c7086"},
+      {"id": "ctx-icon", "type": "custom-text", "customText": "󰏚", "color": "hex:a6e3a1"},
+      {"id": "ctx", "type": "context-percentage", "color": "hex:a6e3a1", "rawValue": true, "merge": true}
+    ],
+    [
+      {"id": "in-icon", "type": "custom-text", "customText": "󰁅", "color": "hex:74c7ec"},
+      {"id": "in", "type": "tokens-input", "color": "hex:74c7ec", "rawValue": true, "merge": true},
+      {"id": "sep4", "type": "separator", "character": "│", "color": "hex:6c7086"},
+      {"id": "out-icon", "type": "custom-text", "customText": "󰁝", "color": "hex:a6e3a1"},
+      {"id": "out", "type": "tokens-output", "color": "hex:a6e3a1", "rawValue": true, "merge": true},
+      {"id": "sep5", "type": "separator", "character": "│", "color": "hex:6c7086"},
+      {"id": "cache-icon", "type": "custom-text", "customText": "󰆏", "color": "hex:f9e2af"},
+      {"id": "cache", "type": "tokens-cached", "color": "hex:f9e2af", "rawValue": true, "merge": true},
+      {"id": "sep6", "type": "separator", "character": "│", "color": "hex:6c7086"},
+      {"id": "total-icon", "type": "custom-text", "customText": "Σ", "color": "hex:cdd6f4"},
+      {"id": "total", "type": "tokens-total", "color": "hex:cdd6f4", "rawValue": true, "merge": true}
+    ]
+  ],
+  "flexMode": "full-minus-40",
+  "compactThreshold": 60,
+  "colorLevel": 3,
+  "inheritSeparatorColors": false,
+  "globalBold": false,
+  "powerline": {
+    "enabled": false
+  },
+  "defaultPadding": " "
+}
