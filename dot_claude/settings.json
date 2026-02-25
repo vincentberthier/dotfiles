@@ -2,7 +2,6 @@
   "permissions": {
     "allow": [
       "Bash(cargo *)",
-      "Bash(cat *)",
       "Bash(chmod *)",
       "Bash(clang-format *)",
       "Bash(clang-tidy *)",
@@ -18,7 +17,6 @@
       "Bash(gh *)",
       "Bash(glab *)",
       "Bash(go *)",
-      "Bash(head *)",
       "Bash(jj *)",
       "Bash(just *)",
       "Bash(ls *)",
@@ -39,7 +37,6 @@
       "Bash(shellcheck *)",
       "Bash(sort *)",
       "Bash(swift *)",
-      "Bash(tail *)",
       "Bash(tar *)",
       "Bash(test *)",
       "Bash(tokei *)",
