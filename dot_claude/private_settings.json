@@ -1,4 +1,9 @@
 {
+  "statusLine": {
+    "type": "command",
+    "command": "/home/vincent/.local/bin/ccstatusline",
+    "padding": 3
+  },
   "plansDirectory": "./.claude/plans",
   "hooks": {
     "PreToolUse": [
