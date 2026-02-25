@@ -1,10 +1,29 @@
 {
-  "statusLine": {
-    "type": "command",
-    "command": "/home/vincent/.local/bin/ccstatusline",
-    "padding": 3
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "WebSearch(*)",
+      "WebFetch(*)",
+      "Skill(*)"
+    ],
+    "deny": [
+      "Bash(pip *)",
+      "Bash(pip3 *)",
+      "Bash(python -m pip *)",
+      "Bash(python3 -m pip *)",
+      "Bash(rm *)",
+      "Bash(unlink *)",
+      "Bash(find *-delete*)",
+      "Bash(sudo *)",
+      "Bash(doas *)",
+      "Read(/home/vincent/.ssh/*)"
+    ]
   },
-  "plansDirectory": "./.claude/plans",
   "hooks": {
     "PreToolUse": [
       {
@@ -44,7 +63,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/vincent/.claude/hooks/open-plan-in-ghostwriter.sh",
+            "command": "/home/vincent/.claude/hooks/open-plan-viewer.sh",
             "timeout": 5
           }
         ]
@@ -69,25 +88,34 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/vincent/.claude/hooks/session-init.sh",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   },
-  "permissions": {
-    "allow": [
-      "Bash(*)",
-      "Read(*)",
-      "Edit(*)",
-      "Write(*)",
-      "Glob(*)",
-      "Grep(*)",
-      "WebSearch(*)",
-      "WebFetch(*)"
-    ],
-    "deny": [
-      "Bash(pip *)",
-      "Bash(rm *)",
-      "Bash(sudo *)",
-      "Bash(doas *)",
-      "Read(/home/vincent/.ssh/*)"
-    ]
+  "statusLine": {
+    "type": "command",
+    "command": "/home/vincent/.local/bin/ccstatusline",
+    "padding": 3
+  },
+  "plansDirectory": "./.claude/plans",
+  "enabledPlugins": {
+    "claudit@quickstop": true,
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "playground@claude-plugins-official": true,
+    "clangd-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": false,
+    "pyright-lsp@claude-plugins-official": false,
+    "swift-lsp@claude-plugins-official": false
   }
 }
