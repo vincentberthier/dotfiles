@@ -63,6 +63,7 @@ abbr --add cnx 'cargo nextest run'
 alias cperso='CLAUDE_CONFIG_DIR=$HOME/.claude-perso claude'
 alias ctyrex='CLAUDE_CONFIG_DIR=$HOME/.claude-tyrex claude'
 alias gw='ghostwriter'
+alias glow='glow -t'
 
 # Lint + Format all at once
 function ccheck
