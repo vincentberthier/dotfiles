@@ -13,24 +13,26 @@
       "Bash(eslint *)",
       "Bash(exa *)",
       "Bash(fd *)",
-      "Bash(find *)",
       "Bash(gh *)",
       "Bash(glab *)",
       "Bash(go *)",
       "Bash(jj *)",
       "Bash(just *)",
+      "Bash(libreoffice *)",
       "Bash(ls *)",
       "Bash(make *)",
       "Bash(mkdir *)",
       "Bash(mmdc *)",
       "Bash(mv *)",
+      "Bash(pandoc *)",
+      "Bash(pdfgrep *)",
+      "Bash(pdfinfo *)",
       "Bash(npm *)",
       "Bash(npx *)",
       "Bash(pgrep *)",
       "Bash(pkill *)",
       "Bash(python *)",
       "Bash(python3 *)",
-      "Bash(rg *)",
       "Bash(ruff *)",
       "Bash(rustup *)",
       "Bash(sd *)",
@@ -102,6 +104,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/vincent/.claude/hooks/enforce-builtin-tools.sh",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -132,6 +144,18 @@
             "type": "command",
             "command": "/home/vincent/.claude/hooks/task-complete-checks.sh",
             "timeout": 120
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/vincent/.claude/hooks/block-exit-plan.sh",
+            "timeout": 10
           }
         ]
       }
