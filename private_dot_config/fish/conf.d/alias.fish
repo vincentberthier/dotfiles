@@ -26,10 +26,13 @@ abbr --add jjr jj rebase
 abbr --add jjs jj squash
 abbr --add jjt jj tug
 
+alias jjtp='jj git tug && jj git push'
+
 # chezmoi
 abbr --add cme chezmoi edit --watch --apply
 abbr --add cmu chezmoi update
 abbr --add cma chezmoi apply
+abbr --add cmra chezmoi re-add
 abbr --add cz chezmoi
 abbr --add ccd 'cd (chezmoi source-path)'
 abbr --add cls 'chezmoi managed'
