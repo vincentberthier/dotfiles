@@ -26,7 +26,7 @@ abbr --add jjr jj rebase
 abbr --add jjs jj squash
 abbr --add jjt jj tug
 
-alias jjtp='jj git tug && jj git push'
+alias jjtp='jj tug && jj git push'
 
 # chezmoi
 abbr --add cme chezmoi edit --watch --apply
