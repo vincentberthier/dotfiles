@@ -21,6 +21,7 @@ abbr --add jjd jj desc -m
 abbr --add jje jj edit
 abbr --add jjf jj git fetch
 abbr --add jjn jj new
+abbr --add jjnd jj new -r develop@origin
 abbr --add jjp jj git push
 abbr --add jjr jj rebase
 abbr --add jjs jj squash
