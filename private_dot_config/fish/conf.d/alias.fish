@@ -298,7 +298,7 @@ function maj --description "Update the system and cleanup"
     paru -Syu --noconfirm
     claude update
     /usr/bin/flatpak update -y
-    paru -Rns
+    paru -Qdtq | paru -Rns --noconfirm -
 end
 
 function dev-workspace
