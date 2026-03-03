@@ -69,6 +69,7 @@ alias ctyrex='CLAUDE_CONFIG_DIR=$HOME/.claude-tyrex claude'
 alias gw='ghostwriter'
 alias glow='glow -t'
 
+alias clippy 'cargo clippy --all-features --workspace --all-targets'
 # Lint + Format all at once
 function ccheck
     cargo fmt --all
@@ -127,7 +128,7 @@ alias ls="eza --classify --icons"
 alias la="ls --all"
 alias ll="ls --header --long --binary --git"
 alias le="ll --sort=mod"
-alias lll="ll --group --created --modified --accessed"
+alias lll="ll --group --created --modified --accessed --total-size"
 alias lla="ll --all"
 alias lst="eza --long --tree --level=2"
 
