@@ -11,53 +11,6 @@ status is-login; and begin
 end
 
 status is-interactive; and begin
-
-    # Abbreviations
-
-    # Aliases
-    alias c clear
-    alias cat bat
-    alias chgrp 'chgrp --preserve-root'
-    alias chmod 'chmod --preserve-root'
-    alias chown 'chown --preserve-root'
-    alias clippy 'cargo clippy --all-features --workspace --all-targets'
-    alias cp 'cp -i'
-    alias cpuinfo lscpu
-    alias cpv 'rsync -ah --info=progress2'
-    alias df duf
-    alias du dust
-    alias egrep 'egrep --color=auto'
-    alias fgrep 'fgrep --color=auto'
-    alias free 'free -m'
-    alias grep 'grep --color=auto'
-    alias htop btop
-    alias la 'ls --all'
-    alias le 'll --sort=mod'
-    alias less cat
-    alias ll 'ls --header --long --binary --git'
-    alias lla 'll --all'
-    alias lll 'll --group --created --modified --accessed --total-size'
-    alias ln 'ln -i'
-    alias ls 'eza --classify --icons'
-    alias lst 'eza --long --tree --level=2'
-    alias meminfo 'free -m -l -t'
-    alias mkdir 'mkdir -pv'
-    alias mv 'mv -i'
-    alias ping 'ping -c 5'
-    alias pscpu 'ps auxf | sort -nr -k 3'
-    alias pscpu10 'ps auxf | sort -nr -k 3 | head -10'
-    alias psmem 'ps auxf | sort -nr -k 4'
-    alias psmem10 'ps auxf | sort -nr -k 4 | head -10'
-    alias rm 'rm -I --preserve-root'
-    alias rms 'shred -uz'
-    alias rsync 'rsync -azv --progress'
-    alias scp rsync
-    alias t 'tail -f'
-    alias top htop
-    alias weather 'clear && curl wttr.in/nice'
-    alias wget 'wget -c'
-    alias z zoxide
-
     fish_add_path ~/.cargo/bin/
     fish_add_path ~/.local/bin/
     set -gx LD_LIBRARY_PATH /usr/local/lib
