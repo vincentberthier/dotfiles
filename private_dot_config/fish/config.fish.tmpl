@@ -128,7 +128,6 @@ status is-interactive; and begin
     set -gx CXX_x86_64_pc_windows_msvc clang-cl
     set -gx AR_x86_64_pc_windows_msvc llvm-lib
     set -gx CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER lld-link
-    set -gx CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS "-Lnative=$HOME/.xwin/crt/lib/x86_64 -Lnative=$HOME/.xwin/sdk/lib/um/x86_64 -Lnative=$HOME/.xwin/sdk/lib/ucrt/x86_64"
 
 end
 
