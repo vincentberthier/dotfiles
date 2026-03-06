@@ -21,12 +21,12 @@ if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
     notify "Transcribing..."
 
     TEXT=$(whisper-cli -m "$MODEL" -l en -nt -f "$AUDIOFILE" 2>/dev/null \
-        | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
     rm -f "$AUDIOFILE"
 
     if [[ -n "$TEXT" ]]; then
-        wtype -- "$TEXT"
+        wtype -- "$TEXT "
         notify "Done"
     else
         notify "No speech detected"
