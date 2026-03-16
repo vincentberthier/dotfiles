@@ -1,0 +1,1 @@
+{"rustc":5470738401306409665,"features":"[]","declared_features":"[]","target":7366478959790729733,"profile":2040997289075261528,"path":13624307980677287689,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"release/.fingerprint/ihex-56d9bd762cf9beb1/dep-lib-ihex","checksum":false}}],"rustflags":["--cfg","tokio_unstable"],"config":2069994364910194474,"compile_kind":0}

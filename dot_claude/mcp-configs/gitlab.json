@@ -1,0 +1,7 @@
+{
+  "tyrex-gitlab": {
+    "type": "stdio",
+    "command": "/usr/bin/node",
+    "args": ["--no-warnings", "/home/vincent/code/tyrex/ai-agents/mcp/tyrex-gitlab/dist/index.js"]
+  }
+}

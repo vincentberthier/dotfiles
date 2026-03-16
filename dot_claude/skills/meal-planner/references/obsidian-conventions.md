@@ -6,6 +6,7 @@ Base du vault : `/home/vincent/Documents/Perso/`
 Base du projet : `Projets/Meal-Plan/`
 
 Structure :
+
 ```
 Projets/Meal-Plan/
 ├── Recettes/                    # Fiches recettes individuelles
@@ -37,6 +38,7 @@ terminée: true
 ```
 
 Notes :
+
 - `type-repas` : `les-deux` si la recette convient aux deux
 - `protéine-principale` : la protéine dominante
 - `temps-confection` : en minutes, arrondi au multiple de 5
@@ -90,15 +92,15 @@ Corps du fichier : tableau Markdown avec liens vers les recettes.
 ```markdown
 # Plan Semaine NN
 
-| Jour     | Déjeuner                              | Dîner                                  |
-| -------- | ------------------------------------- | -------------------------------------- |
-| Lundi    | [[Salade de lentilles]]               | [[Poulet grillé aux légumes]]          |
-| Mardi    | [[Wrap au thon]]                      | [[Soupe de légumes et tartine]]        |
-| Mercredi | [[Salade de pâtes complètes]] ⚡      | [[Sauté de bœuf aux brocolis]] ⚡      |
-| Jeudi    | [[Tartine avocat-œuf]]               | [[Filet de saumon et riz]]             |
-| Vendredi | [[Soupe de pois chiches]]             | [[Omelette aux champignons]]           |
-| Samedi   | [[Taboulé de quinoa]]                 | [[Gratin de courgettes]]               |
-| Dimanche | [[Salade composée]]                   | [[Ratatouille et œuf au plat]]         |
+| Jour     | Déjeuner                         | Dîner                             |
+| -------- | -------------------------------- | --------------------------------- |
+| Lundi    | [[Salade de lentilles]]          | [[Poulet grillé aux légumes]]     |
+| Mardi    | [[Wrap au thon]]                 | [[Soupe de légumes et tartine]]   |
+| Mercredi | [[Salade de pâtes complètes]] ⚡ | [[Sauté de bœuf aux brocolis]] ⚡ |
+| Jeudi    | [[Tartine avocat-œuf]]           | [[Filet de saumon et riz]]        |
+| Vendredi | [[Soupe de pois chiches]]        | [[Omelette aux champignons]]      |
+| Samedi   | [[Taboulé de quinoa]]            | [[Gratin de courgettes]]          |
+| Dimanche | [[Salade composée]]              | [[Ratatouille et œuf au plat]]    |
 
 ⚡ = jour de sport (repas légèrement enrichis)
 🍽️ = repas élaboré de la semaine (jusqu'à 60 min)
@@ -106,6 +108,7 @@ Corps du fichier : tableau Markdown avec liens vers les recettes.
 ```
 
 Notes sur le format du plan :
+
 - Les **calories approximatives** sont indiquées entre parenthèses après chaque repas : `Salade de thon + pain (445)`.
 - Pour les repas d'assemblage (sans fiche recette), lister les composants séparés par `+` : `Cordon bleu + purée 1 portion + haricots verts (665)`.
 - Pour les repas avec fiche recette, utiliser un wikilink : `[[Galette sarrasin complète]] + compote 🌱 (415)`.
@@ -124,32 +127,45 @@ terminée: false
 ---
 ```
 
-Le fichier courses couvre 2 semaines et comporte 4 sections :
+Le fichier courses couvre 2 semaines. Il comporte une section longue durée (commande en ligne), puis **4 sections de produits frais** correspondant aux 4 courses en magasin (lundi et jeudi de chaque semaine), et enfin le fonds de placard à vérifier.
+
+Chaque article frais est assigné à la course **la plus proche avant** sa première utilisation (ex : salade pour vendredi → jeudi ; poulet pour mercredi → lundi).
 
 ```markdown
-# Courses - Semaines NN et NN+1
+# Courses — Semaines NN et NN+1
 
 ## Stock longue durée (commande en ligne)
-Produits secs, conserves, surgelés - une fois toutes les 2 semaines.
+
+Produits secs, conserves, surgelés — une fois toutes les 2 semaines.
 
 - [ ] 1 kg de riz complet
 - [ ] 500 g de pâtes complètes
 - [ ] ...
 
-## Semaine 1 - Produits frais
-Fruits, légumes, viandes, produits laitiers pour la première semaine.
+## Semaine 1 — Lundi (courses pour lun–mer)
 
 - [ ] 4 blancs de poulet (~600 g)
-- [ ] 1 kg de courgettes
+- [ ] Poireaux × 2
 - [ ] ...
 
-## Semaine 2 - Produits frais
-Idem pour la deuxième semaine.
+## Semaine 1 — Jeudi (courses pour jeu–dim)
 
-- [ ] 2 pavés de saumon (~300 g)
+- [ ] 1 pavé de saumon ~180 g
+- [ ] Salade verte × 1
 - [ ] ...
 
-## Fonds de placard - À vérifier
+## Semaine 2 — Lundi (courses pour lun–mer)
+
+- [ ] Escalope de dinde ~200 g
+- [ ] ...
+
+## Semaine 2 — Jeudi (courses pour jeu–dim)
+
+- [ ] Filet de porc ~250 g
+- [ ] ...
+
+## Fonds de placard — À vérifier
+
 Éléments normalement déjà en stock. Vérifier et cocher ce qui manque.
 Consulter [[Fonds-de-placard]] pour l'inventaire complet.
 
@@ -180,10 +196,10 @@ Trois sections (Réfrigérateur, Congélateur, Garde-manger) sous forme de **tab
 ```markdown
 ## Réfrigérateur
 
-| Produit                | Quantité | Détail          |
-| ---------------------- | -------- | --------------- |
-| Carottes râpées        | 2        | barquettes 320g |
-| Œufs                   | 12       | unités          |
+| Produit         | Quantité | Détail          |
+| --------------- | -------- | --------------- |
+| Carottes râpées | 2        | barquettes 320g |
+| Œufs            | 12       | unités          |
 ```
 
 - Mettre à jour les quantités ou supprimer les lignes au fur et à mesure de la consommation.
@@ -195,6 +211,7 @@ Ingrédients de base à toujours avoir, sous forme de cases à cocher :
 
 ```markdown
 ## Épices et aromates
+
 - [x] Sel, poivre
 - [x] Paprika
 - [ ] Curry (à acheter)

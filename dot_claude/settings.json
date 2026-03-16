@@ -1,55 +1,62 @@
 {
+  "cleanupPeriodDays": 30,
   "permissions": {
     "allow": [
-      "Bash(cargo *)",
-      "Bash(chmod *)",
-      "Bash(clang-format *)",
-      "Bash(clang-tidy *)",
-      "Bash(cp *)",
-      "Bash(curl *)",
-      "Bash(diff *)",
-      "Bash(docker *)",
-      "Bash(echo *)",
-      "Bash(eslint *)",
-      "Bash(exa *)",
-      "Bash(fd *)",
-      "Bash(gh *)",
-      "Bash(glab *)",
-      "Bash(go *)",
-      "Bash(jj *)",
-      "Bash(just *)",
-      "Bash(libreoffice *)",
-      "Bash(ls *)",
-      "Bash(make *)",
-      "Bash(mkdir *)",
-      "Bash(mmdc *)",
-      "Bash(mv *)",
-      "Bash(pandoc *)",
-      "Bash(pdfgrep *)",
-      "Bash(pdfinfo *)",
-      "Bash(npm *)",
-      "Bash(npx *)",
-      "Bash(pgrep *)",
-      "Bash(pkill *)",
-      "Bash(python *)",
-      "Bash(python3 *)",
-      "Bash(ruff *)",
-      "Bash(rustup *)",
-      "Bash(sd *)",
-      "Bash(shellcheck *)",
-      "Bash(sort *)",
-      "Bash(swift *)",
-      "Bash(tar *)",
-      "Bash(test *)",
-      "Bash(tokei *)",
-      "Bash(touch *)",
-      "Bash(trash *)",
-      "Bash(tsc *)",
-      "Bash(ty *)",
-      "Bash(typst *)",
-      "Bash(uv *)",
-      "Bash(wc *)",
-      "Bash(which *)",
+      "Bash(~/.claude:*)",
+      "Bash(cargo:*)",
+      "Bash(chmod:*)",
+      "Bash(clang-format:*)",
+      "Bash(clang-tidy:*)",
+      "Bash(cp:*)",
+      "Bash(curl:*)",
+      "Bash(docker:*)",
+      "Bash(echo:*)",
+      "Bash(eslint:*)",
+      "Bash(exa:*)",
+      "Bash(fd:*)",
+      "Bash(gh:*)",
+      "Bash(go:*)",
+      "Bash(hadolint:*)",
+      "Bash(jj:*)",
+      "Bash(jq:*)",
+      "Bash(just:*)",
+      "Bash(libreoffice:*)",
+      "Bash(make:*)",
+      "Bash(md5sum:*)",
+      "Bash(mkdir:*)",
+      "Bash(mmdc:*)",
+      "Bash(mv:*)",
+      "Bash(pandoc:*)",
+      "Bash(pdfgrep:*)",
+      "Bash(pdfinfo:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(pgrep:*)",
+      "Bash(pkill:*)",
+      "Bash(printf:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(ruff:*)",
+      "Bash(rustup:*)",
+      "Bash(sd:*)",
+      "Bash(shellcheck:*)",
+      "Bash(shfmt:*)",
+      "Bash(sort:*)",
+      "Bash(swift:*)",
+      "Bash(tar:*)",
+      "Bash(test:*)",
+      "Bash(tokei:*)",
+      "Bash(touch:*)",
+      "Bash(trash:*)",
+      "Bash(tsc:*)",
+      "Bash(ty:*)",
+      "Bash(typst:*)",
+      "Bash(udiskctl:*)",
+      "Bash(uv:*)",
+      "Bash(wc:*)",
+      "Bash(which:*)",
+      "Bash(xxd:*)",
+      "Bash(xxhsum:*)",
       "Edit(*)",
       "Glob(*)",
       "Grep(*)",
@@ -57,117 +64,53 @@
       "Skill(*)",
       "WebFetch(*)",
       "WebSearch(*)",
-      "Write(*)"
+      "Write(*)",
+      "mcp__plugin_tyrex-workflow_tyrex-*",
+      "mcp__plugin_tyrex-workflow_tyrex-**",
+      "mcp__plugin_tyrex-workflow_tyrex-gitlab__*"
     ],
     "deny": [
-      "Bash(pip *)",
-      "Bash(pip3 *)",
-      "Bash(python -m pip *)",
-      "Bash(python3 -m pip *)",
-      "Bash(rm *)",
-      "Bash(unlink *)",
+      "Bash(cd:*)",
+      "Bash(df:*)",
+      "Bash(diff:*)",
+      "Bash(du:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(sed:*)",
+      "Bash(curl * | *)",
+      "Bash(doas:*)",
       "Bash(find *-delete*)",
       "Bash(mv */dev/null*)",
-      "Bash(sudo *)",
-      "Bash(doas *)",
-      "Read(/home/vincent/.ssh/*)"
+      "Bash(pip:*)",
+      "Bash(pip3:*)",
+      "Bash(python3 -m pip:*)",
+      "Bash(python -m pip:*)",
+      "Bash(rm:*)",
+      "Bash(sudo:*)",
+      "Bash(unlink:*)",
+      "Bash(wget * | *)",
+      "Read(/home/vincent/.ssh/*)",
+      "Read(/home/vincent/.config/glab-cli/config.yml)"
     ]
   },
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/home/vincent/.claude/hooks/jj-workflow-check.sh",
-            "timeout": 10
-          }
-        ]
-      },
-      {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "/home/vincent/.claude/hooks/pre-push-checks.sh",
-            "timeout": 120
+            "command": "python3 /home/vincent/.claude/hooks/allow-compound.py"
           }
         ]
       },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/home/vincent/.claude/hooks/git-block.sh",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/home/vincent/.claude/hooks/enforce-builtin-tools.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Read|Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/home/vincent/.claude/hooks/open-plan-viewer.sh",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/home/vincent/.claude/hooks/jj-commit-lint.sh",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/home/vincent/.claude/hooks/task-complete-checks.sh",
-            "timeout": 120
-          }
-        ]
-      }
-    ],
-    "PermissionRequest": [
       {
         "matcher": "ExitPlanMode",
         "hooks": [
           {
             "type": "command",
-            "command": "/home/vincent/.claude/hooks/block-exit-plan.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/home/vincent/.claude/hooks/session-init.sh",
-            "timeout": 10
+            "command": "/home/vincent/.claude/hooks/block-exit-plan-mode.sh"
           }
         ]
       }
@@ -178,10 +121,33 @@
     "command": "/home/vincent/.local/bin/ccstatusline",
     "padding": 3
   },
-  "plansDirectory": "./.claude/plans",
   "enabledPlugins": {
-    "claudit@quickstop": true,
-    "playground@claude-plugins-official": true
+    "claudit@quickstop": false,
+    "playground@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": false,
+    "tyrex-core@tyrex-plugins": true,
+    "tyrex-documents@tyrex-plugins": true,
+    "tyrex-workflow@tyrex-plugins": true,
+    "tyrex-jj@tyrex-plugins": true,
+    "cowork-plugin-management@knowledge-work-plugins": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true
   },
-  "cleanupPeriodDays": 30
+  "extraKnownMarketplaces": {
+    "knowledge-work-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/knowledge-work-plugins"
+      }
+    },
+    "tyrex-plugins": {
+      "source": {
+        "source": "directory",
+        "path": "/home/vincent/code/tyrex/ai-agents"
+      },
+      "autoUpdate": true
+    }
+  },
+  "plansDirectory": "./.claude/plans",
+  "skipDangerousModePermissionPrompt": true
 }

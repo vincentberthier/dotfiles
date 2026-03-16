@@ -48,7 +48,7 @@ La majorité des repas quotidiens seront des assemblages. Ne créer des recettes
 
 - **Once per week**, plan a more ambitious dinner: up to **60 min** of prep/cooking.
 - Must be a **gratifying, guest-worthy dish** — not just something that takes long because it's tedious.
-- Think: a proper *blanquette de veau*, a *poulet rôti aux herbes et légumes*, a *risotto aux champignons*, a *tajine*, a *gratin dauphinois avec son rôti* — dishes with depth of flavor that reward the effort.
+- Think: a proper _blanquette de veau_, a _poulet rôti aux herbes et légumes_, a _risotto aux champignons_, a _tajine_, a _gratin dauphinois avec son rôti_ — dishes with depth of flavor that reward the effort.
 - **Avoid**: anything that's long but bland, overly fussy plating, or restaurant-level techniques.
 - Mark with 🍽️ in the plan.
 - Still respects the calorie targets (600-800 kcal); the extra time is about flavor and technique, not extra calories.
@@ -90,12 +90,16 @@ La majorité des repas quotidiens seront des assemblages. Ne créer des recettes
 
 Organize the grocery list into these sections:
 
-| Section                        | Contents                                              | Notes                                           |
-| ------------------------------ | ----------------------------------------------------- | ----------------------------------------------- |
-| **Long-shelf-life stock**      | Rice, pasta, canned goods, frozen items, sauces       | Can be ordered online                           |
-| **Week 1 fresh**               | Meat, fish, vegetables, fresh dairy for days 1-7      | Buy at start of plan                            |
-| **Week 2 fresh**               | Same categories for days 8-14                         | Buy at start of week 2                          |
-| **Pantry staples to verify**   | Spices, oils, condiments                              | Normally already in stock; list those needed     |
+| Section                      | Contents                                        | Notes                                        |
+| ---------------------------- | ----------------------------------------------- | -------------------------------------------- |
+| **Long-shelf-life stock**    | Rice, pasta, canned goods, frozen items, sauces | Online order, once per 2-week cycle          |
+| **Semaine N — Lundi**        | Fresh items needed Mon–Wed                      | Monday shopping trip                         |
+| **Semaine N — Jeudi**        | Fresh items needed Thu–Sun                      | Thursday shopping trip                       |
+| **Semaine N+1 — Lundi**      | Fresh items needed Mon–Wed                      | Monday shopping trip                         |
+| **Semaine N+1 — Jeudi**      | Fresh items needed Thu–Sun                      | Thursday shopping trip                       |
+| **Pantry staples to verify** | Spices, oils, condiments                        | Normally already in stock; list those needed |
+
+**Freshness rule**: assign each fresh item to the shopping trip **closest to but before** its first use. A salad for Friday dinner goes in the Thursday list, not the Monday one. Meat/fish for Wednesday goes in the Monday list.
 
 ### Grocery Aggregation
 
@@ -164,11 +168,11 @@ When generating a new plan, follow these steps in order:
 
 Adapt recipes to the **current season**:
 
-| Season                  | Preferred Ingredients                                                  |
-| ----------------------- | ---------------------------------------------------------------------- |
-| **Winter** (Dec-Feb)    | Soups, gratins, light stews, root vegetables, cabbage, leeks           |
-| **Spring** (Mar-May)    | Asparagus, peas, salads, artichokes                                    |
-| **Summer** (Jun-Aug)    | Cold salads, gazpacho, tomatoes, zucchini, eggplant, bell peppers      |
-| **Autumn** (Sep-Nov)    | Squash, mushrooms, broccoli, cauliflower                               |
+| Season               | Preferred Ingredients                                             |
+| -------------------- | ----------------------------------------------------------------- |
+| **Winter** (Dec-Feb) | Soups, gratins, light stews, root vegetables, cabbage, leeks      |
+| **Spring** (Mar-May) | Asparagus, peas, salads, artichokes                               |
+| **Summer** (Jun-Aug) | Cold salads, gazpacho, tomatoes, zucchini, eggplant, bell peppers |
+| **Autumn** (Sep-Nov) | Squash, mushrooms, broccoli, cauliflower                          |
 
 **Prioritize seasonal vegetables** for both cost and flavor.

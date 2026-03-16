@@ -1,0 +1,6 @@
+{
+  "claude-mermaid": {
+    "type": "stdio",
+    "command": "claude-mermaid"
+  }
+}

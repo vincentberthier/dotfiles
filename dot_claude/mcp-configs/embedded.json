@@ -1,0 +1,10 @@
+{
+  "embedded-debugger-mcp": {
+    "type": "stdio",
+    "command": "/home/vincent/.claude/mcp-servers/embedded-debugger-mcp/target/release/embedded-debugger-mcp"
+  },
+  "serial-mcp-server": {
+    "type": "stdio",
+    "command": "/home/vincent/.claude/mcp-servers/serial-mcp-server/target/release/serial-mcp-server"
+  }
+}

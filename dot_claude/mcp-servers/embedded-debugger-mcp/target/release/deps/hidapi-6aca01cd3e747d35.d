@@ -1,0 +1,11 @@
+/home/vincent/.claude/mcp-servers/embedded-debugger-mcp/target/release/deps/hidapi-6aca01cd3e747d35.d: /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/lib.rs /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/error.rs /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/ffi.rs /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/linux_native.rs /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/linux_native/ioctl.rs
+
+/home/vincent/.claude/mcp-servers/embedded-debugger-mcp/target/release/deps/libhidapi-6aca01cd3e747d35.rlib: /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/lib.rs /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/error.rs /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/ffi.rs /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/linux_native.rs /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/linux_native/ioctl.rs
+
+/home/vincent/.claude/mcp-servers/embedded-debugger-mcp/target/release/deps/libhidapi-6aca01cd3e747d35.rmeta: /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/lib.rs /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/error.rs /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/ffi.rs /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/linux_native.rs /home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/linux_native/ioctl.rs
+
+/home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/lib.rs:
+/home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/error.rs:
+/home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/ffi.rs:
+/home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/linux_native.rs:
+/home/vincent/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/hidapi-2.6.3/src/linux_native/ioctl.rs:
