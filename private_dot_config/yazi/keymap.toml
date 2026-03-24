@@ -17,11 +17,11 @@ keymap = [
 	{ on = [ "<C-z>" ], run = "suspend",            desc = "Suspend the process" },
 
 	# Navigation
-	{ on = [ "r" ], run = "arrow -1", desc = "Move cursor up" },
-	{ on = [ "s" ], run = "arrow 1",  desc = "Move cursor down" },
+	{ on = [ "s" ], run = "arrow -1", desc = "Move cursor up" },
+	{ on = [ "r" ], run = "arrow 1",  desc = "Move cursor down" },
 
-	{ on = [ "R" ], run = "arrow -5", desc = "Move cursor up 5 lines" },
-	{ on = [ "S" ], run = "arrow 5",  desc = "Move cursor down 5 lines" },
+	{ on = [ "S" ], run = "arrow -5", desc = "Move cursor up 5 lines" },
+	{ on = [ "R" ], run = "arrow 5",  desc = "Move cursor down 5 lines" },
 
 	{ on = [ "<C-u>" ], run = "arrow -50%",  desc = "Move cursor up half page" },
 	{ on = [ "<C-d>" ], run = "arrow 50%",   desc = "Move cursor down half page" },
