@@ -5,7 +5,7 @@
       {"id": "cwd", "type": "custom-command", "commandPath": "/home/vincent/.config/ccstatusline/cwd-stem.sh", "color": "hex:89b4fa", "bold": true},
       {"id": "sep0", "type": "separator", "character": "│", "color": "hex:6c7086"},
       {"id": "vcs-icon", "type": "custom-text", "customText": "", "color": "hex:cba6f7"},
-      {"id": "vcs", "type": "custom-command", "commandPath": "/home/vincent/.config/ccstatusline/vcs-info.sh", "color": "hex:cba6f7", "merge": true}
+      {"id": "vcs", "type": "custom-command", "commandPath": "/home/vincent/.config/ccstatusline/vcs-info.sh", "merge": true, "preserveColors": true}
     ],
     [
       {"id": "session-icon", "type": "custom-text", "customText": "", "color": "hex:b4befe"},
@@ -34,7 +34,7 @@
       {"id": "total", "type": "tokens-total", "color": "hex:cdd6f4", "rawValue": true, "merge": true}
     ]
   ],
-  "flexMode": "full-minus-40",
+  "flexMode": "full",
   "compactThreshold": 60,
   "colorLevel": 3,
   "inheritSeparatorColors": false,

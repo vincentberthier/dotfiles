@@ -33,7 +33,16 @@ or a Just recipe and their usage documented in the local CLAUDE.md and/or README
 
 ## "Pre-existing" is not an excuse
 
+DO NOT **EVER** DISMISS A FINDING AS PRE-EXISTING. AN ERROR / WARNING IS SOMETHING TO FIX
+REGARDLESS OF WHEN IT WAS INTRODUCED.
+
 **Never dismiss failures, warnings, or issues as "pre-existing".** If a check fails, a
 test breaks, a linter warns, or a dependency is outdated — fix it. The label "pre-existing"
 is not a reason to skip, ignore, or deprioritize anything. A broken thing is broken
 regardless of when it broke. If you encounter it, you own it.
+
+## Before pushing
+
+**Run all checks before every push.** Build, test, format, lint — everything must pass.
+Do not push code that fails any check. Do not assume checks pass because "only test files
+changed" or "it's just a formatting fix." Run them. Every time.

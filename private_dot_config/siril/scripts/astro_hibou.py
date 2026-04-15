@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
-import numpy as np
 import re
 import shutil
-import sirilpy; sirilpy.ensure_installed("ttkthemes", "numpy", "astropy");
+import sirilpy
+
 import sys
-import time
 import tkinter as tk
 
 
@@ -16,6 +15,7 @@ from sirilpy import tksiril, SirilError, CommandError
 from tkinter import ttk, messagebox
 from ttkthemes import ThemedTk
 
+sirilpy.ensure_installed("ttkthemes", "numpy", "astropy")
 
 DARK_PATH = "/run/media/vincent/Corrbolg/Astro/Raws/Calibration"
 RE_DATE = r"\d{4}-\d{2}-\d{2}"

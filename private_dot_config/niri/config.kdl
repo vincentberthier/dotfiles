@@ -337,7 +337,7 @@ spawn-at-startup "Telegram"
 spawn-at-startup "/opt/teams-for-linux/teams-for-linux"
 
 // To run a shell command (with variables, pipes, etc.), use spawn-sh-at-startup:
-spawn-sh-at-startup "noctalia run"
+spawn-sh-at-startup "qs -c noctalia-shell"
 spawn-sh-at-startup "TERM_STARTUP_MODE=initial wezterm"
 spawn-sh-at-startup "onedrivegui --minimize"
 spawn-sh-at-startup "/usr/bin/env fd . /home//home/vincent/.local/share/duplicacy -e log --changed-before 7d -X rm {}"
