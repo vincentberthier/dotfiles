@@ -1,0 +1,13 @@
+// Allow user `vincent` to power off and reboot hephaistos without auth.
+// Installed at /etc/polkit-1/rules.d/50-vincent-poweroff.rules.
+// See system/hephaistos/README.md for installation.
+
+polkit.addRule(function(action, subject) {
+    if ((action.id == "org.freedesktop.login1.power-off" ||
+         action.id == "org.freedesktop.login1.power-off-multiple-sessions" ||
+         action.id == "org.freedesktop.login1.reboot" ||
+         action.id == "org.freedesktop.login1.reboot-multiple-sessions") &&
+        subject.user == "vincent") {
+        return polkit.Result.YES;
+    }
+});

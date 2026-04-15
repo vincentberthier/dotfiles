@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Report hephaistos reachability without triggering WoL.
+# Bypasses the ProxyCommand (which would wake it) and probes directly.
+
+set -euo pipefail
+
+readonly HOST="hephaistos"
+readonly PORT=22
+
+if ! getent hosts "$HOST" >/dev/null 2>&1; then
+    echo "unreachable: name '$HOST' does not resolve"
+    exit 2
+fi
+
+if nc -z -w2 "$HOST" "$PORT" >/dev/null 2>&1; then
+    if ssh -o ConnectTimeout=3 -o BatchMode=yes \
+           -o ProxyCommand=none "$HOST" true >/dev/null 2>&1; then
+        echo "awake"
+        exit 0
+    fi
+    echo "port open but ssh auth failed"
+    exit 3
+fi
+
+echo "asleep"
+exit 1

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Wake hephaistos (via the ssh-wake-proxy ProxyCommand), start the
+# sunshine app, then launch moonlight from gaia.
+
+set -euo pipefail
+
+readonly HOST="hephaistos"
+readonly APP="Desktop"
+
+notify() {
+    if command -v notify-send >/dev/null 2>&1; then
+        notify-send -a "stream-hephaistos" "$1" "${2:-}"
+    fi
+    echo "[stream-hephaistos] $1${2:+: $2}"
+}
+
+notify "Connecting to hephaistos"
+if ! ssh -o ConnectTimeout=90 "$HOST" /usr/local/bin/start-streaming; then
+    notify "Remote launch failed" "start-streaming returned non-zero"
+    exit 1
+fi
+
+notify "Launching Moonlight"
+setsid --fork moonlight stream "$HOST" "$APP" \
+    >/dev/null 2>&1 </dev/null

@@ -84,6 +84,17 @@ config.inactive_pane_hsb = {
 	brightness = 0.4,
 }
 
+-- SSH domains: tabs to remote hosts live next to local tabs in the same window.
+-- `multiplexing = 'None'` means each tab is a fresh SSH session (no remote mux).
+config.ssh_domains = {
+	{
+		name = 'hephaistos',
+		remote_address = 'hephaistos',
+		username = 'vincent',
+		multiplexing = 'None',
+	},
+}
+
 -- Keys configuration
 config.use_dead_keys = true
 config.disable_default_key_bindings = true
@@ -112,6 +123,9 @@ config.keys = {
 	{ key = "l", mods = "CTRL|SHIFT", action = act.ActivateTabRelative(1) },
 	{ key = "d", mods = "CTRL|SHIFT", action = act.ActivateTabRelative(-1) },
 	{ key = "o", mods = "CTRL|SHIFT", action = act.SpawnTab("CurrentPaneDomain") },
+	-- New tab on hephaistos via the ssh domain; inherits cwd when the
+	-- current pane is already on hephaistos (requires OSC 7 in the shell).
+	{ key = "H", mods = "CTRL|SHIFT", action = act.SpawnTab { DomainName = "hephaistos" } },
 	-- Appearance
 	{ key = "7", mods = "CTRL|SHIFT", action = act.IncreaseFontSize },
 	{ key = "8", mods = "CTRL|SHIFT", action = act.DecreaseFontSize },

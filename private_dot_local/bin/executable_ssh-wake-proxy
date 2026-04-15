@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# SSH ProxyCommand that wakes hephaistos via WoL if asleep, then tunnels
+# the connection over nc. Used by `Host hephaistos` in ~/.ssh/config.
+#
+# Arguments: %h %p (host, port) supplied by ssh.
+
+set -euo pipefail
+
+readonly HOST="$1"
+readonly PORT="$2"
+readonly MAC="fc:4c:ea:25:6a:96"
+readonly WAKE_TIMEOUT=60
+
+port_open() {
+    nc -z -w1 "$HOST" "$PORT" >/dev/null 2>&1
+}
+
+if ! port_open; then
+    wakeonlan "$MAC" >/dev/null
+    waited=0
+    until port_open; do
+        if ((waited >= WAKE_TIMEOUT)); then
+            echo "ssh-wake-proxy: $HOST did not come up within ${WAKE_TIMEOUT}s" >&2
+            exit 1
+        fi
+        sleep 1
+        waited=$((waited + 1))
+    done
+fi
+
+exec nc "$HOST" "$PORT"

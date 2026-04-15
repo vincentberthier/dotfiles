@@ -343,6 +343,7 @@ workspace "󰾔" {
 
 // Spawn at startup
 spawn-at-startup "udiskie"
+{{ if ne .chezmoi.hostname "hephaistos" -}}
 spawn-at-startup "zen-browser"
 spawn-at-startup "discord"
 spawn-at-startup "signal-desktop"
@@ -350,16 +351,19 @@ spawn-at-startup "thunderbird"
 spawn-at-startup "obsidian"
 spawn-at-startup "Telegram"
 spawn-at-startup "/opt/teams-for-linux/teams-for-linux"
+{{- end }}
 
 // To run a shell command (with variables, pipes, etc.), use spawn-sh-at-startup:
 spawn-sh-at-startup "qs -c noctalia-shell"
 spawn-sh-at-startup "TERM_STARTUP_MODE=initial wezterm"
+{{ if ne .chezmoi.hostname "hephaistos" -}}
 spawn-sh-at-startup "onedrivegui --minimize"
 spawn-sh-at-startup "/usr/bin/env fd . /home//home/vincent/.local/share/duplicacy -e log --changed-before 7d -X rm {}"
 spawn-sh-at-startup "~/.config/niri/scripts/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:home  /home/vincent/pcloud/"
 spawn-sh-at-startup "~/.config/niri/scripts/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:vault /home/vincent/vault/"
 spawn-sh-at-startup "~/.config/niri/scripts/wait_connection.sh; sleep 5; /usr/bin/env bash /home//home/vincent/duplicacy/restore.sh"
 spawn-sh-at-startup "~/.config/niri/scripts/setup_environment.sh"
+{{- end }}
 
 hotkey-overlay {
     // Uncomment this line to disable the "Important Hotkeys" pop-up at startup.

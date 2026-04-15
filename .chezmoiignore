@@ -1,0 +1,17 @@
+{{- /*
+Per-host file scoping.
+Paths are relative to the target directory (home), not the source tree.
+*/ -}}
+
+{{ if ne .chezmoi.hostname "hephaistos" }}
+.local/bin/op
+{{ end }}
+
+{{ if ne .chezmoi.hostname "gaia" }}
+.local/bin/ssh-wake-proxy
+.local/bin/hephaistos-status
+.local/bin/hephaistos-off
+.local/bin/stream-hephaistos
+.local/bin/mount-hephaistos
+.local/bin/umount-hephaistos
+{{ end }}

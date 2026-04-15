@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Unmount the sshfs mount of hephaistos:/home/vincent from ~/hephaistos.
+
+set -euo pipefail
+
+readonly LOCAL="$HOME/hephaistos"
+
+if ! mountpoint -q "$LOCAL"; then
+    echo "$LOCAL is not mounted"
+    exit 0
+fi
+
+fusermount3 -u "$LOCAL"
+echo "$LOCAL unmounted"

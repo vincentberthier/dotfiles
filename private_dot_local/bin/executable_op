@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# op-via-gaia: delegate every `op` invocation back to gaia where the
+# 1Password desktop app is unlocked. Zero local 1Password state on
+# hephaistos, single unlock point on gaia.
+#
+# Installed on hephaistos only (see .chezmoiignore at repo root).
+# Works because ~/.local/bin is earlier in $PATH than /usr/bin,
+# so `op` here shadows /usr/bin/op.
+
+exec ssh -o BatchMode=yes gaia op "$@"

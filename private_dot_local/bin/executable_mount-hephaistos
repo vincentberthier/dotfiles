@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Mount hephaistos:/home/vincent at ~/hephaistos via sshfs.
+# For file transfers and drag-and-drop — not for editing code.
+
+set -euo pipefail
+
+readonly HOST="hephaistos"
+readonly REMOTE="/home/vincent"
+readonly LOCAL="$HOME/hephaistos"
+
+if mountpoint -q "$LOCAL"; then
+    echo "$LOCAL is already mounted"
+    exit 0
+fi
+
+mkdir -p "$LOCAL"
+
+sshfs "${HOST}:${REMOTE}" "$LOCAL" \
+    -o reconnect \
+    -o ServerAliveInterval=15 \
+    -o ServerAliveCountMax=3 \
+    -o idmap=user \
+    -o follow_symlinks \
+    -o cache=yes
+
+echo "$LOCAL mounted from ${HOST}:${REMOTE}"
