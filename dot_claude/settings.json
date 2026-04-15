@@ -67,17 +67,11 @@
       "Write(*)",
       "mcp__plugin_tyrex-workflow_tyrex-*",
       "mcp__plugin_tyrex-workflow_tyrex-**",
-      "mcp__plugin_tyrex-workflow_tyrex-gitlab__*"
+      "mcp__plugin_tyrex-workflow_tyrex-gitlab__*",
+      "mcp__plugin_tyrex-squash_tyrex-squash__*"
     ],
     "deny": [
       "Bash(cd:*)",
-      "Bash(df:*)",
-      "Bash(diff:*)",
-      "Bash(du:*)",
-      "Bash(find:*)",
-      "Bash(grep:*)",
-      "Bash(ls:*)",
-      "Bash(sed:*)",
       "Bash(curl * | *)",
       "Bash(doas:*)",
       "Bash(find *-delete*)",
@@ -125,13 +119,15 @@
     "claudit@quickstop": false,
     "playground@claude-plugins-official": true,
     "claude-code-setup@claude-plugins-official": false,
-    "tyrex-core@tyrex-plugins": true,
-    "tyrex-documents@tyrex-plugins": true,
-    "tyrex-workflow@tyrex-plugins": true,
-    "tyrex-jj@tyrex-plugins": true,
     "cowork-plugin-management@knowledge-work-plugins": true,
     "typescript-lsp@claude-plugins-official": true,
-    "skill-creator@claude-plugins-official": true
+    "skill-creator@claude-plugins-official": true,
+    "tyrex-core@tyrex-plugins": true,
+    "tyrex-documents@tyrex-plugins": true,
+    "tyrex-jj@tyrex-plugins": true,
+    "tyrex-workflow@tyrex-plugins": true,
+    "tyrex-squash@tyrex-plugins": true,
+    "tyrex-workflow-light@tyrex-plugins": true
   },
   "extraKnownMarketplaces": {
     "knowledge-work-plugins": {
@@ -142,12 +138,14 @@
     },
     "tyrex-plugins": {
       "source": {
-        "source": "directory",
-        "path": "/home/vincent/code/tyrex/ai-agents"
+        "source": "git",
+        "url": "git@tyrex-gl01-dev.kub.local:tyrex/research-and-development/ai-agents.git",
+        "ref": "marketplace"
       },
       "autoUpdate": true
     }
   },
   "plansDirectory": "./.claude/plans",
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "effortLevel": "high"
 }
