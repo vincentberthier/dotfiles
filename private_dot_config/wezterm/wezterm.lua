@@ -84,27 +84,19 @@ config.inactive_pane_hsb = {
 	brightness = 0.4,
 }
 
--- Exec domain: tabs in the "hephaistos" domain run `ssh hephaistos` via the
--- system ssh client. Unlike wezterm's built-in SshDomain, this bypasses
--- libssh-rs (no visible preamble), reuses our ControlMaster socket, and
--- triggers the ProxyCommand wake-on-access hook.
---
--- When the parent pane has a tracked cwd (via OSC 7), we cd into it on
--- hephaistos before launching fish. The 2>/dev/null cd fallback makes this
--- safe even when spawning from a gaia pane whose local path doesn't exist
--- remotely — fish simply starts at $HOME instead.
-config.exec_domains = {
-	wezterm.exec_domain('hephaistos', function(cmd)
-		local remote = 'clear; fastfetch; exec fish'
-		if cmd.cwd and cmd.cwd ~= '' then
-			local quoted = "'" .. cmd.cwd:gsub("'", "'\\''") .. "'"
-			remote = 'cd ' .. quoted .. ' 2>/dev/null; ' .. remote
-		end
-		cmd.args = { 'ssh', '-t', 'hephaistos', remote }
-		cmd.cwd = nil
-		return cmd
-	end),
-}
+-- Resolve the path component of a pane's current working directory.
+-- Handles both shapes wezterm has used over time: a Url userdata with a
+-- `file_path` field, and a plain URL string like "file://host/path".
+local function pane_cwd_path(pane)
+	local cwd = pane:get_current_working_dir()
+	if not cwd then
+		return ""
+	end
+	if type(cwd) == "string" then
+		return cwd:match("^file://[^/]*(/.*)$") or ""
+	end
+	return cwd.file_path or ""
+end
 
 -- Keys configuration
 config.use_dead_keys = true
@@ -138,9 +130,33 @@ config.keys = {
 	{ key = "l", mods = "CTRL|SHIFT", action = act.ActivateTabRelative(1) },
 	{ key = "d", mods = "CTRL|SHIFT", action = act.ActivateTabRelative(-1) },
 	{ key = "o", mods = "CTRL|SHIFT", action = act.SpawnTab("CurrentPaneDomain") },
-	-- New tab in the hephaistos exec domain (see config.exec_domains above).
-	-- Inherits cwd from the current pane when OSC 7 is tracked.
-	{ key = "j", mods = "CTRL|SHIFT", action = act.SpawnTab { DomainName = "hephaistos" } },
+	-- New tab running `ssh -t hephaistos ...`. Explicitly reads the
+	-- current pane's OSC 7 cwd and cd's into it on the remote (with a
+	-- silent fallback to $HOME if the path doesn't exist there).
+	-- Uses the system ssh client so ControlMaster + ProxyCommand both
+	-- apply, and libssh-rs never gets to print its preamble.
+	{
+		key = "j",
+		mods = "CTRL|SHIFT",
+		action = wezterm.action_callback(function(window, pane)
+			local remote = "clear; fastfetch; exec fish"
+			local path = pane_cwd_path(pane)
+			if path ~= "" then
+				-- `builtin cd` bypasses any user-defined `cd` function
+				-- override (e.g. fish z-plugin wrappers). Without this
+				-- prefix, a broken wrapper can silently swallow the cd
+				-- and leave the new tab at $HOME.
+				local quoted = "'" .. path:gsub("'", "'\\''") .. "'"
+				remote = "builtin cd " .. quoted .. " 2>/dev/null; " .. remote
+			end
+			window:perform_action(
+				act.SpawnCommandInNewTab {
+					args = { "ssh", "-t", "hephaistos", remote },
+				},
+				pane
+			)
+		end),
+	},
 	-- Appearance
 	{ key = "7", mods = "CTRL|SHIFT", action = act.IncreaseFontSize },
 	{ key = "8", mods = "CTRL|SHIFT", action = act.DecreaseFontSize },

@@ -138,7 +138,6 @@ alias du="dust"
 alias free="free -m" # show sizes in MB
 
 # Generic useful aliases
-alias z="zoxide"
 alias mkdir="mkdir -pv"
 alias cat="bat"
 alias less="cat"
@@ -207,6 +206,7 @@ alias astro_sd="ssh gaius 'shutdown /s /t 0'"
 # Hephaistos shortcuts
 alias hssh="ssh hephaistos"
 alias hst="hephaistos-status"
+alias hon="hephaistos-up"
 alias hoff="hephaistos-off"
 alias hmnt="mount-hephaistos"
 alias humnt="umount-hephaistos"

@@ -66,8 +66,8 @@ status is-interactive; and begin
         echo -en "\e]133;A\e\\"
     end
 
-    # Initialize zoxide
-    zoxide init fish | source
+    # zoxide now initializes from conf.d/zoxide.fish so it runs in
+    # non-interactive shells too (ssh host 'cmd' et al).
     # Initialize direnv
     # direnv hook fish | source
 

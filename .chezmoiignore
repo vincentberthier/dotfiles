@@ -10,6 +10,7 @@ Paths are relative to the target directory (home), not the source tree.
 {{ if ne .chezmoi.hostname "gaia" }}
 .local/bin/ssh-wake-proxy
 .local/bin/hephaistos-status
+.local/bin/hephaistos-up
 .local/bin/hephaistos-off
 .local/bin/stream-hephaistos
 .local/bin/mount-hephaistos

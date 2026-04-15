@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Wake hephaistos via Wake-on-LAN and wait for port 22 to come up.
+# Mirrors what ssh-wake-proxy does, but as a standalone command for when
+# you want to boot the box without immediately connecting (e.g. wake it,
+# grab coffee, come back, then start streaming / mounting / whatever).
+
+set -euo pipefail
+
+readonly HOST="hephaistos"
+readonly MAC="fc:4c:ea:25:6a:96"
+readonly WAKE_TIMEOUT=60
+
+if ncat -z -w2 "$HOST" 22 >/dev/null 2>&1; then
+    echo "hephaistos is already awake"
+    exit 0
+fi
+
+echo "Waking hephaistos..."
+wakeonlan "$MAC" >/dev/null
+
+waited=0
+until ncat -z -w1 "$HOST" 22 >/dev/null 2>&1; do
+    if ((waited >= WAKE_TIMEOUT)); then
+        echo "hephaistos did not come up within ${WAKE_TIMEOUT}s" >&2
+        exit 1
+    fi
+    sleep 1
+    waited=$((waited + 1))
+done
+
+echo "hephaistos is up (after ${waited}s)"
