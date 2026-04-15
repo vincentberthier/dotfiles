@@ -84,22 +84,37 @@ config.inactive_pane_hsb = {
 	brightness = 0.4,
 }
 
--- SSH domains: tabs to remote hosts live next to local tabs in the same window.
--- `multiplexing = 'None'` means each tab is a fresh SSH session (no remote mux).
-config.ssh_domains = {
-	{
-		name = 'hephaistos',
-		remote_address = 'hephaistos',
-		username = 'vincent',
-		multiplexing = 'None',
-	},
+-- Exec domain: tabs in the "hephaistos" domain run `ssh hephaistos` via the
+-- system ssh client. Unlike wezterm's built-in SshDomain, this bypasses
+-- libssh-rs (no visible preamble), reuses our ControlMaster socket, and
+-- triggers the ProxyCommand wake-on-access hook.
+--
+-- When the parent pane has a tracked cwd (via OSC 7), we cd into it on
+-- hephaistos before launching fish. The 2>/dev/null cd fallback makes this
+-- safe even when spawning from a gaia pane whose local path doesn't exist
+-- remotely — fish simply starts at $HOME instead.
+config.exec_domains = {
+	wezterm.exec_domain('hephaistos', function(cmd)
+		local remote = 'clear; fastfetch; exec fish'
+		if cmd.cwd and cmd.cwd ~= '' then
+			local quoted = "'" .. cmd.cwd:gsub("'", "'\\''") .. "'"
+			remote = 'cd ' .. quoted .. ' 2>/dev/null; ' .. remote
+		end
+		cmd.args = { 'ssh', '-t', 'hephaistos', remote }
+		cmd.cwd = nil
+		return cmd
+	end),
 }
 
 -- Keys configuration
 config.use_dead_keys = true
 config.disable_default_key_bindings = true
 
-config.leader = { key = " ", mods = "CTRL|SHIFT", timeout_milliseconds = 2000 }
+-- phys:Space matches the physical space bar regardless of the character
+-- produced by the active keyboard layout. On BÉPO / fr-latin1, Ctrl+Shift+Space
+-- produces U+00A0 (non-breaking space) rather than a regular space, so a
+-- char-based `key = " "` binding silently never fires.
+config.leader = { key = "phys:Space", mods = "CTRL|SHIFT", timeout_milliseconds = 2000 }
 config.mouse_bindings = {
 	{ event = { Down = { streak = 4, button = "Left" } }, mods = "NONE", action = act.SelectTextAtMouseCursor 'SemanticZone' }
 }
@@ -123,8 +138,8 @@ config.keys = {
 	{ key = "l", mods = "CTRL|SHIFT", action = act.ActivateTabRelative(1) },
 	{ key = "d", mods = "CTRL|SHIFT", action = act.ActivateTabRelative(-1) },
 	{ key = "o", mods = "CTRL|SHIFT", action = act.SpawnTab("CurrentPaneDomain") },
-	-- New tab on hephaistos via the ssh domain. Inherits cwd when the
-	-- current pane is already on hephaistos (requires OSC 7 in the shell).
+	-- New tab in the hephaistos exec domain (see config.exec_domains above).
+	-- Inherits cwd from the current pane when OSC 7 is tracked.
 	{ key = "j", mods = "CTRL|SHIFT", action = act.SpawnTab { DomainName = "hephaistos" } },
 	-- Appearance
 	{ key = "7", mods = "CTRL|SHIFT", action = act.IncreaseFontSize },
