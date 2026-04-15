@@ -7,9 +7,18 @@ If parsing fails or any command is unknown, defers to normal permissions.
 """
 
 import json
+import logging
 import re
 import sys
 from pathlib import Path
+
+_LOG_PATH = Path.home() / ".claude" / "hooks" / "allow-compound.log"
+logging.basicConfig(
+    filename=str(_LOG_PATH),
+    level=logging.DEBUG,
+    format="%(asctime)s %(message)s",
+)
+log = logging.getLogger(__name__)
 
 SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
 BASH_PATTERN = re.compile(r"^Bash\((\S+?):\*\)$")
@@ -19,8 +28,21 @@ BASH_PATTERN = re.compile(r"^Bash\((\S+?):\*\)$")
 PIPE_SAFE = frozenset({
     "awk", "cat", "column", "cut", "diff", "df", "du", "fold",
     "grep", "head", "jq", "less", "ls", "nl", "paste", "rev",
-    "rg", "sort", "tac", "tail", "tr", "uniq", "wc",
+    "rg", "sed", "sort", "tac", "tail", "tr", "uniq", "wc",
 })
+
+# Commands that have dedicated tools and should be denied when used standalone,
+# but allowed as pipe filters. Maps command name → preferred tool name.
+TOOL_NUDGE = {
+    "grep": "Grep",
+    "find": "Glob",
+    "ls": "Glob",
+    "sed": "Edit",
+}
+
+# Pure read-only commands removed from the deny list. No dedicated tool
+# alternative exists, so they're always allowed (no nudge needed).
+PURE_READONLY = frozenset({"df", "diff", "du"})
 
 
 def load_command_sets() -> tuple[set[str], set[str]]:
@@ -282,33 +304,54 @@ def main():
     try:
         data = json.load(sys.stdin)
     except (json.JSONDecodeError, EOFError):
+        log.debug("PARSE_FAIL: no valid JSON on stdin")
         return
 
     if data.get("tool_name") != "Bash":
         return
 
     command = data.get("tool_input", {}).get("command", "")
+    log.debug("INPUT command=%r  keys=%s", command, list(data.keys()))
     if not command:
         return
 
     tagged = extract_all_commands(command)
+    log.debug("TAGGED %s", tagged)
     if tagged is None or not tagged:
-        # Can't parse or empty — defer to normal permissions
+        log.debug("DECISION defer (parse failure)")
         return
 
     allowed, denied = load_command_sets()
 
+    # Phase 1: Hard denies from settings.json (security rules)
     for name, is_filter in tagged:
-        # Pipe-safe tools (grep, awk, head, …) are allowed after a pipe
         if name in denied and not (is_filter and name in PIPE_SAFE):
+            log.debug("DECISION deny name=%r is_filter=%s", name, is_filter)
             emit_deny(f"'{name}' is in the deny list")
             return
 
+    # Phase 2: Tool-nudge denies — standalone use of commands that have
+    # dedicated tools. Allowed as pipe filters, denied otherwise.
     for name, is_filter in tagged:
-        if name not in allowed and not (is_filter and name in PIPE_SAFE):
-            # Unknown command — defer to normal permission prompt
+        if name in TOOL_NUDGE and not is_filter:
+            tool = TOOL_NUDGE[name]
+            log.debug("DECISION deny (nudge) name=%r tool=%s", name, tool)
+            emit_deny(f"Use the {tool} tool instead of '{name}'")
             return
 
+    # Phase 3: Check if all commands are known/allowed
+    for name, is_filter in tagged:
+        known = (
+            name in allowed
+            or name in PURE_READONLY
+            or name in TOOL_NUDGE  # pipe-filter use (standalone caught above)
+            or (is_filter and name in PIPE_SAFE)
+        )
+        if not known:
+            log.debug("DECISION defer (unknown) name=%r is_filter=%s", name, is_filter)
+            return
+
+    log.debug("DECISION allow")
     emit_allow()
 
 
