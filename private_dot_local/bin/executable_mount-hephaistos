@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Mount hephaistos:/home/vincent at ~/hephaistos via sshfs.
 # For file transfers and drag-and-drop — not for editing code.
+#
+# Called directly by the user, and also backgrounded from ssh-wake-proxy
+# after a cold wake. Must silently no-op (exit 0) if already mounted or if
+# sshfs isn't installed, so the wake hook is always safe to fire.
 
 set -euo pipefail
 
@@ -8,8 +12,13 @@ readonly HOST="hephaistos"
 readonly REMOTE="/home/vincent"
 readonly LOCAL="$HOME/hephaistos"
 
+if ! command -v sshfs >/dev/null 2>&1; then
+    [[ -t 1 ]] && echo "sshfs not installed"
+    exit 0
+fi
+
 if mountpoint -q "$LOCAL"; then
-    echo "$LOCAL is already mounted"
+    [[ -t 1 ]] && echo "$LOCAL is already mounted"
     exit 0
 fi
 

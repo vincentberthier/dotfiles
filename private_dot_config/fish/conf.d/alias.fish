@@ -204,6 +204,14 @@ alias record='wl-screenrec -f "/home/vincent/Vidéos/$(date +%Y-%m-%d-T-%H%M%S).
 alias astro_copy="rmv gaius:/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/ /run/media/vincent/Corrbolg/Astro/Raws/"
 alias astro_sd="ssh gaius 'shutdown /s /t 0'"
 
+# Hephaistos shortcuts
+alias hssh="ssh hephaistos"
+alias hst="hephaistos-status"
+alias hoff="hephaistos-off"
+alias hmnt="mount-hephaistos"
+alias humnt="umount-hephaistos"
+alias hstream="stream-hephaistos"
+
 function shx --wraps helix --description "Execute helix as root with user config"
     doas helix --config $XDG_CONFIG_HOME/helix/config.toml $argv
 end

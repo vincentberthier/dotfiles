@@ -15,7 +15,10 @@ port_open() {
     ncat -z -w1 "$HOST" "$PORT" >/dev/null 2>&1
 }
 
+cold_wake=false
+
 if ! port_open; then
+    cold_wake=true
     wakeonlan "$MAC" >/dev/null
     waited=0
     until port_open; do
@@ -26,6 +29,15 @@ if ! port_open; then
         sleep 1
         waited=$((waited + 1))
     done
+fi
+
+# After a cold wake, fire mount-hephaistos in a fully detached subshell so
+# the sshfs mount comes up alongside the first ssh session. Idempotent and
+# silently no-ops if sshfs is missing or the mount is already live.
+# Output is redirected to /dev/null because this script's stdout is piped
+# into ssh — any stray bytes would corrupt the SSH banner exchange.
+if $cold_wake && [[ -x "$HOME/.local/bin/mount-hephaistos" ]]; then
+    ("$HOME/.local/bin/mount-hephaistos" </dev/null >/dev/null 2>&1 &)
 fi
 
 exec ncat "$HOST" "$PORT"
