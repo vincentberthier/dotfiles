@@ -358,7 +358,7 @@ function initial_setup(cmd)
 
 	-- the Qobuz window
 	local qob_tab, _, qob_window = mux.spawn_window {
-		args = { "fish", "-C", "qobuz-player open --web" },
+		args = { "fish", "-C", "qobuz-player" },
 		cwd = cmd.cwd,
 		set_environment_variables = cmd.set_environment_variables,
 	}
