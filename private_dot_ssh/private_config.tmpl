@@ -20,7 +20,7 @@ Host github.com github
 
 {{ if eq .chezmoi.hostname "gaia" -}}
 Host hephaistos
-  HostName hephaistos
+  HostName 192.168.1.12
   User vincent
   IdentityFile ~/.ssh/vincent
   ControlMaster auto
@@ -29,14 +29,14 @@ Host hephaistos
   ProxyCommand ~/.local/bin/ssh-wake-proxy %h %p
 {{- else -}}
 Host hephaistos
-  HostName hephaistos
+  HostName 192.168.1.12
   User vincent
   IdentityFile ~/.ssh/vincent
 {{- end }}
 
 {{ if eq .chezmoi.hostname "hephaistos" -}}
 Host gaia
-  HostName gaia
+  HostName 192.168.1.11
   User vincent
   IdentityFile ~/.ssh/vincent
   ControlMaster auto
