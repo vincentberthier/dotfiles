@@ -69,6 +69,20 @@ input {
     focus-follows-mouse max-scroll-amount="95%"
 }
 
+{{ if eq .chezmoi.hostname "hephaistos" -}}
+output "DP-1" {
+    mode "1920x1080@60.000"
+    position x=0 y=0
+}
+
+output "DP-2" {
+    off
+}
+
+output "DP-3" {
+    off
+}
+{{- else -}}
 output "DP-1" {
     mode "1920x1080@120.000"
     position x=-1920 y=0
@@ -83,6 +97,7 @@ output "DP-3" {
     mode "1920x1080@120.000"
     position x=1920 y=0
 }
+{{- end }}
 
 // You can configure outputs by their name, which you can find
 // by running `niri msg outputs` while inside a niri instance.
@@ -290,35 +305,35 @@ workspace "󰬱" {
 }
 
 workspace "" {
-    open-on-output "DP-2"
+    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-2{{ end }}"
 }
 
 workspace "" {
-    open-on-output "DP-2"
+    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-2{{ end }}"
 }
 
 workspace "󰭎" {
-    open-on-output "DP-2"
+    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-2{{ end }}"
 }
 
 workspace "󰊖" {
-    open-on-output "DP-2"
+    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-2{{ end }}"
 }
 
 workspace "󰢹" {
-    open-on-output "DP-2"
+    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-2{{ end }}"
 }
 
 workspace "" {
-    open-on-output "DP-3"
+    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-3{{ end }}"
 }
 
 workspace "󰠮" {
-    open-on-output "DP-3"
+    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-3{{ end }}"
 }
 
 workspace "󰾔" {
-    open-on-output "DP-3"
+    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-3{{ end }}"
 }
 
 // Add lines like this to spawn processes at startup.
