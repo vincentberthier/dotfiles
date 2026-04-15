@@ -6,7 +6,7 @@ set -euo pipefail
 
 readonly HOST="hephaistos"
 
-if ! nc -z -w2 "$HOST" 22 >/dev/null 2>&1; then
+if ! ncat -z -w2 "$HOST" 22 >/dev/null 2>&1; then
     echo "hephaistos is already down"
     exit 0
 fi

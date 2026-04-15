@@ -12,7 +12,7 @@ readonly MAC="fc:4c:ea:25:6a:96"
 readonly WAKE_TIMEOUT=60
 
 port_open() {
-    nc -z -w1 "$HOST" "$PORT" >/dev/null 2>&1
+    ncat -z -w1 "$HOST" "$PORT" >/dev/null 2>&1
 }
 
 if ! port_open; then
@@ -28,4 +28,4 @@ if ! port_open; then
     done
 fi
 
-exec nc "$HOST" "$PORT"
+exec ncat "$HOST" "$PORT"

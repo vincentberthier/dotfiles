@@ -123,9 +123,9 @@ config.keys = {
 	{ key = "l", mods = "CTRL|SHIFT", action = act.ActivateTabRelative(1) },
 	{ key = "d", mods = "CTRL|SHIFT", action = act.ActivateTabRelative(-1) },
 	{ key = "o", mods = "CTRL|SHIFT", action = act.SpawnTab("CurrentPaneDomain") },
-	-- New tab on hephaistos via the ssh domain; inherits cwd when the
+	-- New tab on hephaistos via the ssh domain. Inherits cwd when the
 	-- current pane is already on hephaistos (requires OSC 7 in the shell).
-	{ key = "H", mods = "CTRL|SHIFT", action = act.SpawnTab { DomainName = "hephaistos" } },
+	{ key = "j", mods = "CTRL|SHIFT", action = act.SpawnTab { DomainName = "hephaistos" } },
 	-- Appearance
 	{ key = "7", mods = "CTRL|SHIFT", action = act.IncreaseFontSize },
 	{ key = "8", mods = "CTRL|SHIFT", action = act.DecreaseFontSize },
