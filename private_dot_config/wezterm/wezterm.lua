@@ -98,6 +98,19 @@ local function pane_cwd_path(pane)
 	return cwd.file_path or ""
 end
 
+-- Build the `ssh -t hephaistos ...` argv for a new tab or split-pane.
+-- Preserves cwd via OSC 7 tracking and uses `builtin cd` to bypass any
+-- user-defined cd function on the remote (e.g. the alias cd=z shim).
+local function hephaistos_ssh_args(pane)
+	local remote = "clear; fastfetch; exec fish"
+	local path = pane_cwd_path(pane)
+	if path ~= "" then
+		local quoted = "'" .. path:gsub("'", "'\\''") .. "'"
+		remote = "builtin cd " .. quoted .. " 2>/dev/null; " .. remote
+	end
+	return { "ssh", "-t", "hephaistos", remote }
+end
+
 -- Keys configuration
 config.use_dead_keys = true
 config.disable_default_key_bindings = true
@@ -130,28 +143,28 @@ config.keys = {
 	{ key = "l", mods = "CTRL|SHIFT", action = act.ActivateTabRelative(1) },
 	{ key = "d", mods = "CTRL|SHIFT", action = act.ActivateTabRelative(-1) },
 	{ key = "o", mods = "CTRL|SHIFT", action = act.SpawnTab("CurrentPaneDomain") },
-	-- New tab running `ssh -t hephaistos ...`. Explicitly reads the
-	-- current pane's OSC 7 cwd and cd's into it on the remote (with a
-	-- silent fallback to $HOME if the path doesn't exist there).
-	-- Uses the system ssh client so ControlMaster + ProxyCommand both
-	-- apply, and libssh-rs never gets to print its preamble.
+	-- New tab / split-pane running `ssh -t hephaistos ...`. Uses the
+	-- system ssh client so ControlMaster + ProxyCommand both apply,
+	-- and libssh-rs never gets to print its preamble. See
+	-- hephaistos_ssh_args() for cwd-preservation details.
 	{
 		key = "j",
 		mods = "CTRL|SHIFT",
 		action = wezterm.action_callback(function(window, pane)
-			local remote = "clear; fastfetch; exec fish"
-			local path = pane_cwd_path(pane)
-			if path ~= "" then
-				-- `builtin cd` bypasses any user-defined `cd` function
-				-- override (e.g. fish z-plugin wrappers). Without this
-				-- prefix, a broken wrapper can silently swallow the cd
-				-- and leave the new tab at $HOME.
-				local quoted = "'" .. path:gsub("'", "'\\''") .. "'"
-				remote = "builtin cd " .. quoted .. " 2>/dev/null; " .. remote
-			end
 			window:perform_action(
-				act.SpawnCommandInNewTab {
-					args = { "ssh", "-t", "hephaistos", remote },
+				act.SpawnCommandInNewTab { args = hephaistos_ssh_args(pane) },
+				pane
+			)
+		end),
+	},
+	{
+		key = "j",
+		mods = "CTRL|SHIFT|ALT",
+		action = wezterm.action_callback(function(window, pane)
+			window:perform_action(
+				act.SplitPane {
+					direction = "Down",
+					command = { args = hephaistos_ssh_args(pane) },
 				},
 				pane
 			)

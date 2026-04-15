@@ -24,10 +24,22 @@ fi
 
 mkdir -p "$LOCAL"
 
+#
+# Mount options rationale:
+# - No `reconnect`. With reconnect, sshfs retries forever on connection
+#   loss, keeping the mount alive as a zombie — every subsequent statfs
+#   on the mount point (e.g. fastfetch enumerating /proc/mounts) blocks
+#   indefinitely. Without it, sshfs exits on connection loss and
+#   auto_unmount tears the mount down. The wake-hook in ssh-wake-proxy
+#   handles re-mounting on the next ssh invocation.
+# - `auto_unmount`: when sshfs dies, FUSE automatically unmounts so no
+#   zombie mount remains.
+# - Tight ServerAlive*: detect dead remote in ~10s (2 × 5s).
+#
 sshfs "${HOST}:${REMOTE}" "$LOCAL" \
-    -o reconnect \
-    -o ServerAliveInterval=15 \
-    -o ServerAliveCountMax=3 \
+    -o ServerAliveInterval=5 \
+    -o ServerAliveCountMax=2 \
+    -o auto_unmount \
     -o idmap=user \
     -o follow_symlinks \
     -o cache=yes

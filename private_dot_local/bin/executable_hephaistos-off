@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
 # Power off hephaistos. Relies on a polkit rule on the remote that lets
 # user `vincent` invoke org.freedesktop.login1.power-off without auth.
+#
+# Tears down the sshfs mount at ~/hephaistos first so it doesn't become
+# a dead FUSE mount post-shutdown (which would hang every new terminal
+# on gaia — fastfetch statfs blocks on stale mounts).
 
 set -euo pipefail
 
 readonly HOST="hephaistos"
+readonly MOUNT="$HOME/hephaistos"
 
 if ! ncat -z -w2 "$HOST" 22 >/dev/null 2>&1; then
     echo "hephaistos is already down"
     exit 0
+fi
+
+if mountpoint -q "$MOUNT" 2>/dev/null; then
+    echo "Unmounting $MOUNT..."
+    fusermount3 -uz "$MOUNT" 2>/dev/null || true
 fi
 
 echo "Powering off hephaistos..."
