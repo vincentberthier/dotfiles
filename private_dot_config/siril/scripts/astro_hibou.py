@@ -625,8 +625,8 @@ class Interface(QWidget):
                 filter_codes.add(code)
 
         # Siril's `convert` numbers frames alphabetically by file name, so
-        # sorting the symlinked names here gives us the same i+1 ordering
-        # that r_compose_seq_NNNNN.fit will be produced in.
+        # sorting the symlinks gives us the same i+1 ordering that
+        # r_compose_seq_NNNNN.fit will be produced in.
         filter_names_sorted = sorted(FILTER_NAMES[c] for c in filter_codes)
         for filter_name in filter_names_sorted:
             (dest_dir / f"{filter_name}.fit").symlink_to(
@@ -635,16 +635,17 @@ class Interface(QWidget):
 
         self.cd("compose")
         self.siril.cmd("convert", "compose_seq")
-        # Astrometric: stack_lights plate-solved every master, so align by WCS
-        # rather than star matching across very different histograms (broadband
-        # vs narrowband often shares too few detectable stars).
+        # -2pass computes transforms only (no output), picking the reference by
+        # quality+framing. seqapplyreg -framing=min then crops to the common
+        # area across all frames; reference choice doesn't affect that extent.
         self.siril.cmd(
             "register",
             "compose_seq",
-            "-transf=astrometric",
-            "-interp=lanczos4",
+            "-transf=homography",
+            "-2pass",
+            "-minpairs=10",
         )
-        self.siril.cmd("seqapplyreg", "compose_seq", "-framing=min")
+        self.siril.cmd("seqapplyreg", "compose_seq", "-framing=min", "-interp=lanczos4")
 
         for i, filter_name in enumerate(filter_names_sorted):
             shutil.copy2(
