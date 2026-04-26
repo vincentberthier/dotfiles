@@ -2,20 +2,29 @@
 
 import re
 import shutil
+import sys
+
 import sirilpy
 
-import sys
-import tkinter as tk
-
+sirilpy.ensure_installed("PyQt6", "numpy", "astropy")
 
 from astropy.io import fits
 from enum import Enum
 from pathlib import Path
-from sirilpy import tksiril, SirilError, CommandError
-from tkinter import ttk, messagebox
-from ttkthemes import ThemedTk
-
-sirilpy.ensure_installed("ttkthemes", "numpy", "astropy")
+from sirilpy import SirilError, CommandError
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QApplication,
+    QButtonGroup,
+    QCheckBox,
+    QGroupBox,
+    QHBoxLayout,
+    QMessageBox,
+    QPushButton,
+    QRadioButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 DARK_PATH = "/run/media/vincent/Corrbolg/Astro/Raws/Calibration"
 RE_DATE = r"\d{4}-\d{2}-\d{2}"
@@ -30,6 +39,11 @@ class ShootingMode(Enum):
 
 
 FILTER_NAMES = {"S": "sii", "H": "ha", "O": "oiii", "L": "luminance", "R": "red", "G": "green", "B": "blue"}
+FILTER_DISPLAY_ORDER = {"L": 0, "R": 1, "G": 2, "B": 3, "S": 4, "H": 5, "O": 6}
+
+
+def order_filters(filters):
+    return "".join(sorted(filters, key=lambda f: FILTER_DISPLAY_ORDER.get(f, 99)))
 
 
 class Step:
@@ -82,12 +96,11 @@ class History:
             f.write(f"{step}\n")
 
 
-class Interface:
-    def __init__(self, root, siril, days_list, root_dir):
-        self.root = root
-        self.root.title("Astro-Hibou processing")
-        self.root.resizable(False, False)
-        self.style = tksiril.standard_style()
+class Interface(QWidget):
+    def __init__(self, siril, days_list, root_dir):
+        super().__init__()
+        self.setWindowTitle("Astro-Hibou processing")
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
 
         self.siril = siril
 
@@ -95,64 +108,72 @@ class Interface:
         self.history = History(self.cwd())
         self.root_dir = root_dir
 
-        # Variables
-        self.day_vars = {}
-        self.mode_var = tk.StringVar(value="full")
-        self.option_vars = {}
+        # Widgets that hold user selections
+        self.day_checks = {}
+        self.option_checks = {}
+        self.mode_full = None
+        self.mode_partial = None
+        self.options_layout = None
+        self.options_group = None
 
         self.setup_ui()
         self.update_option_section()
-        tksiril.match_theme_to_siril(self.root, self.siril)
+
+        self.adjustSize()
+        self.setFixedSize(self.size())
 
     def setup_ui(self):
-        main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(10, 10, 10, 10)
 
         # Day selection section (only show if more than one day)
         if len(self.days_list) > 1:
-            day_frame = ttk.LabelFrame(main_frame, text="Select Days", padding="5")
-            day_frame.pack(fill=tk.X, pady=(0, 10))
-
+            day_group = QGroupBox("Select Days")
+            day_layout = QVBoxLayout()
             for day in sorted(self.days_list):
-                var = tk.BooleanVar()
-                self.day_vars[day] = var
-                cb = ttk.Checkbutton(
-                    day_frame,
-                    text=day,
-                    variable=var,
-                    command=self.on_day_selection_changed,
-                )
-                cb.pack(anchor=tk.W)
+                cb = QCheckBox(day)
+                cb.toggled.connect(self.on_day_selection_changed)
+                self.day_checks[day] = cb
+                day_layout.addWidget(cb)
+            day_group.setLayout(day_layout)
+            main_layout.addWidget(day_group)
         else:
-            # If only one day, auto-select it
+            # If only one day, auto-select it (the checkbox is not displayed)
             if self.days_list:
-                self.day_vars[self.days_list[0]] = tk.BooleanVar(value=True)
+                cb = QCheckBox(self.days_list[0])
+                cb.setChecked(True)
+                self.day_checks[self.days_list[0]] = cb
 
         # Mode selection section
-        mode_frame = ttk.LabelFrame(main_frame, text="Mode Selection", padding="5")
-        mode_frame.pack(fill=tk.X, pady=(0, 10))
-
-        ttk.Radiobutton(
-            mode_frame, text="Full", variable=self.mode_var, value="full"
-        ).pack(anchor=tk.W)
-        ttk.Radiobutton(
-            mode_frame, text="Partial", variable=self.mode_var, value="partial"
-        ).pack(anchor=tk.W)
+        mode_group = QGroupBox("Mode Selection")
+        mode_layout = QVBoxLayout()
+        self.mode_full = QRadioButton("Full")
+        self.mode_partial = QRadioButton("Partial")
+        self.mode_full.setChecked(True)
+        mode_button_group = QButtonGroup(self)
+        mode_button_group.addButton(self.mode_full)
+        mode_button_group.addButton(self.mode_partial)
+        mode_layout.addWidget(self.mode_full)
+        mode_layout.addWidget(self.mode_partial)
+        mode_group.setLayout(mode_layout)
+        main_layout.addWidget(mode_group)
 
         # Options section
-        self.options_frame = ttk.LabelFrame(main_frame, text="Options", padding="5")
-        self.options_frame.pack(fill=tk.X, pady=(0, 10))
+        self.options_group = QGroupBox("Options")
+        self.options_layout = QVBoxLayout()
+        self.options_group.setLayout(self.options_layout)
+        main_layout.addWidget(self.options_group)
 
         # Buttons section
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(fill=tk.X, pady=(10, 0))
-
-        ttk.Button(button_frame, text="Cancel", command=self.on_cancel).pack(
-            side=tk.RIGHT, padx=(5, 0)
-        )
-        ttk.Button(button_frame, text="Proceed", command=self.on_proceed).pack(
-            side=tk.RIGHT
-        )
+        button_row = QHBoxLayout()
+        button_row.addStretch(1)
+        proceed_btn = QPushButton("Proceed")
+        cancel_btn = QPushButton("Cancel")
+        proceed_btn.clicked.connect(self.on_proceed)
+        cancel_btn.clicked.connect(self.on_cancel)
+        button_row.addWidget(proceed_btn)
+        button_row.addWidget(cancel_btn)
+        main_layout.addLayout(button_row)
 
     def determine_full_spectrum(self, selected_days):
         """Determine if full spectrum based on selected days - placeholder logic"""
@@ -175,9 +196,13 @@ class Interface:
 
     def update_option_section(self):
         # Clear existing options
-        for widget in self.options_frame.winfo_children():
-            widget.destroy()
-        self.option_vars.clear()
+        while self.options_layout.count():
+            item = self.options_layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.setParent(None)
+                w.deleteLater()
+        self.option_checks.clear()
 
         # Get selected days and determine full spectrum
         selected_days = self.get_selected_days()
@@ -194,20 +219,17 @@ class Interface:
         if ShootingMode.RGB in shooting_mode:
             options.append("RGB")
 
-        self.option_vars.clear()
         # Create checkboxes for options
         for option in options:
-            var = tk.BooleanVar()
-            self.option_vars[option] = var
-            cb = ttk.Checkbutton(
-                self.options_frame,
-                text=option,
-                variable=var,
-                command=self.validate_option_selection,
-            )
-            cb.pack(anchor=tk.W)
+            cb = QCheckBox(option)
+            cb.toggled.connect(self.validate_option_selection)
+            self.option_checks[option] = cb
+            self.options_layout.addWidget(cb)
 
-    def on_day_selection_changed(self):
+        self.adjustSize()
+        self.setFixedSize(self.size())
+
+    def on_day_selection_changed(self, _checked=False):
         """Called when day selection changes"""
         self.validate_day_selection()
         self.update_option_section()  # Update options based on new day selection
@@ -215,20 +237,21 @@ class Interface:
     def validate_day_selection(self):
         """Ensure at least one day is selected"""
         if len(self.days_list) > 1:
-            selected = any(var.get() for var in self.day_vars.values())
+            selected = any(cb.isChecked() for cb in self.day_checks.values())
             if not selected:
                 # Re-enable the last clicked checkbox if none selected
                 # This is a simple approach - you might want to handle this differently
                 pass
 
-    def validate_option_selection(self):
+    def validate_option_selection(self, _checked=False):
         """Ensure at least one option is selected"""
         # if no options, no need to check anything
-        if len(self.option_vars) == 0:
+        if len(self.option_checks) == 0:
             pass
-        selected = any(var.get() for var in self.option_vars.values())
+        selected = any(cb.isChecked() for cb in self.option_checks.values())
         if not selected:
-            messagebox.showwarning(
+            QMessageBox.warning(
+                self,
                 "Invalid Selection",
                 "At least one of SHO, HOO, HSO, OHS must be selected",
             )
@@ -236,25 +259,25 @@ class Interface:
 
     def get_selected_days(self):
         """Get list of selected days"""
-        return [day for day, var in self.day_vars.items() if var.get()]
+        return [day for day, cb in self.day_checks.items() if cb.isChecked()]
 
     def get_selected_mode(self):
         """Get selected mode"""
-        return self.mode_var.get()
+        return "full" if self.mode_full.isChecked() else "partial"
 
     def get_selected_options(self):
         """Get list of selected options"""
-        return [option for option, var in self.option_vars.items() if var.get()]
+        return [option for option, cb in self.option_checks.items() if cb.isChecked()]
 
     def is_valid_selection(self):
         """Check if current selection is valid"""
         # At least one day selected
-        if not any(var.get() for var in self.day_vars.values()):
+        if not any(cb.isChecked() for cb in self.day_checks.values()):
             return False, "At least one day must be selected"
 
         # At least one option selected
-        if len(self.option_vars) > 0 and not any(
-            var.get() for var in self.option_vars.values()
+        if len(self.option_checks) > 0 and not any(
+            cb.isChecked() for cb in self.option_checks.values()
         ):
             return False, "At least one option must be selected"
 
@@ -263,7 +286,7 @@ class Interface:
     def on_cancel(self):
         """Cancel button callback - placeholder"""
         # TODO: Implement cancel logic
-        self.root.destroy()
+        self.close()
 
     #############################################
     #               Processing                  #
@@ -272,7 +295,7 @@ class Interface:
     def on_proceed(self):
         valid, message = self.is_valid_selection()
         if not valid:
-            messagebox.showwarning("Invalid Selection", message)
+            QMessageBox.warning(self, "Invalid Selection", message)
             return
 
         # Get selections
@@ -287,22 +310,28 @@ class Interface:
         print(f"Selected mode: {selected_mode}")
         print(f"Selected options: {selected_options}")
 
+        failure = None
         try:
             if len(selected_days) == 1:
                 self.process_single_day(selected_days[0], selected_mode, selected_options)
             else:
                 self.process_multiple_days(selected_days, selected_mode, selected_options)
-
-            messagebox.showinfo("Success", "Processing finished successfully")
         except CommandError as e:
-            print(f"Error running command: {e}")
+            failure = f"Error running command: {e}"
+            print(failure)
         except SirilError as e:
-            print(f"Error initializing script: {str(e)}", file=sys.stderr)
+            failure = f"Error initializing script: {e}"
+            print(failure, file=sys.stderr)
         except Exception as e:
-            print(f"unknown exception: {e}")
+            failure = f"unknown exception: {e}"
+            print(failure)
         finally:
             self.siril.cmd("cd", f'"{self.root_dir}"')
-            messagebox.showerror("failed to execute")
+
+        if failure is None:
+            QMessageBox.information(self, "Success", "Processing finished successfully")
+        else:
+            QMessageBox.critical(self, "Failed to execute", failure)
 
     def process_single_day(self, day, selected_mode, selected_options):
         start_dir = self.cwd()
@@ -557,7 +586,7 @@ class Interface:
         )
         # while np.array_equal(self.siril.get_image_pixeldata(shape=[0, 0, 50, 50]), bg):
         #     time.sleep(1)
-        self.siril.undo_save_state("GraXpert Background Extraction")
+        self.siril.undo_save_state("GraXpert Background Extraction")
         self.siril.cmd("save", f"master_{filter_type}")
         self.history.complete_step(self.cwd(), "extract_bg", step=filter_type)
 
@@ -590,35 +619,37 @@ class Interface:
             shutil.rmtree(dest_dir)
         dest_dir.mkdir(parents=True, exist_ok=True)
 
-        for filters in options:
-            filters = filters if filters != "Forax" else "SHO"
-            for filter in filters:
-                filter_name = FILTER_NAMES[filter]
-                dest_file = dest_dir / f"{filter_name}.fit"
-                dest_file.unlink(missing_ok=True)
-                Path(f"{dest_dir}/{filter_name}.fit").symlink_to(
-                    Path(f"{source_dir}/master_{filter_name}.fit")
-                )
+        filter_codes = set()
+        for opt in options:
+            for code in (opt if opt != "Forax" else "SHO"):
+                filter_codes.add(code)
+
+        # Siril's `convert` numbers frames alphabetically by file name, so
+        # sorting the symlinked names here gives us the same i+1 ordering
+        # that r_compose_seq_NNNNN.fit will be produced in.
+        filter_names_sorted = sorted(FILTER_NAMES[c] for c in filter_codes)
+        for filter_name in filter_names_sorted:
+            (dest_dir / f"{filter_name}.fit").symlink_to(
+                source_dir / f"master_{filter_name}.fit"
+            )
+
         self.cd("compose")
         self.siril.cmd("convert", "compose_seq")
+        # Astrometric: stack_lights plate-solved every master, so align by WCS
+        # rather than star matching across very different histograms (broadband
+        # vs narrowband often shares too few detectable stars).
         self.siril.cmd(
             "register",
             "compose_seq",
-            "-transf=homography",
+            "-transf=astrometric",
             "-interp=lanczos4",
-            "-2pass",
         )
-        self.siril.cmd("load_seq", "compose_seq_")
         self.siril.cmd("seqapplyreg", "compose_seq", "-framing=min")
-        filters = set()
-        for option in options:
-            for filter in [option if option != "Forax" else "SHO"]:
-                filters = filters.union([f for f in filter])
-        for i, filter in enumerate(list(filters)):
-            filter_name = FILTER_NAMES[filter]
+
+        for i, filter_name in enumerate(filter_names_sorted):
             shutil.copy2(
-                Path(f"{dest_dir}/r_compose_seq_0000{i + 1}.fit"),
-                Path(f"{source_dir}/aligned_{filter_name}.fit"),
+                dest_dir / f"r_compose_seq_{i + 1:05d}.fit",
+                source_dir / f"aligned_{filter_name}.fit",
             )
         self.cd("..")
         self.history.complete_step(self.cwd(), "prepare_compose_sequence")
@@ -639,6 +670,22 @@ class Interface:
         )
         self.siril.cmd("load", "lrgb.fit")
         self.history.complete_step(self.cwd(), "compose_lrgb")
+
+    def compose_rgb(self):
+        if self.history.check_step(self.cwd(), "compose_rgb"):
+            self.siril.log("Step already done, skipping")
+            return
+        self.linear_match("aligned_red.fit", "aligned_green.fit")
+        self.linear_match("aligned_blue.fit", "aligned_green.fit")
+        self.siril.cmd(
+            "rgbcomp",
+            "aligned_red.fit",
+            "aligned_green.fit",
+            "aligned_blue.fit",
+            "-out=rgb.fit",
+        )
+        self.siril.cmd("load", "rgb.fit")
+        self.history.complete_step(self.cwd(), "compose_rgb")
 
     def compose_sho(self, options):
         if self.history.check_step(self.cwd(), "compose_sho"):
@@ -782,7 +829,7 @@ class Interface:
         )
         # while np.array_equal(self.siril.get_image_pixeldata(shape=[0, 0, 50, 50]), bg):
         #     time.sleep(1)
-        self.siril.undo_save_state("GraXpert Deconvolve Object")
+        self.siril.undo_save_state("GraXpert Deconvolve Object")
         self.siril.cmd("save", f"starless_{image}_deconvolved")
         self.open_image(f"starless_{image}_deconvolved")
         self.history.complete_step(self.cwd(), "deconvolve", step=image)
@@ -887,7 +934,7 @@ def main():
         print("Siril connected successfully")
     except sirilpy.SirilConnectionError as e:
         print(f"Failed to connect to Siril: {e}")
-        quit()
+        return
 
     root_dir = Path(siril.get_siril_wd())
 
@@ -898,18 +945,21 @@ def main():
     if len(available_days) > 1:
         for day in available_days:
             filters = get_shooting_mode(siril, day)
-            days.append(f"{day} [{"".join(filters)}]")
+            days.append(f"{day} [{order_filters(filters)}]")
     else:
         try:
             filters = get_shooting_mode(siril, "")
         except FileNotFoundError:
             filters = get_shooting_mode(siril, available_days[0])
-        days.append(f"{available_days[0]} [{"".join(filters)}]")
+        days.append(f"{available_days[0]} [{''.join(filters)}]")
 
     try:
-        root = ThemedTk()
-        Interface(root, siril, days, root_dir)
-        root.mainloop()
+        qapp = QApplication.instance() or QApplication(sys.argv)
+        qapp.setApplicationName("Astro-Hibou")
+        qapp.setStyle("Fusion")
+        window = Interface(siril, days, root_dir)
+        window.show()
+        qapp.exec()
     except CommandError as e:
         print(f"Error running command: {e}")
     except SirilError as e:
