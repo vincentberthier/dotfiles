@@ -1,0 +1,64 @@
+# ExifTool user configuration.
+#
+# Defines the XMP-astrohibou namespace used by astro_inject_meta.py to embed
+# astrophotography acquisition metadata (target, integration, equipment,
+# conditions) into exported JPGs.
+#
+# To inspect: exiftool -config ~/.ExifTool_config -XMP-astrohibou:all <file>
+#
+# Namespace URI is project-local — change if you ever publish a real schema.
+
+%Image::ExifTool::UserDefined = (
+    'Image::ExifTool::XMP::Main' => {
+        astrohibou => {
+            SubDirectory => {
+                TagTable => 'Image::ExifTool::UserDefined::astrohibou',
+            },
+        },
+    },
+);
+
+%Image::ExifTool::UserDefined::astrohibou = (
+    GROUPS    => { 0 => 'XMP', 1 => 'XMP-astrohibou', 2 => 'Image' },
+    NAMESPACE => { 'astrohibou' => 'https://astro-hibou.eu/ns/1.0/' },
+    WRITABLE  => 'string',
+
+    # Target
+    Object         => { Writable => 'string' },
+    RA             => { Writable => 'real' },
+    Dec            => { Writable => 'real' },
+
+    # Acquisition
+    Mode           => { Writable => 'string' },   # LRGB / SHO / HOO / Forax / ...
+    DateObsUTC     => { Writable => 'string' },
+    Frames         => { Writable => 'integer' },
+    SubExposure    => { Writable => 'real' },     # seconds
+    Integration    => { Writable => 'real' },     # seconds
+    Airmass        => { Writable => 'real' },
+
+    # Equipment
+    Telescope      => { Writable => 'string' },
+    Camera         => { Writable => 'string' },
+    FilterWheel    => { Writable => 'string' },
+    FocalLength    => { Writable => 'real' },     # mm
+    FocalRatio     => { Writable => 'real' },
+    PixelSize      => { Writable => 'real' },     # microns
+    Binning        => { Writable => 'string' },
+    Gain           => { Writable => 'integer' },
+    Offset         => { Writable => 'integer' },
+    SensorTemp     => { Writable => 'real' },     # °C
+
+    # Conditions (optional, FITS-derived)
+    AmbientTemp    => { Writable => 'real' },
+    Humidity       => { Writable => 'real' },
+    Pressure       => { Writable => 'real' },
+    CloudCover     => { Writable => 'real' },
+    WindSpeed      => { Writable => 'real' },
+
+    # Processing provenance + idempotency signature
+    Software       => { Writable => 'string' },
+    InjectedBy     => { Writable => 'string' },   # set to "astro_inject_meta vX"
+    InjectedAt     => { Writable => 'string' },   # ISO 8601 timestamp
+);
+
+1;  # required by Perl
