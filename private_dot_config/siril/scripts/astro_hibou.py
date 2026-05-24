@@ -13,8 +13,10 @@ from typing import Callable, Iterable, Iterator
 
 import sirilpy
 
-sirilpy.ensure_installed("PyQt6", "astropy")
+sirilpy.ensure_installed("PyQt6", "astropy", "numpy", "PyYAML")
 
+import numpy as np
+import yaml
 from astropy.io import fits
 from sirilpy import CommandError, SirilError
 from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal
@@ -104,6 +106,138 @@ def order_filters(codes: Iterable[str]) -> str:
 def get_dark(exposure: str) -> Path | None:
     candidate = DARK_PATH / f"master_darks_{exposure}.fit"
     return candidate if candidate.exists() else None
+
+
+# --- Metadata sidecar -------------------------------------------------------
+
+# Author identity baked into every sidecar — overridable per-image by editing
+# the YAML.
+AUTHOR_NAME = "Vincent Berthier"
+AUTHOR_EMAIL = "contact@astro-hibou.eu"
+
+# Default privacy rounding for SITELAT / SITELONG — integer degrees gives
+# ~110 km of positional ambiguity, enough to publish without leaking the
+# imaging site. Override the value in the sidecar by hand if needed.
+SITE_COORD_DECIMALS = 0
+
+
+def _hget(header, key, default=None):
+    """Fetch a FITS keyword, stripping string padding and treating empty
+    strings as missing."""
+    try:
+        v = header[key]
+    except KeyError:
+        return default
+    if isinstance(v, str):
+        v = v.strip()
+        return v if v else default
+    return v
+
+
+def _round_coord(value, decimals: int = SITE_COORD_DECIMALS):
+    if value is None:
+        return None
+    return round(float(value), decimals) if decimals else round(float(value))
+
+
+def build_metadata(fit_path: Path, *, mode: str | None = None) -> dict:
+    """Curate a FITS header into a publish-friendly dict.
+
+    Site latitude/longitude are rounded to integer degrees by default; tweak
+    SITE_COORD_DECIMALS or edit the sidecar to change precision.
+    """
+    with fits.open(fit_path) as hdul:
+        h = hdul[0].header
+
+    binning = None
+    xb, yb = _hget(h, "XBINNING"), _hget(h, "YBINNING")
+    if xb is not None and yb is not None:
+        binning = f"{int(xb)}x{int(yb)}"
+
+    return {
+        "author": {
+            "name": AUTHOR_NAME,
+            "email": AUTHOR_EMAIL,
+        },
+        "target": {
+            "name": _hget(h, "OBJECT"),
+            "ra_deg": _hget(h, "RA"),
+            "dec_deg": _hget(h, "DEC"),
+            "ra_hms": _hget(h, "OBJCTRA"),
+            "dec_dms": _hget(h, "OBJCTDEC"),
+        },
+        "acquisition": {
+            "mode": mode,
+            "date_obs_utc": _hget(h, "DATE-OBS"),
+            "date_avg_utc": _hget(h, "DATE-AVG"),
+            "date_local": _hget(h, "DATE-LOC"),
+            "frames_stacked": _hget(h, "STACKCNT"),
+            "sub_exposure_s": _hget(h, "EXPTIME"),
+            "total_integration_s": _hget(h, "LIVETIME"),
+            "airmass": _hget(h, "AIRMASS"),
+            "altitude_deg": _hget(h, "CENTALT"),
+            "azimuth_deg": _hget(h, "CENTAZ"),
+        },
+        "equipment": {
+            "telescope": _hget(h, "TELESCOP"),
+            "camera": _hget(h, "INSTRUME"),
+            "filter_wheel": _hget(h, "FWHEEL"),
+            "focuser": _hget(h, "FOCNAME"),
+            "focal_length_mm": _hget(h, "FOCALLEN"),
+            "focal_ratio": _hget(h, "FOCRATIO"),
+            "pixel_size_um": _hget(h, "XPIXSZ"),
+            "binning": binning,
+            "gain": _hget(h, "GAIN"),
+            "offset": _hget(h, "OFFSET"),
+            "sensor_temp_c": _hget(h, "CCD-TEMP"),
+        },
+        "site": {
+            "latitude_deg": _round_coord(_hget(h, "SITELAT")),
+            "longitude_deg": _round_coord(_hget(h, "SITELONG")),
+            "elevation_m": _hget(h, "SITEELEV"),
+        },
+        "conditions": {
+            "ambient_temp_c": _hget(h, "AMBTEMP"),
+            "humidity_pct": _hget(h, "HUMIDITY"),
+            "pressure_hpa": _hget(h, "PRESSURE"),
+            "dewpoint_c": _hget(h, "DEWPOINT"),
+            "cloud_cover_pct": _hget(h, "CLOUDCVR"),
+            "wind_dir_deg": _hget(h, "WINDDIR"),
+            "wind_speed_kph": _hget(h, "WINDSPD"),
+            "wind_gust_kph": _hget(h, "WINDGUST"),
+        },
+        "processing": {
+            "software": _hget(h, "PROGRAM"),
+            "plate_solved": bool(_hget(h, "PLTSOLVD", False)),
+        },
+    }
+
+
+def write_metadata_sidecar(
+    fit_path: Path,
+    *,
+    mode: str | None = None,
+    overwrite: bool = False,
+) -> Path | None:
+    """Write a YAML sidecar of curated FITS metadata next to `fit_path`.
+
+    Refuses to clobber an existing sidecar unless `overwrite=True` — hand
+    edits (rounded coordinates, descriptions, etc.) survive pipeline re-runs.
+    """
+    sidecar = fit_path.with_name(fit_path.name + ".meta.yaml")
+    if sidecar.exists() and not overwrite:
+        return sidecar
+    if not fit_path.exists():
+        return None
+    meta = build_metadata(fit_path, mode=mode)
+    with open(sidecar, "w") as f:
+        f.write(
+            "# Metadata sidecar — generated from the FITS header.\n"
+            "# Edit freely: the pipeline never overwrites an existing file.\n"
+            f"# Source: {fit_path.name}\n\n"
+        )
+        yaml.safe_dump(meta, f, sort_keys=False, allow_unicode=True)
+    return sidecar
 
 
 # --- Step + History ---------------------------------------------------------
@@ -755,7 +889,129 @@ class Pipeline:
                     compose_dir / f"r_compose_seq_{i + 1:05d}.fit",
                     process_dir / f"aligned_{filter_name}.fit",
                 )
+        self._coverage_crop_aligned(aligned_paths)
         self.history.mark_done(process_dir, "prepare_compose_sequence")
+
+    def _coverage_crop_aligned(
+        self, aligned_paths: list[Path], *, coverage_eps: float = 1e-5
+    ) -> None:
+        # seqapplyreg -framing=min keeps any pixel covered by at least one
+        # frame, but partial-coverage rows/cols at the boundary become
+        # channel-mismatched in the composed RGB. The mismatch reads as a
+        # faint colored sliver in linear data and GraXpert stellar deconv
+        # rings on it into a hard dark stripe (visible in cluster mode after
+        # autostretch; partly masked by StarNet in the regular path).
+        # Restricting all aligned channels to the common-coverage rectangle
+        # plus an adaptive inward margin removes the trigger.
+        datasets: list[np.ndarray] = []
+        for p in aligned_paths:
+            with fits.open(p) as h:
+                arr = h[0].data
+            if arr.ndim == 3:
+                arr = arr[0]
+            datasets.append(arr.astype(np.float32))
+
+        H, W = datasets[0].shape
+        common = np.logical_and.reduce(
+            [d > coverage_eps for d in datasets]
+        )
+
+        # Peel one side at a time, restricting subsequent peels to the
+        # already-peeled bounds. This finds a fully-covered rectangle even
+        # when uncovered pixels are limited to a single column/row in one
+        # channel (cross-channel registration leaves these along the seam
+        # between channel footprints; testing `common.all(axis=1)` on the
+        # full frame would falsely mark every intersecting row as bad).
+        x0_full, x1_full = 0, W
+        y0_full, y1_full = 0, H
+        while x0_full < x1_full and not common[:, x0_full].all():
+            x0_full += 1
+        while x1_full > x0_full and not common[:, x1_full - 1].all():
+            x1_full -= 1
+        while (
+            y0_full < y1_full
+            and not common[y0_full, x0_full:x1_full].all()
+        ):
+            y0_full += 1
+        while (
+            y1_full > y0_full
+            and not common[y1_full - 1, x0_full:x1_full].all()
+        ):
+            y1_full -= 1
+        if x1_full - x0_full < 100 or y1_full - y0_full < 100:
+            self.siril.log(
+                "Common-coverage rectangle too small "
+                f"({x1_full - x0_full}x{y1_full - y0_full}); "
+                "leaving aligned channels untouched"
+            )
+            return
+
+        # Adaptive margin per side. Walk inward from the edge of the
+        # fully-covered box on the channel-averaged image; stop at the
+        # first row/col whose median is within 1σ of the interior noise.
+        # Floor at 4 px (sub-pixel interpolation halo can extend slightly
+        # past the coverage transition); cap at 40 px so a degenerate
+        # field can't eat the frame.
+        avg = np.mean(datasets, axis=0)
+        interior = avg[
+            y0_full + 60:y1_full - 60, x0_full + 60:x1_full - 60
+        ]
+        if interior.size == 0:
+            self.siril.log(
+                "Common-coverage region too small for adaptive margin; "
+                "leaving aligned channels untouched"
+            )
+            return
+        interior_med = float(np.median(interior))
+        interior_mad = (
+            float(np.median(np.abs(interior - interior_med))) + 1e-9
+        )
+        sigma = 1.4826 * interior_mad
+
+        def walk(profile: np.ndarray) -> int:
+            for i, v in enumerate(profile):
+                if abs(float(v) - interior_med) < sigma:
+                    return max(i, 4)
+            return min(40, len(profile))
+
+        depth = 40
+        left_prof = np.median(
+            avg[y0_full:y1_full, x0_full:x0_full + depth], axis=0
+        )
+        right_prof = np.median(
+            avg[y0_full:y1_full, x1_full - depth:x1_full], axis=0
+        )[::-1]
+        top_prof = np.median(
+            avg[y0_full:y0_full + depth, x0_full:x1_full], axis=1
+        )
+        bot_prof = np.median(
+            avg[y1_full - depth:y1_full, x0_full:x1_full], axis=1
+        )[::-1]
+
+        m_left = walk(left_prof)
+        m_right = walk(right_prof)
+        m_top = walk(top_prof)
+        m_bot = walk(bot_prof)
+
+        x0 = x0_full + m_left
+        x1 = x1_full - m_right
+        y0 = y0_full + m_top
+        y1 = y1_full - m_bot
+
+        if (x0, y0, x1, y1) == (0, 0, W, H):
+            self.siril.log("Coverage already uniform; no crop needed")
+            return
+
+        w = x1 - x0
+        h = y1 - y0
+        self.siril.log(
+            f"Coverage crop: ({x0},{y0}) {w}x{h} "
+            f"(dropped L={x0} R={W - x1} T={y0} B={H - y1})"
+        )
+        for p in aligned_paths:
+            self.siril.cmd("load", p.name)
+            self.siril.cmd("crop", str(x0), str(y0), str(w), str(h))
+            self.siril.cmd("save", p.stem)
 
     def compose_lrgb(self) -> None:
         process_dir = self.cwd()
@@ -959,13 +1215,16 @@ class Pipeline:
         """
         self.siril.cmd("platesolve")
         if SPCC_R_FILTER and SPCC_G_FILTER and SPCC_B_FILTER and SPCC_SENSOR:
+            # Siril's spcc parser requires the *entire* -arg=value token to
+            # be enclosed in quotes when the value contains spaces — quoting
+            # only the value (-arg="value with spaces") is rejected.
             self.siril.cmd(
                 "spcc",
-                f'-monosensor="{SPCC_SENSOR}"',
-                f'-rfilter="{SPCC_R_FILTER}"',
-                f'-gfilter="{SPCC_G_FILTER}"',
-                f'-bfilter="{SPCC_B_FILTER}"',
-                f'-whiteref="{SPCC_WHITE_REF}"',
+                f'"-monosensor={SPCC_SENSOR}"',
+                f'"-rfilter={SPCC_R_FILTER}"',
+                f'"-gfilter={SPCC_G_FILTER}"',
+                f'"-bfilter={SPCC_B_FILTER}"',
+                f'"-whiteref={SPCC_WHITE_REF}"',
             )
         else:
             self.siril.log(
@@ -1097,22 +1356,23 @@ class Pipeline:
             inputs=[cwd / f"{image}.fit"],
         ):
             self.siril.log("Step already done, skipping")
-            return
-        self.siril.cmd("load", f"{image}.fit")
-        if self.deconv_full_image:
-            # Deconv first: stars get sharpened too, but StarNet then
-            # works on cleaner data and tends to make tighter masks.
-            self.deconvolve(image, on_full=True)
-        self.siril.cmd("save", f"processing_{image}")
-        self.siril.cmd("load", f"processing_{image}.fit")
-        self.siril.cmd("starnet", "-stretch", "-upscale")
-        self.siril.cmd("load", f"starless_processing_{image}.fit")
-        if not self.deconv_full_image:
-            # Deconv only on the starless layer: avoids ringing around
-            # bright stars at the cost of overall sharpness.
-            self.deconvolve(image, on_full=False)
-        self.denoise(image)
-        self.history.mark_done(cwd, "do_process", detail=detail)
+        else:
+            self.siril.cmd("load", f"{image}.fit")
+            if self.deconv_full_image:
+                # Deconv first: stars get sharpened too, but StarNet then
+                # works on cleaner data and tends to make tighter masks.
+                self.deconvolve(image, on_full=True)
+            self.siril.cmd("save", f"processing_{image}")
+            self.siril.cmd("load", f"processing_{image}.fit")
+            self.siril.cmd("starnet", "-stretch", "-upscale")
+            self.siril.cmd("load", f"starless_processing_{image}.fit")
+            if not self.deconv_full_image:
+                # Deconv only on the starless layer: avoids ringing around
+                # bright stars at the cost of overall sharpness.
+                self.deconvolve(image, on_full=False)
+            self.denoise(image)
+            self.history.mark_done(cwd, "do_process", detail=detail)
+        write_metadata_sidecar(final_out, mode=image.upper())
 
     def do_process_cluster(self, image: str) -> None:
         """Cluster path: no starnet, stellar deconv, autostretch, denoise,
@@ -1132,27 +1392,28 @@ class Pipeline:
         ):
             self.siril.log("Step already done, skipping")
             self.open_image(final_out.stem)
-            return
-        self._step(f"Cluster: stellar deconvolve {image}")
-        self.siril.cmd("load", f"{image}.fit")
-        self.siril.cmd(
-            "pyscript", "GraXpert-AI.py", "-deconv_stellar",
-            f"-strength {self.deconv_strength:.2f}",
-        )
-        self.siril.undo_save_state("GraXpert Deconvolve Stellar")
-        self._step(f"Cluster: autostretch {image}")
-        self.siril.cmd("autostretch")
-        self._step(f"Cluster: denoise {image}")
-        self.siril.cmd(
-            "pyscript", "GraXpert-AI.py", "-denoise",
-            f"-strength {self.denoise_strength:.2f}",
-        )
-        self.siril.undo_save_state("GraXpert Denoise")
-        self._step(f"Cluster: recover star cores {image}")
-        self.siril.cmd("unclipstars")
-        self.siril.cmd("save", final_out.stem)
-        self.open_image(final_out.stem)
-        self.history.mark_done(cwd, "do_process", detail=detail)
+        else:
+            self._step(f"Cluster: stellar deconvolve {image}")
+            self.siril.cmd("load", f"{image}.fit")
+            self.siril.cmd(
+                "pyscript", "GraXpert-AI.py", "-deconv_stellar",
+                f"-strength {self.deconv_strength:.2f}",
+            )
+            self.siril.undo_save_state("GraXpert Deconvolve Stellar")
+            self._step(f"Cluster: autostretch {image}")
+            self.siril.cmd("autostretch")
+            self._step(f"Cluster: denoise {image}")
+            self.siril.cmd(
+                "pyscript", "GraXpert-AI.py", "-denoise",
+                f"-strength {self.denoise_strength:.2f}",
+            )
+            self.siril.undo_save_state("GraXpert Denoise")
+            self._step(f"Cluster: recover star cores {image}")
+            self.siril.cmd("unclipstars")
+            self.siril.cmd("save", final_out.stem)
+            self.open_image(final_out.stem)
+            self.history.mark_done(cwd, "do_process", detail=detail)
+        write_metadata_sidecar(final_out, mode=image.upper())
 
     def deconvolve(self, image: str, *, on_full: bool) -> None:
         cwd = self.cwd()
