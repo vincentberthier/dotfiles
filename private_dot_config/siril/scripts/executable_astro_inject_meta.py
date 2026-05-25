@@ -62,11 +62,27 @@ def parse_jpg_name(jpg: Path) -> tuple[str, str, bool] | None:
     return m["target"], m["mode"].upper(), bool(m["web"])
 
 
+def _iter_sidecars() -> Iterable[Path]:
+    """Yield sidecars across both layouts:
+      - single-day:  Raws/<target>/process/*.meta.yaml
+      - multi-day:   Raws/<target>/<YYYY-MM-DD>/process/*.meta.yaml
+    """
+    yield from RAWS_ROOT.glob("*/process/*.meta.yaml")
+    yield from RAWS_ROOT.glob("*/*/process/*.meta.yaml")
+
+
+def _target_folder(sidecar: Path) -> str:
+    """The first path component under RAWS_ROOT — the target folder name,
+    regardless of whether a date subfolder sits in between."""
+    rel = sidecar.relative_to(RAWS_ROOT)
+    return rel.parts[0] if rel.parts else ""
+
+
 def find_sidecar(target_token: str, mode: str) -> Path | None:
-    """Scan Raws/*/process/ for a sidecar matching the target + mode."""
+    """Scan Raws/ for a sidecar matching the target + mode."""
     target_n = normalize_target(target_token)
     candidates: list[Path] = []
-    for sidecar in RAWS_ROOT.glob("*/process/*.meta.yaml"):
+    for sidecar in _iter_sidecars():
         try:
             with open(sidecar) as f:
                 meta = yaml.safe_load(f) or {}
@@ -79,8 +95,7 @@ def find_sidecar(target_token: str, mode: str) -> Path | None:
         if normalize_target(sidecar_target) == target_n:
             return sidecar
         # Folder name fallback: catalog aliases (B33 → Horsehead Nebula folder).
-        folder = sidecar.parents[1].name
-        if normalize_target(folder) == target_n:
+        if normalize_target(_target_folder(sidecar)) == target_n:
             candidates.append(sidecar)
     # Single fallback match is good enough; ambiguity = give up.
     return candidates[0] if len(candidates) == 1 else None
@@ -97,9 +112,21 @@ def to_exif_datetime(iso: str | None) -> str | None:
     return dt.strftime("%Y:%m:%d %H:%M:%S")
 
 
+def _common_label(target_block: dict) -> str:
+    """FR / EN common name, joined with ' / ' when both are set."""
+    fr = (target_block.get("common_name_fr") or "").strip()
+    en = (target_block.get("common_name_en") or "").strip()
+    if fr and en:
+        return f"{fr} / {en}"
+    return fr or en
+
+
 def build_description(meta: dict) -> str:
     """Human-readable multi-line description packed into ImageDescription."""
-    target = (meta.get("target") or {}).get("name") or "(unknown target)"
+    target_block = meta.get("target") or {}
+    target = target_block.get("name") or "(unknown target)"
+    common = _common_label(target_block)
+    target_label = f"{target} - {common}" if common else target
     acq = meta.get("acquisition") or {}
     eq = meta.get("equipment") or {}
     mode = acq.get("mode") or "?"
@@ -117,7 +144,7 @@ def build_description(meta: dict) -> str:
     else:
         total_str = "?"
 
-    lines = [f"{target} — {mode}"]
+    lines = [f"{target_label} — {mode}"]
     if frames and sub:
         lines.append(f"{total_str} total integration ({frames} × {sub:g} s subs).")
     elif total_s:
@@ -164,7 +191,8 @@ def build_exiftool_args(meta: dict, jpg: Path) -> list[str]:
         f"-XMP-dc:Creator={author}",
         f"-XMP-dc:Rights={copyright_str}",
         f"-XMP-dc:Description={description}",
-        f"-XMP-dc:Title={target.get('name') or ''}",
+        f"-XMP-dc:Title={target.get('name') or ''}"
+        + (f" - {_common_label(target)}" if _common_label(target) else ''),
     ]
 
     if date_utc:
@@ -182,6 +210,8 @@ def build_exiftool_args(meta: dict, jpg: Path) -> list[str]:
         args.append(f"-XMP-astrohibou:{tag}={value}")
 
     add("Object", target.get("name"))
+    add("CommonNameFr", (target.get("common_name_fr") or "").strip() or None)
+    add("CommonNameEn", (target.get("common_name_en") or "").strip() or None)
     add("RA", target.get("ra_deg"))
     add("Dec", target.get("dec_deg"))
     add("Mode", acq.get("mode"))
