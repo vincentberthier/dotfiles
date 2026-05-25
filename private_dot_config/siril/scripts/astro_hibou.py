@@ -13,7 +13,7 @@ from typing import Callable, Iterable, Iterator
 
 import sirilpy
 
-sirilpy.ensure_installed("PyQt6", "astropy", "numpy", "PyYAML")
+sirilpy.ensure_installed("PyQt6", "astropy", "numpy", "PyYAML", "psutil")
 
 import numpy as np
 import yaml
@@ -24,11 +24,13 @@ from PyQt6.QtWidgets import (
     QApplication,
     QButtonGroup,
     QCheckBox,
+    QDialog,
     QDoubleSpinBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QProgressBar,
     QPushButton,
@@ -77,6 +79,18 @@ FILTER_NAMES = {
     "L": "luminance", "R": "red", "G": "green", "B": "blue",
 }
 FILTER_DISPLAY_ORDER = {"L": 0, "R": 1, "G": 2, "B": 3, "S": 4, "H": 5, "O": 6}
+FILTER_CODE_FROM_NAME = {v: k for k, v in FILTER_NAMES.items()}
+# Pretty names for the post-run stats panel; the lowercased filter keys
+# .title() poorly for the narrowband ones ("Sii", "Oiii").
+FILTER_LABELS = {
+    "luminance": "Luminance",
+    "red": "Red",
+    "green": "Green",
+    "blue": "Blue",
+    "sii": "SII",
+    "ha": "Ha",
+    "oiii": "OIII",
+}
 SHO_PALETTE_OPTIONS = ("SHO", "HOO", "OHS", "HSO", "Forax")
 
 # Most option labels read as filter codes when iterated char-by-char
@@ -140,11 +154,20 @@ def _round_coord(value, decimals: int = SITE_COORD_DECIMALS):
     return round(float(value), decimals) if decimals else round(float(value))
 
 
-def build_metadata(fit_path: Path, *, mode: str | None = None) -> dict:
+def build_metadata(
+    fit_path: Path,
+    *,
+    mode: str | None = None,
+    common_name_fr: str | None = None,
+    common_name_en: str | None = None,
+) -> dict:
     """Curate a FITS header into a publish-friendly dict.
 
     Site latitude/longitude are rounded to integer degrees by default; tweak
     SITE_COORD_DECIMALS or edit the sidecar to change precision.
+
+    `common_name_fr` / `common_name_en` come from the astro_hibou GUI;
+    empty strings normalise to None so the YAML key stays present but null.
     """
     with fits.open(fit_path) as hdul:
         h = hdul[0].header
@@ -161,6 +184,10 @@ def build_metadata(fit_path: Path, *, mode: str | None = None) -> dict:
         },
         "target": {
             "name": _hget(h, "OBJECT"),
+            # Common names: entered in the astro_hibou GUI, surfaced by
+            # the GIMP legend plug-in and the JPG metadata injector.
+            "common_name_fr": (common_name_fr or "").strip() or None,
+            "common_name_en": (common_name_en or "").strip() or None,
             "ra_deg": _hget(h, "RA"),
             "dec_deg": _hget(h, "DEC"),
             "ra_hms": _hget(h, "OBJCTRA"),
@@ -213,23 +240,67 @@ def build_metadata(fit_path: Path, *, mode: str | None = None) -> dict:
     }
 
 
+def _patch_sidecar_target(
+    sidecar: Path,
+    *,
+    common_name_fr: str | None = None,
+    common_name_en: str | None = None,
+) -> None:
+    """Sync target.common_name_fr / target.common_name_en in an existing
+    sidecar without touching anything else. Preserves the leading comment
+    header. None = leave the field alone, "" = clear it."""
+    text = sidecar.read_text(encoding="utf-8")
+    lines = text.splitlines(keepends=True)
+    i = 0
+    while i < len(lines):
+        stripped = lines[i].lstrip()
+        if not stripped or stripped.startswith("#"):
+            i += 1
+            continue
+        break
+    preamble = "".join(lines[:i])
+    body = "".join(lines[i:])
+    data = yaml.safe_load(body) or {}
+    target = data.setdefault("target", {})
+    if common_name_fr is not None:
+        target["common_name_fr"] = common_name_fr.strip() or None
+    if common_name_en is not None:
+        target["common_name_en"] = common_name_en.strip() or None
+    new_body = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
+    sidecar.write_text(preamble + new_body, encoding="utf-8")
+
+
 def write_metadata_sidecar(
     fit_path: Path,
     *,
     mode: str | None = None,
+    common_name_fr: str | None = None,
+    common_name_en: str | None = None,
     overwrite: bool = False,
 ) -> Path | None:
     """Write a YAML sidecar of curated FITS metadata next to `fit_path`.
 
-    Refuses to clobber an existing sidecar unless `overwrite=True` — hand
-    edits (rounded coordinates, descriptions, etc.) survive pipeline re-runs.
+    Existing sidecars are not regenerated wholesale (so hand-edited fields
+    survive), but the FR/EN common-name fields are kept in sync with the
+    values from the current pipeline run.
     """
     sidecar = fit_path.with_name(fit_path.name + ".meta.yaml")
     if sidecar.exists() and not overwrite:
+        if common_name_fr is not None or common_name_en is not None:
+            _patch_sidecar_target(
+                sidecar,
+                common_name_fr=common_name_fr,
+                common_name_en=common_name_en,
+            )
         return sidecar
     if not fit_path.exists():
         return None
-    meta = build_metadata(fit_path, mode=mode)
+    meta = build_metadata(
+        fit_path,
+        mode=mode,
+        common_name_fr=common_name_fr,
+        common_name_en=common_name_en,
+    )
     with open(sidecar, "w") as f:
         f.write(
             "# Metadata sidecar — generated from the FITS header.\n"
@@ -404,6 +475,10 @@ class Pipeline:
         self.cluster_mode: bool = False
         # Weight of Ha in the HaLRGB-R/L blends: channel = (1-w)*base + w*Ha.
         self.ha_weight: float = 0.5
+        # Common names (FR/EN) entered in the GUI; threaded into the
+        # YAML sidecar at the end of each per-target pipeline run.
+        self.common_name_fr: str | None = None
+        self.common_name_en: str | None = None
         # The data-night currently being processed; threaded into _step
         # so logs read e.g. "[2026-04-07] Master flat: blue".
         self.current_day: str | None = None
@@ -536,7 +611,11 @@ class Pipeline:
             self.siril.cmd("convert", f"pp_{filter_name}", "-out=../")
         with cwd_at(self.siril, start_dir / "process"):
             self.register_lights(filter_name)
-            self.stack_lights(f"r_pp_{filter_name}", len(files))
+            self.stack_lights(
+                f"r_pp_{filter_name}",
+                len(files),
+                apply_quality_filters=False,
+            )
 
     # --- flats ---------------------------------------------------------
 
@@ -743,7 +822,13 @@ class Pipeline:
             self.cwd(), "register_lights", detail=seq_name
         )
 
-    def stack_lights(self, seq_name: str, num_files: int) -> None:
+    def stack_lights(
+        self,
+        seq_name: str,
+        num_files: int,
+        *,
+        apply_quality_filters: bool = True,
+    ) -> None:
         master_name = f"master_{seq_name.replace('r_pp_', '')}"
         master_path = self.cwd() / f"{master_name}.fit"
         if self.history.is_done(
@@ -755,10 +840,20 @@ class Pipeline:
             self.siril.log("Step already done, skipping")
             return
         self.siril.log(f"Stacking {seq_name}")
-        # k-sigma cutoffs (`2k`) need enough frames for σ to be
-        # meaningful; on short sets fall back to a percentage filter so
-        # we don't reject half the sequence on a noisy outlier estimate.
-        if num_files < 15:
+        # Quality filters are useless — and harmful — on the cross-day
+        # stack: the inputs are 2-3 per-day masters that have already had
+        # their bad frames rejected upstream, and Siril's percentage
+        # filter on a sequence that short keeps so few frames that the
+        # stack errors out with "less than two images".
+        #
+        # For per-day stacks, k-sigma cutoffs (`2k`) need enough frames
+        # for σ to be meaningful; on short sets fall back to a percentage
+        # filter so we don't reject half the sequence on a noisy outlier
+        # estimate.
+        if not apply_quality_filters:
+            seq_filter = ""
+            rej = "rej sigma 2.0 3.5"
+        elif num_files < 15:
             seq_filter = (
                 "-filter-round=80% -filter-wfwhm=80% -filter-nbstars=80%"
             )
@@ -768,15 +863,17 @@ class Pipeline:
                 "-filter-round=2k -filter-wfwhm=2k -filter-nbstars=2k"
             )
             rej = "rej winsorized 2.0 3.5"
-        self.siril.cmd(
+        args = [
             "stack",
             seq_name,
             rej,
             "-norm=mul",
             "-weight=wfwhm",
-            seq_filter,
-            f"-out={master_name}",
-        )
+        ]
+        if seq_filter:
+            args.append(seq_filter)
+        args.append(f"-out={master_name}")
+        self.siril.cmd(*args)
         self.open_image(master_path.name)
         self.siril.cmd("unclipstars")
         self.siril.cmd("platesolve")
@@ -1372,7 +1469,12 @@ class Pipeline:
                 self.deconvolve(image, on_full=False)
             self.denoise(image)
             self.history.mark_done(cwd, "do_process", detail=detail)
-        write_metadata_sidecar(final_out, mode=image.upper())
+        write_metadata_sidecar(
+            final_out,
+            mode=image.upper(),
+            common_name_fr=self.common_name_fr,
+            common_name_en=self.common_name_en,
+        )
 
     def do_process_cluster(self, image: str) -> None:
         """Cluster path: no starnet, stellar deconv, autostretch, denoise,
@@ -1413,7 +1515,12 @@ class Pipeline:
             self.siril.cmd("save", final_out.stem)
             self.open_image(final_out.stem)
             self.history.mark_done(cwd, "do_process", detail=detail)
-        write_metadata_sidecar(final_out, mode=image.upper())
+        write_metadata_sidecar(
+            final_out,
+            mode=image.upper(),
+            common_name_fr=self.common_name_fr,
+            common_name_en=self.common_name_en,
+        )
 
     def deconvolve(self, image: str, *, on_full: bool) -> None:
         cwd = self.cwd()
@@ -1459,6 +1566,128 @@ class Pipeline:
         self.open_image(out.stem)
         self.history.mark_done(cwd, "denoise", detail=image)
 
+    # --- stats --------------------------------------------------------
+
+    def _day_dir(self, day: str) -> Path | None:
+        """Resolve a day label to its on-disk directory.
+
+        Multi-day layouts put LIGHTS under root/<day>/; single-day layouts
+        can have root *be* the day directory, with LIGHTS at the root.
+        """
+        candidate = self.root_dir / day
+        if (candidate / "LIGHTS").is_dir():
+            return candidate
+        if (self.root_dir / "LIGHTS").is_dir() and self.root_dir.stem == day:
+            return self.root_dir
+        return None
+
+    @staticmethod
+    def _count_registered(process_dir: Path, filter_name: str) -> int:
+        """Count r_pp_<filter>_NNNNN.fit frames written by seqapplyreg."""
+        if not process_dir.is_dir():
+            return 0
+        pattern = re.compile(
+            rf"^r_pp_{re.escape(filter_name)}_\d+\.fits?$"
+        )
+        return sum(
+            1 for f in process_dir.iterdir() if pattern.match(f.name)
+        )
+
+    @staticmethod
+    def _stack_summary(
+        process_dir: Path, filter_name: str
+    ) -> tuple[int, float]:
+        """Read STACKCNT and integration time from the per-day master.
+
+        Falls back to STACKCNT * EXPTIME if LIVETIME is missing.
+        """
+        master = process_dir / f"master_{filter_name}.fit"
+        if not master.exists():
+            return 0, 0.0
+        try:
+            with fits.open(master) as hdul:
+                hdr = hdul[0].header
+                stackcnt = int(hdr.get("STACKCNT", 0) or 0)
+                livetime_raw = hdr.get("LIVETIME")
+                if livetime_raw is not None:
+                    livetime = float(livetime_raw)
+                else:
+                    exptime = float(hdr.get("EXPTIME", 0.0) or 0.0)
+                    livetime = stackcnt * exptime
+        except (OSError, ValueError, TypeError):
+            return 0, 0.0
+        return stackcnt, livetime
+
+    def collect_stats(
+        self, days: list[str], options: list[str]
+    ) -> dict:
+        """Summarise the per-day captured/registered/stacked frame counts
+        plus integration time for the filters the run actually touched.
+
+        Counts come straight from disk so the dialog reflects what is
+        really there, not what the pipeline thinks it produced.
+        """
+        target_filters = self._target_filter_names(options)
+        per_day: dict[str, dict[str, dict]] = {}
+        totals: dict[str, dict] = {
+            fn: {
+                "captured": 0,
+                "registered": 0,
+                "stacked": 0,
+                "integration_s": 0.0,
+            }
+            for fn in target_filters
+        }
+
+        for day in days:
+            day_dir = self._day_dir(day)
+            if day_dir is None:
+                continue
+            day_stats: dict[str, dict] = {}
+            lights_dir = day_dir / "LIGHTS"
+            process_dir = day_dir / "process"
+            captured_counts: dict[str, int] = {}
+            if lights_dir.is_dir():
+                for entry in lights_dir.iterdir():
+                    if not entry.is_file():
+                        continue
+                    m = re.search(RE_LIGHTS, entry.name)
+                    if not m:
+                        continue
+                    ft = m.group(2).lower()
+                    captured_counts[ft] = captured_counts.get(ft, 0) + 1
+            for filter_name in target_filters:
+                captured = captured_counts.get(filter_name, 0)
+                registered = self._count_registered(process_dir, filter_name)
+                stacked, integration_s = self._stack_summary(
+                    process_dir, filter_name
+                )
+                day_stats[filter_name] = {
+                    "captured": captured,
+                    "registered": registered,
+                    "stacked": stacked,
+                    "integration_s": integration_s,
+                }
+                totals[filter_name]["captured"] += captured
+                totals[filter_name]["registered"] += registered
+                totals[filter_name]["stacked"] += stacked
+                totals[filter_name]["integration_s"] += integration_s
+            per_day[day] = day_stats
+
+        filter_order = sorted(
+            target_filters,
+            key=lambda n: FILTER_DISPLAY_ORDER.get(
+                FILTER_CODE_FROM_NAME.get(n, ""), 99
+            ),
+        )
+        grand_total_s = sum(t["integration_s"] for t in totals.values())
+        return {
+            "per_day": per_day,
+            "totals": totals,
+            "filter_order": filter_order,
+            "grand_total_s": grand_total_s,
+        }
+
 
 # --- GUI --------------------------------------------------------------------
 
@@ -1466,11 +1695,13 @@ class Pipeline:
 class PipelineWorker(QObject):
     """Runs Pipeline.process_* on a QThread, surfacing progress and final
     state via Qt signals. Cancellation is cooperative — set by `cancel()`
-    and checked by the pipeline at every `_step` boundary.
+    and checked by the pipeline at every `_step` boundary, plus a SIGTERM
+    nudge to any running GraXpert subprocess so a long-running deconv or
+    denoise doesn't pin the worker until completion.
     """
 
     progress = pyqtSignal(str)
-    finished = pyqtSignal()
+    finished = pyqtSignal(dict)
     failed = pyqtSignal(str)
 
     def __init__(
@@ -1485,6 +1716,8 @@ class PipelineWorker(QObject):
         denoise_strength: float,
         cluster_mode: bool,
         ha_weight: float,
+        common_name_fr: str = "",
+        common_name_en: str = "",
     ) -> None:
         super().__init__()
         self.pipeline = pipeline
@@ -1496,10 +1729,47 @@ class PipelineWorker(QObject):
         self.denoise_strength = denoise_strength
         self.cluster_mode = cluster_mode
         self.ha_weight = ha_weight
+        self.common_name_fr = common_name_fr
+        self.common_name_en = common_name_en
         self._cancel_requested = False
 
     def cancel(self) -> None:
+        if self._cancel_requested:
+            return
         self._cancel_requested = True
+        self._kill_external_subprocesses()
+
+    def _kill_external_subprocesses(self) -> None:
+        """Send SIGTERM to any running GraXpert process so a cancel
+        click takes effect mid-deconv/denoise instead of waiting for
+        the pyscript call to return. The Siril command then surfaces
+        a CommandError, which run() reclassifies as a cancellation.
+        """
+        try:
+            import psutil
+        except ImportError:
+            return
+        killed = 0
+        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+            try:
+                info = proc.info
+                cmdline = " ".join(info.get("cmdline") or []).lower()
+                name = (info.get("name") or "").lower()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+            if "graxpert" in cmdline or "graxpert" in name:
+                try:
+                    proc.terminate()
+                    killed += 1
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+        if killed:
+            try:
+                self.pipeline.siril.log(
+                    f"Cancel: terminated {killed} GraXpert process(es)"
+                )
+            except Exception:
+                pass
 
     def run(self) -> None:
         self.pipeline.progress_callback = self.progress.emit
@@ -1509,6 +1779,8 @@ class PipelineWorker(QObject):
         self.pipeline.denoise_strength = self.denoise_strength
         self.pipeline.cluster_mode = self.cluster_mode
         self.pipeline.ha_weight = self.ha_weight
+        self.pipeline.common_name_fr = self.common_name_fr
+        self.pipeline.common_name_en = self.common_name_en
         try:
             if len(self.days) == 1:
                 self.pipeline.process_single_day(
@@ -1518,15 +1790,34 @@ class PipelineWorker(QObject):
                 self.pipeline.process_multiple_days(
                     self.days, self.mode, self.options
                 )
-            self.finished.emit()
+            try:
+                stats = self.pipeline.collect_stats(
+                    self.days, self.options
+                )
+            except Exception as e:
+                self.pipeline.siril.log(f"Stats collection failed: {e}")
+                stats = {}
+            self.finished.emit(stats)
         except PipelineCancelled:
             self.failed.emit("Cancelled")
         except CommandError as e:
-            self.failed.emit(f"Error running command: {e}")
+            # If the user cancelled, a Siril command will likely surface
+            # a CommandError because we killed GraXpert mid-call. Treat
+            # that as the cancellation, not a hard failure.
+            if self._cancel_requested:
+                self.failed.emit("Cancelled")
+            else:
+                self.failed.emit(f"Error running command: {e}")
         except SirilError as e:
-            self.failed.emit(f"Error initializing script: {e}")
+            if self._cancel_requested:
+                self.failed.emit("Cancelled")
+            else:
+                self.failed.emit(f"Error initializing script: {e}")
         except Exception as e:
-            self.failed.emit(f"Unexpected error: {e}")
+            if self._cancel_requested:
+                self.failed.emit("Cancelled")
+            else:
+                self.failed.emit(f"Unexpected error: {e}")
         finally:
             try:
                 siril_cd(self.pipeline.siril, self.pipeline.root_dir)
@@ -1538,6 +1829,92 @@ class PipelineWorker(QObject):
     def _raise_if_cancelled(self) -> None:
         if self._cancel_requested:
             raise PipelineCancelled()
+
+
+def _format_duration(seconds: float) -> str:
+    """Render a duration as `H h MM min` (or just minutes under an hour).
+
+    Used by the post-run stats panel — astrophotographers think in
+    integration hours, not seconds.
+    """
+    if seconds <= 0:
+        return "0 min"
+    total_min = int(round(seconds / 60.0))
+    h, m = divmod(total_min, 60)
+    if h == 0:
+        return f"{m} min"
+    return f"{h} h {m:02d} min"
+
+
+class StatsDialog(QDialog):
+    """Modal summary of the per-day frame counts and integration time
+    produced by the run that just finished. Shown in place of the old
+    bare success QMessageBox."""
+
+    def __init__(self, stats: dict, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Processing complete")
+        self.setModal(True)
+        layout = QVBoxLayout(self)
+        label = QLabel(self._format(stats))
+        label.setTextFormat(Qt.TextFormat.RichText)
+        label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        layout.addWidget(label)
+        button_row = QHBoxLayout()
+        button_row.addStretch(1)
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self.accept)
+        button_row.addWidget(close_btn)
+        layout.addLayout(button_row)
+
+    @staticmethod
+    def _format(stats: dict) -> str:
+        per_day = stats.get("per_day", {}) or {}
+        totals = stats.get("totals", {}) or {}
+        filter_order = stats.get("filter_order", []) or []
+        if not per_day:
+            return "<b>Processing finished successfully.</b>"
+
+        lines: list[str] = ["<b>Processing finished successfully.</b>"]
+        for day in sorted(per_day):
+            day_block = per_day[day] or {}
+            day_lines: list[str] = []
+            for filter_name in filter_order:
+                fs = day_block.get(filter_name)
+                if not fs:
+                    continue
+                if fs["captured"] == 0 and fs["stacked"] == 0:
+                    continue
+                display = FILTER_LABELS.get(filter_name, filter_name)
+                day_lines.append(
+                    f"&nbsp;&nbsp;• {display}: "
+                    f"{fs['captured']} → {fs['registered']} registered → "
+                    f"{fs['stacked']} stacked "
+                    f"({_format_duration(fs['integration_s'])})"
+                )
+            if not day_lines:
+                continue
+            lines.append("")
+            lines.append(f"<b>{day}</b>")
+            lines.extend(day_lines)
+
+        parts: list[str] = []
+        for filter_name in filter_order:
+            t = totals.get(filter_name)
+            if not t or t["stacked"] == 0:
+                continue
+            display = FILTER_LABELS.get(filter_name, filter_name)
+            parts.append(f"{t['stacked']} {display}")
+        grand = stats.get("grand_total_s", 0.0) or 0.0
+        if parts:
+            lines.append("")
+            lines.append(
+                f"<b>Total:</b> {', '.join(parts)} "
+                f"(total: {_format_duration(grand)})"
+            )
+        return "<br>".join(lines)
 
 
 class Interface(QWidget):
@@ -1563,6 +1940,8 @@ class Interface(QWidget):
         self.deconv_full_check: QCheckBox | None = None
         self.deconv_strength_spin: QDoubleSpinBox | None = None
         self.denoise_strength_spin: QDoubleSpinBox | None = None
+        self.common_name_fr_edit: QLineEdit | None = None
+        self.common_name_en_edit: QLineEdit | None = None
         self.cluster_mode_check: QCheckBox | None = None
         self.ha_weight_spin: QDoubleSpinBox | None = None
         self.reset_history_btn: QPushButton | None = None
@@ -1653,6 +2032,16 @@ class Interface(QWidget):
         self.denoise_strength_spin.setDecimals(2)
         self.denoise_strength_spin.setValue(0.5)
         proc_form.addRow("Denoise strength:", self.denoise_strength_spin)
+        # Common names — stamped into the YAML sidecar and consumed
+        # downstream by the GIMP legend plug-in and the JPG metadata
+        # injector. Pre-filled from any existing sidecar in the target.
+        self.common_name_fr_edit = QLineEdit()
+        self.common_name_fr_edit.setPlaceholderText("Nébuleuse Trifide, Galaxie du Sombrero…")
+        proc_form.addRow("Nom commun (FR):", self.common_name_fr_edit)
+        self.common_name_en_edit = QLineEdit()
+        self.common_name_en_edit.setPlaceholderText("Trifid Nebula, Sombrero Galaxy…")
+        proc_form.addRow("Common name (EN):", self.common_name_en_edit)
+        self._prepopulate_common_names()
         proc_layout.addLayout(proc_form)
         self.reset_history_btn = QPushButton("Reset history")
         self.reset_history_btn.clicked.connect(self._on_reset_history)
@@ -1789,6 +2178,10 @@ class Interface(QWidget):
         denoise_strength = self.denoise_strength_spin.value()
         cluster_mode = self.cluster_mode_check.isChecked()
         ha_weight = self.ha_weight_spin.value()
+        assert self.common_name_fr_edit is not None
+        assert self.common_name_en_edit is not None
+        common_name_fr = self.common_name_fr_edit.text().strip()
+        common_name_en = self.common_name_en_edit.text().strip()
 
         self._set_running(True, "Starting…")
 
@@ -1803,6 +2196,8 @@ class Interface(QWidget):
             denoise_strength=denoise_strength,
             cluster_mode=cluster_mode,
             ha_weight=ha_weight,
+            common_name_fr=common_name_fr,
+            common_name_en=common_name_en,
         )
         self._worker.moveToThread(self._thread)
         self._thread.started.connect(self._worker.run)
@@ -1816,6 +2211,31 @@ class Interface(QWidget):
         self._thread.finished.connect(self._worker.deleteLater)
         self._thread.finished.connect(self._thread.deleteLater)
         self._thread.start()
+
+    def _prepopulate_common_names(self) -> None:
+        """Seed the FR/EN line edits from the most recent existing sidecar
+        under the target root, so the user doesn't re-type the nicknames
+        on every recombination."""
+        assert self.common_name_fr_edit is not None
+        assert self.common_name_en_edit is not None
+        root = self.pipeline.root_dir
+        candidates = list(root.glob("process/*.meta.yaml"))
+        candidates += list(root.glob("*/process/*.meta.yaml"))
+        candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        for sidecar in candidates:
+            try:
+                data = yaml.safe_load(sidecar.read_text(encoding="utf-8"))
+            except (OSError, yaml.YAMLError):
+                continue
+            target = (data or {}).get("target") or {}
+            fr = (target.get("common_name_fr") or "").strip()
+            en = (target.get("common_name_en") or "").strip()
+            if fr:
+                self.common_name_fr_edit.setText(fr)
+            if en:
+                self.common_name_en_edit.setText(en)
+            if fr or en:
+                return
 
     def _on_reset_history(self) -> None:
         if self._is_running():
@@ -1847,11 +2267,12 @@ class Interface(QWidget):
         if self.status_label is not None:
             self.status_label.setText(message)
 
-    def _on_worker_finished(self) -> None:
-        self._set_running(False)
-        QMessageBox.information(
-            self, "Success", "Processing finished successfully"
-        )
+    def _on_worker_finished(self, stats: dict) -> None:
+        # After a successful run the pipeline cache has fully populated,
+        # so re-clicking Proceed would be a no-op. Lock the inputs and
+        # swap Cancel for Close.
+        self._set_finished()
+        StatsDialog(stats, parent=self).exec()
 
     def _on_worker_failed(self, message: str) -> None:
         self._set_running(False)
@@ -1882,6 +2303,23 @@ class Interface(QWidget):
         if not running:
             self._thread = None
             self._worker = None
+
+    def _set_finished(self) -> None:
+        """Post-success state: Proceed stays disabled (the run is already
+        cached on disk; clicking again would just no-op step by step),
+        Cancel becomes Close so the same button dismisses the window."""
+        assert self.proceed_btn is not None
+        assert self.cancel_btn is not None
+        assert self.status_label is not None
+        assert self.progress_bar is not None
+        self.proceed_btn.setEnabled(False)
+        self.cancel_btn.setEnabled(True)
+        self.cancel_btn.setText("Close")
+        self.status_label.setText("Processing complete")
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(100)
+        self._thread = None
+        self._worker = None
 
 
 # --- discovery + main -------------------------------------------------------
