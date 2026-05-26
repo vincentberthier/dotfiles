@@ -411,6 +411,11 @@ class History:
         with open(self.file, "a") as f:
             f.write(f"{step}\t{ts}\n")
 
+    def invalidate(self, cwd: Path | str, algo: str, detail: str = "") -> None:
+        step = Step(str(cwd), algo, detail)
+        if step in self.records:
+            self._invalidate(step)
+
     def _invalidate(self, step: Step) -> None:
         del self.records[step]
         self._rewrite()
@@ -467,8 +472,8 @@ class Pipeline:
         self.progress_callback: Callable[[str], None] | None = None
         self.cancel_check: Callable[[], None] | None = None
         # Tunable post-processing knobs; the GUI overrides per run.
-        self.deconv_full_image: bool = True
-        self.deconv_strength: float = 0.8
+        self.deconv_full_image: bool = False
+        self.deconv_strength: float = 0.5
         self.denoise_strength: float = 0.5
         # Cluster mode swaps the deepsky do_process path for one tailored
         # to star fields (no starnet, stellar deconv).
@@ -599,23 +604,46 @@ class Pipeline:
     def _stack_filter_across_days(
         self, start_dir: Path, filter_name: str
     ) -> None:
-        self._step(f"Stacking {filter_name} across days")
-        filter_dir = start_dir / "process" / filter_name
-        files = [f for f in filter_dir.iterdir() if f.is_file()]
-        if len(files) == 1:
-            shutil.copy2(
-                files[0], start_dir / "process" / f"master_{filter_name}.fit"
+        process_dir = start_dir / "process"
+        filter_dir = process_dir / filter_name
+        master_path = process_dir / f"master_{filter_name}.fit"
+        files = sorted(f for f in filter_dir.iterdir() if f.is_file())
+        if self.history.is_done(
+            process_dir,
+            "stack_filter_across_days",
+            detail=filter_name,
+            outputs=[master_path],
+            inputs=files,
+        ):
+            self.siril.log(
+                f"Cross-day master for {filter_name} up to date, skipping"
             )
             return
-        with cwd_at(self.siril, filter_dir):
-            self.siril.cmd("convert", f"pp_{filter_name}", "-out=../")
-        with cwd_at(self.siril, start_dir / "process"):
-            self.register_lights(filter_name)
-            self.stack_lights(
-                f"r_pp_{filter_name}",
-                len(files),
-                apply_quality_filters=False,
+        self._step(f"Stacking {filter_name} across days")
+        if len(files) == 1:
+            shutil.copy2(files[0], master_path)
+        else:
+            # The sequence is about to be rebuilt from the current per-day
+            # files; clear the inner register/stack records so they actually
+            # re-run instead of short-circuiting on their previous completion.
+            self.history.invalidate(
+                process_dir, "register_lights", detail=filter_name
             )
+            self.history.invalidate(
+                process_dir, "stack_lights", detail=f"r_pp_{filter_name}"
+            )
+            with cwd_at(self.siril, filter_dir):
+                self.siril.cmd("convert", f"pp_{filter_name}", "-out=../")
+            with cwd_at(self.siril, process_dir):
+                self.register_lights(filter_name)
+                self.stack_lights(
+                    f"r_pp_{filter_name}",
+                    len(files),
+                    apply_quality_filters=False,
+                )
+        self.history.mark_done(
+            process_dir, "stack_filter_across_days", detail=filter_name
+        )
 
     # --- flats ---------------------------------------------------------
 
@@ -909,9 +937,11 @@ class Pipeline:
     # --- recombination -------------------------------------------------
 
     def compose(self, options: list[str]) -> None:
-        if self.history.is_done(self.cwd(), "compose"):
-            self.siril.log("Step already done, skipping")
-            return
+        # No outer guard: every inner step (prepare_compose_sequence,
+        # compose_lrgb, compose_rgb, compose_halrgb_*, compose_sho) tracks
+        # its own inputs/outputs and self-invalidates when the master
+        # channels are refreshed. A wrapper-level "done" record would mask
+        # those mtime checks and stop new-day data from reaching the recomb.
         self._step("Recombination")
         with cwd_at(self.siril, self.cwd() / "process"):
             self.prepare_compose_sequence(options)
@@ -925,7 +955,6 @@ class Pipeline:
                 self.compose_halrgb_l()
             if any(o in SHO_PALETTE_OPTIONS for o in options):
                 self.compose_sho(options)
-        self.history.mark_done(self.cwd(), "compose")
 
     def prepare_compose_sequence(self, options: list[str]) -> None:
         process_dir = self.cwd()
@@ -2017,14 +2046,14 @@ class Interface(QWidget):
         self.deconv_full_check = QCheckBox(
             "Deconvolve full image (sharper; uncheck for safer starless-only)"
         )
-        self.deconv_full_check.setChecked(True)
+        self.deconv_full_check.setChecked(False)
         proc_layout.addWidget(self.deconv_full_check)
         proc_form = QFormLayout()
         self.deconv_strength_spin = QDoubleSpinBox()
         self.deconv_strength_spin.setRange(0.0, 1.0)
         self.deconv_strength_spin.setSingleStep(0.05)
         self.deconv_strength_spin.setDecimals(2)
-        self.deconv_strength_spin.setValue(0.8)
+        self.deconv_strength_spin.setValue(0.5)
         proc_form.addRow("Deconv strength:", self.deconv_strength_spin)
         self.denoise_strength_spin = QDoubleSpinBox()
         self.denoise_strength_spin.setRange(0.0, 1.0)
