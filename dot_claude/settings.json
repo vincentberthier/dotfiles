@@ -1,5 +1,8 @@
 {
   "cleanupPeriodDays": 30,
+  "env": {
+    "CLAUDE_CODE_DISABLE_MOUSE": "1"
+  },
   "permissions": {
     "allow": [
       "Bash(~/.claude:*)",
@@ -12,6 +15,7 @@
       "Bash(docker:*)",
       "Bash(echo:*)",
       "Bash(eslint:*)",
+      "Bash(eza:*)",
       "Bash(exa:*)",
       "Bash(fd:*)",
       "Bash(gh:*)",
@@ -36,6 +40,7 @@
       "Bash(printf:*)",
       "Bash(python:*)",
       "Bash(python3:*)",
+      "Bash(rg:*)",
       "Bash(ruff:*)",
       "Bash(rustup:*)",
       "Bash(sd:*)",
@@ -65,25 +70,11 @@
       "WebFetch(*)",
       "WebSearch(*)",
       "Write(*)",
-      "mcp__plugin_tyrex-workflow_tyrex-*",
-      "mcp__plugin_tyrex-workflow_tyrex-**",
       "mcp__plugin_tyrex-workflow_tyrex-gitlab__*",
       "mcp__plugin_tyrex-squash_tyrex-squash__*"
     ],
     "deny": [
-      "Bash(cd:*)",
-      "Bash(curl * | *)",
-      "Bash(doas:*)",
-      "Bash(find *-delete*)",
-      "Bash(mv */dev/null*)",
-      "Bash(pip:*)",
-      "Bash(pip3:*)",
-      "Bash(python3 -m pip:*)",
-      "Bash(python -m pip:*)",
-      "Bash(rm:*)",
-      "Bash(sudo:*)",
-      "Bash(unlink:*)",
-      "Bash(wget * | *)",
+      "Bash(ssh:*)",
       "Read(/home/vincent/.ssh/*)",
       "Read(/home/vincent/.config/glab-cli/config.yml)"
     ]
@@ -96,6 +87,10 @@
           {
             "type": "command",
             "command": "python3 /home/vincent/.claude/hooks/allow-compound.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 /home/vincent/.claude/hooks/block-rg-replace.py"
           }
         ]
       },
@@ -112,15 +107,15 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "/home/vincent/.local/bin/ccstatusline",
-    "padding": 3
+    "command": "npx -y ccstatusline@latest",
+    "padding": 0,
+    "refreshInterval": 10
   },
   "enabledPlugins": {
     "claudit@quickstop": false,
     "playground@claude-plugins-official": true,
     "claude-code-setup@claude-plugins-official": false,
     "cowork-plugin-management@knowledge-work-plugins": true,
-    "typescript-lsp@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true,
     "tyrex-core@tyrex-plugins": true,
     "tyrex-documents@tyrex-plugins": true,
@@ -145,7 +140,8 @@
       "autoUpdate": true
     }
   },
+  "effortLevel": "high",
   "plansDirectory": "./.claude/plans",
-  "skipDangerousModePermissionPrompt": true,
-  "effortLevel": "high"
+  "tui": "default",
+  "skipDangerousModePermissionPrompt": true
 }
