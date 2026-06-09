@@ -200,8 +200,20 @@ alias docker="podman"
 alias record='wl-screenrec -f "/home/vincent/Vidéos/$(date +%Y-%m-%d-T-%H%M%S).mp4" -g "$(slurp)"'
 
 # Copy RBFocus files
-alias astro_copy="rmv gaius:/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/ /run/media/vincent/Corrbolg/Astro/Raws/"
 alias astro_sd="ssh gaius 'shutdown /s /t 0'"
+
+function astro_copy --description "Pull N.I.N.A images off the Gaius, deleting source as they sync"
+    set -l src gaius:/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/
+    for attempt in (seq 1 10)
+        command rsync -ahP --info=progress2 --partial \
+            --remove-source-files --bwlimit=30m --timeout=300 \
+            $src $dst
+        and break
+        echo "rsync attempt $attempt failed (exit $status) — retrying remaining files…"
+    end
+    command find $src -type d -empty -delete 2>/dev/null
+    ssh gaius 'shutdown /s /t 0'
+end
 
 # Hephaistos shortcuts
 alias hssh="ssh hephaistos"
