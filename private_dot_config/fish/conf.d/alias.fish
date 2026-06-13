@@ -204,6 +204,11 @@ alias astro_sd="ssh gaius 'shutdown /s /t 0'"
 
 function astro_copy --description "Pull N.I.N.A images off the Gaius, deleting source as they sync"
     set -l src gaius:/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/
+    set -l dst /run/media/vincent/Corrbolg/Astro/Raws/
+    if not test -d $dst
+        echo "astro_copy: destination $dst not mounted — aborting" >&2
+        return 1
+    end
     for attempt in (seq 1 10)
         command rsync -ahP --info=progress2 --partial \
             --remove-source-files --bwlimit=30m --timeout=300 \
@@ -211,7 +216,8 @@ function astro_copy --description "Pull N.I.N.A images off the Gaius, deleting s
         and break
         echo "rsync attempt $attempt failed (exit $status) — retrying remaining files…"
     end
-    command find $src -type d -empty -delete 2>/dev/null
+    # --remove-source-files leaves empty dirs behind; prune them on the Gaius itself.
+    ssh gaius "find '/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/' -mindepth 1 -type d -empty -delete" 2>/dev/null
     # ssh gaius 'shutdown /s /t 0'
 end
 
