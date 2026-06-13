@@ -212,7 +212,7 @@ function astro_copy --description "Pull N.I.N.A images off the Gaius, deleting s
         echo "rsync attempt $attempt failed (exit $status) — retrying remaining files…"
     end
     command find $src -type d -empty -delete 2>/dev/null
-    ssh gaius 'shutdown /s /t 0'
+    # ssh gaius 'shutdown /s /t 0'
 end
 
 # Hephaistos shortcuts
