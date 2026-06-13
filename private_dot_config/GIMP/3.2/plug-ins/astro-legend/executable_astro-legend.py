@@ -3,15 +3,19 @@
 
 Adds two right-aligned text layers in the bottom-right of the current
 image:
-  - "<Target> (<Mode>)"  — Z003 Medium Italic 64 pt
-  - "<jour mois année>"  — Z003 Medium Italic 48 pt  (French format)
+  - "<Target> - <Common name> (<Mode>)"  — Z003 Medium Italic 64 pt
+  - "<jour mois année>"                  — Z003 Medium Italic 48 pt  (French)
 
 Data sources:
-  - The open image's filename (YYYY-MM-DD_<target>-<mode>.<ext>) supplies
-    the session date and the target token + mode.
-  - The matching YAML sidecar under RAWS_ROOT enriches the target token
-    to its catalog name (e.g. "M20" → "M 20").
-  - When neither resolves, placeholder text is inserted instead.
+  - Filename (YYYY-MM-DD_<target>-<mode>.<ext>) supplies the session date
+    and the target token + mode.
+  - Matching YAML sidecar under RAWS_ROOT provides the catalog target name
+    (target.name) and, once entered once, the French common name
+    (target.common_name_fr).
+
+Interactive run prompts for the common name + date, prefilling whatever is
+already in the sidecar. Accepted values are written back to the sidecar so
+re-runs don't ask again.
 
 Menu: Filters → Astro → Add astro legend
 """
@@ -60,8 +64,43 @@ def _french_date(year: str, month: str, day: str) -> str:
     return f"{int(day)} {FRENCH_MONTHS[int(month) - 1]} {int(year)}"
 
 
+# Recombination tokens that can appear in a pipeline filename, longest /
+# most-specific first so 'halrgb_r' wins over the 'rgb' it contains.
+MODE_TOKENS = (
+    "halrgb_r", "halrgb_l", "lrgb", "forax",
+    "sho", "hoo", "ohs", "hso", "rgb",
+)
+
+
+def _target_folder(image_path: Path) -> str | None:
+    """Target folder name: the first path component under RAWS_ROOT.
+
+    Works wherever the file sits under the target (process/, the target
+    root, …) — by convention one target per folder (e.g. 'M 4').
+    """
+    try:
+        rel = image_path.resolve().relative_to(RAWS_ROOT.resolve())
+    except (ValueError, OSError):
+        return None
+    return rel.parts[0] if rel.parts else None
+
+
+def _mode_from_name(name: str) -> str | None:
+    low = name.lower()
+    for tok in MODE_TOKENS:
+        if tok in low:
+            return tok
+    return None
+
+
+def _parse_ymd(value) -> tuple[str, str, str] | None:
+    if not value:
+        return None
+    m = re.match(r"\s*(\d{4})-(\d{2})-(\d{2})", str(value))
+    return (m.group(1), m.group(2), m.group(3)) if m else None
+
+
 def _iter_sidecars():
-    """Yield sidecars across both Raws/ layouts (single-day + date-subfolder)."""
     yield from RAWS_ROOT.glob("*/process/*.meta.yaml")
     yield from RAWS_ROOT.glob("*/*/process/*.meta.yaml")
 
@@ -81,35 +120,106 @@ def _find_sidecar(target_token: str, mode: str) -> Path | None:
         sidecar_target = (meta.get("target") or {}).get("name") or ""
         if _normalize(sidecar_target) == target_n:
             return sidecar
-        # Folder-name fallback (B33 → Horsehead Nebula folder, etc.).
         rel = sidecar.relative_to(RAWS_ROOT)
         if rel.parts and _normalize(rel.parts[0]) == target_n:
             fallbacks.append(sidecar)
     return fallbacks[0] if len(fallbacks) == 1 else None
 
 
-def _resolve_metadata(image_path: str | None) -> tuple[str, str]:
-    placeholder = ("Object (Mode)", "1 janvier 2026")
+def _resolve_metadata(image_path: str | None) -> dict:
+    """Walk filename + sidecar, return everything the dialog needs.
+
+    Keys: target_label, mode, date_text, sidecar_path, common_name.
+    Falls back to placeholders for any field that can't be resolved.
+    """
+    out = {
+        "target_label": "Object",
+        "mode": "MODE",
+        "date_text": "1 janvier 2026",
+        "sidecar_path": None,
+        "common_name": "",
+    }
     if not image_path:
-        return placeholder
-    m = RE_NAME.match(Path(image_path).name)
-    if not m:
-        return placeholder
-    date_str = _french_date(m["y"], m["m"], m["d"])
-    target_token = m["target"]
-    mode = m["mode"].upper()
-    target_name = target_token
-    sidecar = _find_sidecar(target_token, mode)
-    if sidecar is not None:
-        try:
-            with open(sidecar) as f:
-                meta = yaml.safe_load(f) or {}
-            t = (meta.get("target") or {}).get("name")
-            if t:
-                target_name = t
-        except (OSError, yaml.YAMLError):
-            pass
-    return f"{target_name} ({mode})", date_str
+        return out
+    name = Path(image_path).name
+    m = RE_NAME.match(name)
+    date_from_filename = False
+    if m:
+        # Export-named file: target, mode and date come from the filename.
+        out["date_text"] = _french_date(m["y"], m["m"], m["d"])
+        out["target_label"] = m["target"]
+        out["mode"] = m["mode"].upper()
+        date_from_filename = True
+        sidecar = _find_sidecar(m["target"], m["mode"])
+    else:
+        # File straight out of the pipeline (veralux_*, starless_*, *_cluster…):
+        # target is the folder under RAWS_ROOT, mode is the token in the name,
+        # and the date is read from the sidecar below.
+        target_folder = _target_folder(Path(image_path))
+        mode_tok = _mode_from_name(name)
+        if target_folder:
+            out["target_label"] = target_folder
+        if mode_tok:
+            out["mode"] = mode_tok.upper()
+        sidecar = (
+            _find_sidecar(target_folder, mode_tok)
+            if target_folder and mode_tok
+            else None
+        )
+    if sidecar is None:
+        return out
+    try:
+        with open(sidecar) as f:
+            meta = yaml.safe_load(f) or {}
+    except (OSError, yaml.YAMLError):
+        return out
+    target = meta.get("target") or {}
+    if target.get("name"):
+        out["target_label"] = target["name"]
+    out["common_name"] = (target.get("common_name_fr") or "").strip()
+    acq = meta.get("acquisition") or {}
+    if acq.get("mode"):
+        out["mode"] = str(acq["mode"]).upper()
+    if not date_from_filename:
+        ymd = _parse_ymd(
+            acq.get("date_local")
+            or acq.get("date_obs_utc")
+            or acq.get("date_avg_utc")
+        )
+        if ymd:
+            out["date_text"] = _french_date(*ymd)
+    out["sidecar_path"] = sidecar
+    return out
+
+
+def _update_sidecar_common(sidecar: Path, common_name: str) -> None:
+    """Write target.common_name_fr to the sidecar, preserving the leading
+    comment header. Removes the field when common_name is empty."""
+    text = sidecar.read_text(encoding="utf-8")
+    lines = text.splitlines(keepends=True)
+    i = 0
+    while i < len(lines):
+        stripped = lines[i].lstrip()
+        if not stripped or stripped.startswith("#"):
+            i += 1
+            continue
+        break
+    preamble = "".join(lines[:i])
+    body = "".join(lines[i:])
+    data = yaml.safe_load(body) or {}
+    target = data.setdefault("target", {})
+    if common_name:
+        target["common_name_fr"] = common_name
+    else:
+        target.pop("common_name_fr", None)
+    new_body = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
+    sidecar.write_text(preamble + new_body, encoding="utf-8")
+
+
+def _build_object_text(target_label: str, common: str, mode: str) -> str:
+    if common:
+        return f"{target_label} - {common} ({mode})"
+    return f"{target_label} ({mode})"
 
 
 def add_legend(procedure, run_mode, image, drawables, config, data):
@@ -117,7 +227,36 @@ def add_legend(procedure, run_mode, image, drawables, config, data):
     try:
         gimp_file = image.get_file()
         image_path = gimp_file.get_path() if gimp_file is not None else None
-        object_text, date_text = _resolve_metadata(image_path)
+        info = _resolve_metadata(image_path)
+
+        # Prefill from filename/sidecar so the dialog opens with real data.
+        config.set_property("common_name", info["common_name"])
+        config.set_property("date_text", info["date_text"])
+
+        if run_mode == Gimp.RunMode.INTERACTIVE:
+            gi.require_version("GimpUi", "3.0")
+            from gi.repository import GimpUi
+            GimpUi.init("python-fu-astro-legend")
+            dialog = GimpUi.ProcedureDialog(procedure=procedure, config=config)
+            dialog.fill(None)
+            if not dialog.run():
+                dialog.destroy()
+                return procedure.new_return_values(
+                    Gimp.PDBStatusType.CANCEL, GLib.Error()
+                )
+            dialog.destroy()
+
+        common = (config.get_property("common_name") or "").strip()
+        date_text = (config.get_property("date_text") or "").strip() or info["date_text"]
+
+        # Persist common name back so we don't ask again next time.
+        if info["sidecar_path"] is not None and common != info["common_name"]:
+            try:
+                _update_sidecar_common(info["sidecar_path"], common)
+            except (OSError, yaml.YAMLError) as e:
+                Gimp.message(f"Could not update sidecar: {e}")
+
+        object_text = _build_object_text(info["target_label"], common, info["mode"])
 
         font = Gimp.Font.get_by_name(FONT_NAME)
         if font is None:
@@ -189,13 +328,30 @@ class AstroLegend(Gimp.PlugIn):
         proc.set_documentation(
             "Add astro legend (object + date)",
             "Adds two right-aligned text layers in the bottom-right of the "
-            "current image, pulling the target name from the matching YAML "
-            "sidecar and the date from the filename.",
+            "current image. Pulls the target name from the matching YAML "
+            "sidecar, prompts for the common name (saved back to the "
+            "sidecar), and takes the date from the filename.",
             name,
         )
         proc.set_menu_label("Add astro legend")
         proc.set_attribution("Vincent Berthier", "Vincent Berthier", "2026")
         proc.add_menu_path("<Image>/Filters/Astro")
+
+        proc.add_string_argument(
+            "common_name",
+            "Nom commun",
+            "Common name in French (e.g. 'Nébuleuse Trifide'). "
+            "Saved to the sidecar's target.common_name_fr on accept.",
+            "",
+            GObject.ParamFlags.READWRITE,
+        )
+        proc.add_string_argument(
+            "date_text",
+            "Date",
+            "Date label (French) shown below the object name.",
+            "",
+            GObject.ParamFlags.READWRITE,
+        )
         return proc
 
 
