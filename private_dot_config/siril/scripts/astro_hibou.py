@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# debug-statement-audit: ignore — the four print() calls in __main__ are the
+# CLI entrypoint's only way to surface fatal errors to stderr when this script
+# is invoked outside the Siril GUI; they are intentional, not debug cruft.
 
 import os
 import re
@@ -15,12 +18,12 @@ import sirilpy
 
 sirilpy.ensure_installed("PyQt6", "astropy", "numpy", "PyYAML", "psutil")
 
-import numpy as np
-import yaml
-from astropy.io import fits
-from sirilpy import CommandError, SirilError
-from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal
-from PyQt6.QtWidgets import (
+import numpy as np  # noqa: E402  — deps imported after ensure_installed()
+import yaml  # noqa: E402
+from astropy.io import fits  # noqa: E402
+from sirilpy import CommandError, SirilError  # noqa: E402
+from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal  # noqa: E402
+from PyQt6.QtWidgets import (  # noqa: E402
     QApplication,
     QButtonGroup,
     QCheckBox,
@@ -584,16 +587,17 @@ class Pipeline:
                 self._step(f"Day {day}")
                 with cwd_at(self.siril, start_dir / day):
                     self.prepare_flats(target_filters)
-                    day_filters = list(self.prepare_channels(target_filters))
-                for filter_name in day_filters:
-                    src = start_dir / day / "process" / f"master_{filter_name}.fit"
-                    dest_dir = start_dir / "process" / filter_name
-                    dest_dir.mkdir(exist_ok=True)
-                    shutil.copy2(src, dest_dir / f"{day}.fit")
+                    # Calibrate and build per-night diagnostic masters, but
+                    # defer background extraction: the combined master gets a
+                    # single BGE pass once every night's calibrated subs are
+                    # pooled and stacked together below.
+                    day_filters = self.prepare_channels(
+                        target_filters, extract_background=False
+                    )
                 all_filters.update(day_filters)
 
-        for filter_name in all_filters:
-            self._stack_filter_across_days(start_dir, filter_name)
+        for filter_name in sorted(all_filters):
+            self._combine_filter_across_days(start_dir, filter_name, days)
 
         if mode == "full":
             self.compose(options)
@@ -601,58 +605,116 @@ class Pipeline:
 
         self.cd(start_dir)
 
-    def _stack_filter_across_days(
-        self, start_dir: Path, filter_name: str
+    def _combine_filter_across_days(
+        self, start_dir: Path, filter_name: str, allowed_days: list[str]
     ) -> None:
+        """Pool every night's calibrated subs for one filter into a single
+        registration + stack — the multi-night equivalent of
+        create_master_channel.
+
+        We pool the *calibrated* frames (pp_<filter>_*.fit) from each night,
+        NOT the per-night masters, and register them all to one common
+        reference before a single stack. That gives optimal per-sub noise
+        weighting and lets pixel rejection act across nights (e.g. a satellite
+        trail present on only one night). A master-of-masters stack, by
+        contrast, weights a thin night equally with a deep one and can leave
+        the result worse than the deep night alone.
+
+        Background extraction runs once here, on the combined master. The
+        trade-off: if two nights carry strongly different gradients, GraXpert
+        models a single blended gradient rather than one per night. If that
+        ever bites, the fallback is per-night BGE plus an nbstack-weighted
+        master-of-masters.
+        """
         process_dir = start_dir / "process"
         filter_dir = process_dir / filter_name
         master_path = process_dir / f"master_{filter_name}.fit"
-        files = sorted(f for f in filter_dir.iterdir() if f.is_file())
-        if self.history.is_done(
-            process_dir,
-            "stack_filter_across_days",
-            detail=filter_name,
-            outputs=[master_path],
-            inputs=files,
-        ):
+
+        # Gather the calibrated subs every allowed night produced for this
+        # filter. They live in <day>/process as pp_<filter>_NNNNN.fit, written
+        # by create_master_channel's calibrate step.
+        sub_re = re.compile(rf"^pp_{re.escape(filter_name)}_\d+\.fits?$")
+        sources: list[tuple[str, Path]] = []
+        for day in allowed_days:
+            day_process = start_dir / day / "process"
+            if not day_process.is_dir():
+                continue
+            for f in sorted(day_process.iterdir()):
+                if f.is_file() and sub_re.match(f.name):
+                    sources.append((day, f))
+
+        if not sources:
             self.siril.log(
-                f"Cross-day master for {filter_name} up to date, skipping"
+                f"No calibrated subs for {filter_name}; skipping combine"
             )
             return
-        self._step(f"Stacking {filter_name} across days")
-        if len(files) == 1:
-            shutil.copy2(files[0], master_path)
-        else:
-            # The sequence is about to be rebuilt from the current per-day
-            # files; clear the inner register/stack records so they actually
-            # re-run instead of short-circuiting on their previous completion.
-            self.history.invalidate(
-                process_dir, "register_lights", detail=filter_name
+
+        source_paths = [p for _, p in sources]
+        if self.history.is_done(
+            process_dir,
+            "combine_filter_across_days",
+            detail=filter_name,
+            outputs=[master_path],
+            inputs=source_paths,
+        ):
+            self.siril.log(
+                f"Combined master for {filter_name} up to date, skipping"
             )
-            self.history.invalidate(
-                process_dir, "stack_lights", detail=f"r_pp_{filter_name}"
-            )
-            with cwd_at(self.siril, filter_dir):
-                self.siril.cmd("convert", f"pp_{filter_name}", "-out=../")
-            with cwd_at(self.siril, process_dir):
-                self.register_lights(filter_name)
-                self.stack_lights(
-                    f"r_pp_{filter_name}",
-                    len(files),
-                    apply_quality_filters=False,
-                )
+            return
+
+        self._step(
+            f"Combining {filter_name}: {len(sources)} subs "
+            f"across {len(allowed_days)} nights"
+        )
+
+        # Rebuild the pool dir from scratch so stale links from a prior run
+        # (or the old master-of-masters layout) can't leak into the sequence.
+        if filter_dir.exists():
+            shutil.rmtree(filter_dir)
+        filter_dir.mkdir(parents=True, exist_ok=True)
+        # Night-prefixed names keep frames unique across nights and ordered by
+        # night; `link` then indexes them into one pp_<filter> sequence. We
+        # link rather than convert to avoid duplicating hundreds of subs on
+        # disk — only the registered output is written out (Corrbolg is the
+        # only copy of this data).
+        for day, src in sources:
+            (filter_dir / f"{day}_{src.name}").symlink_to(src)
+
+        # The sequence is rebuilt from the current subs; clear the inner
+        # register/stack/bge records so they re-run instead of short-circuiting
+        # on a previous combine.
+        self.history.invalidate(
+            process_dir, "register_lights", detail=filter_name
+        )
+        self.history.invalidate(
+            process_dir, "stack_lights", detail=f"r_pp_{filter_name}"
+        )
+        self.history.invalidate(
+            process_dir, "extract_bg", detail=filter_name
+        )
+        with cwd_at(self.siril, filter_dir):
+            self.siril.cmd("link", f"pp_{filter_name}", "-out=../")
+        with cwd_at(self.siril, process_dir):
+            self.register_lights(filter_name)
+            # Full quality filters + per-sub weighting now apply: the pool is
+            # real subs, so winsorized rejection and the wfwhm weight are valid
+            # and the per-sub weighting is automatically correct.
+            self.stack_lights(f"r_pp_{filter_name}", len(sources))
+            self.extract_bg(filter_name)
         self.history.mark_done(
-            process_dir, "stack_filter_across_days", detail=filter_name
+            process_dir, "combine_filter_across_days", detail=filter_name
         )
 
     # --- flats ---------------------------------------------------------
 
     def prepare_flats(self, filters: set[str]) -> None:
+        # No outer guard: create_master_flat already tracks each filter's
+        # FLATS sources as inputs and the master as output, so a re-shoot
+        # of any filter's flats invalidates that filter's master while
+        # untouched filters skip cleanly. A wrapper-level "done" record
+        # would mask those per-filter checks.
         day_dir = self.cwd()
         self._step(f"Preparing flats: {day_dir.name}")
-        if self.history.is_done(day_dir, "prepare_flats"):
-            self.siril.log("Step already done, skipping")
-            return
         with cwd_at(self.siril, day_dir / "FLATS"):
             filter_files, filter_exposure = self.get_filter_files_exposure(
                 RE_FLATS
@@ -663,7 +725,6 @@ class Pipeline:
                 self.create_master_flat(
                     filter_type, files, filter_exposure[filter_type]
                 )
-        self.history.mark_done(day_dir, "prepare_flats")
 
     def create_master_flat(
         self, filter_type: str, files: list[str], exposure: str
@@ -739,16 +800,27 @@ class Pipeline:
 
     # --- lights --------------------------------------------------------
 
-    def prepare_channels(self, filters: set[str]) -> Iterable[str]:
+    def prepare_channels(
+        self, filters: set[str], *, extract_background: bool = True
+    ) -> list[str]:
+        # No outer guard: create_master_channel tracks each filter's LIGHTS
+        # sources as inputs, and extract_bg now tracks the master file's
+        # mtime, so adding subs to an existing day invalidates the affected
+        # filter chain. A wrapper-level "done" record would short-circuit
+        # both per-filter checks.
+        #
+        # extract_background=False is the multi-night path: there, gradients
+        # are removed once on the combined master (after every night's
+        # calibrated subs are pooled and stacked in _combine_filter_across_days),
+        # not per-night. The per-night masters built here are kept only as
+        # diagnostics / for the stats panel.
         day_dir = self.cwd()
         self._step(f"Preparing channels: {day_dir.name}")
+        processed: list[str] = []
         with cwd_at(self.siril, day_dir / "LIGHTS"):
             filter_files, filter_exposure = self.get_filter_files_exposure(
                 RE_LIGHTS
             )
-            if self.history.is_done(day_dir, "prepare_channels"):
-                self.siril.log("Step already done, skipping")
-                return list(filter_files.keys())
             lights_dir = self.cwd()
             for filter_type, files in filter_files.items():
                 if filter_type not in filters:
@@ -756,12 +828,13 @@ class Pipeline:
                 self.create_master_channel(
                     filter_type, files, filter_exposure[filter_type]
                 )
-                self.extract_bg(filter_type)
+                if extract_background:
+                    self.extract_bg(filter_type)
                 # create_master_channel and extract_bg leave us in
                 # day/process; restore for the next iteration's symlinking.
                 self.cd(lights_dir)
-            self.history.mark_done(day_dir, "prepare_channels")
-        return list(filter_files.keys())
+                processed.append(filter_type)
+        return processed
 
     def create_master_channel(
         self, filter_type: str, files: list[str], exposure: str
@@ -770,7 +843,10 @@ class Pipeline:
         lights_dir = self.cwd()  # day/LIGHTS
         process_dir = lights_dir.parent / "process"
         master_path = process_dir / f"master_{filter_type}.fit"
-        source_paths = [lights_dir / f for f in files]
+        master_flat_path = process_dir / f"master_flats_{filter_type}.fit"
+        # Inputs include the master flat: a re-shot flat invalidates the
+        # downstream channel stack even when the LIGHTS list is unchanged.
+        source_paths = [lights_dir / f for f in files] + [master_flat_path]
         if self.history.is_done(
             lights_dir,
             "create_master_channel",
@@ -912,11 +988,18 @@ class Pipeline:
 
     def extract_bg(self, filter_type: str) -> None:
         master_path = self.cwd() / f"master_{filter_type}.fit"
+        # extract_bg rewrites master_<filter>.fit in place, so input and
+        # output are the same file. After a successful run, the saved
+        # mtime is slightly older than mark_done's recorded time, so
+        # is_done passes on re-entry. When create_master_channel rewrites
+        # the master with a fresh non-BGE stack, the bumped mtime exceeds
+        # the previous completion and we re-run.
         if self.history.is_done(
             self.cwd(),
             "extract_bg",
             detail=filter_type,
             outputs=[master_path],
+            inputs=[master_path],
         ):
             self.siril.log("Step already done, skipping")
             return
@@ -1506,13 +1589,20 @@ class Pipeline:
         )
 
     def do_process_cluster(self, image: str) -> None:
-        """Cluster path: no starnet, stellar deconv, autostretch, denoise,
-        recover clipped star cores. Designed for fields where there is no
-        faint extended structure to preserve, just point sources over
-        background.
+        """Cluster path: no starnet, stellar deconv, save a linear
+        pre-stretch checkpoint, autostretch, denoise, recover clipped star
+        cores. Designed for fields where there is no faint extended
+        structure to preserve, just point sources over background.
+
+        The deconvolved-but-unstretched frame is saved to
+        `<image>_cluster_prestretch.fit` before the autostretch; the final
+        save targets a different file, so that checkpoint is never
+        overwritten and the (taste-driven) stretch can be redone by hand
+        from it.
         """
         cwd = self.cwd()
         final_out = cwd / f"{image}_cluster.fit"
+        prestretch_out = cwd / f"{image}_cluster_prestretch.fit"
         detail = f"{image}_cluster"
         if self.history.is_done(
             cwd,
@@ -1531,6 +1621,8 @@ class Pipeline:
                 f"-strength {self.deconv_strength:.2f}",
             )
             self.siril.undo_save_state("GraXpert Deconvolve Stellar")
+            self._step(f"Cluster: save pre-stretch checkpoint {image}")
+            self.siril.cmd("save", prestretch_out.stem)
             self._step(f"Cluster: autostretch {image}")
             self.siril.cmd("autostretch")
             self._step(f"Cluster: denoise {image}")
@@ -1554,14 +1646,22 @@ class Pipeline:
     def deconvolve(self, image: str, *, on_full: bool) -> None:
         cwd = self.cwd()
         if on_full:
+            # Full-image deconv runs before starnet, on the recombined master.
+            inp = cwd / f"{image}.fit"
             out = cwd / f"{image}_deconvolved.fit"
             kind = "full"
         else:
+            # Starless-only deconv runs after starnet, on its starless output.
+            inp = cwd / f"starless_processing_{image}.fit"
             out = cwd / f"starless_{image}_deconvolved.fit"
             kind = "starless"
         detail = f"{image}_{kind}"
         if self.history.is_done(
-            cwd, "deconvolve", detail=detail, outputs=[out]
+            cwd,
+            "deconvolve",
+            detail=detail,
+            outputs=[out],
+            inputs=[inp],
         ):
             self.siril.log("Step already done, skipping")
             self.open_image(out.stem)
@@ -1578,9 +1678,20 @@ class Pipeline:
 
     def denoise(self, image: str) -> None:
         cwd = self.cwd()
+        # Input is whatever do_process leaves loaded before this call: the
+        # deconvolved starless layer in starless-deconv mode, or starnet's
+        # raw starless output when deconv ran on the full image first.
+        if self.deconv_full_image:
+            inp = cwd / f"starless_processing_{image}.fit"
+        else:
+            inp = cwd / f"starless_{image}_deconvolved.fit"
         out = cwd / f"starless_{image}_denoised.fit"
         if self.history.is_done(
-            cwd, "denoise", detail=image, outputs=[out]
+            cwd,
+            "denoise",
+            detail=image,
+            outputs=[out],
+            inputs=[inp],
         ):
             self.siril.log("Step already done, skipping")
             self.open_image(out.stem)
@@ -1769,15 +1880,22 @@ class PipelineWorker(QObject):
         self._kill_external_subprocesses()
 
     def _kill_external_subprocesses(self) -> None:
-        """Send SIGTERM to any running GraXpert process so a cancel
-        click takes effect mid-deconv/denoise instead of waiting for
-        the pyscript call to return. The Siril command then surfaces
-        a CommandError, which run() reclassifies as a cancellation.
+        """Send SIGTERM to any running GraXpert or StarNet process so a
+        cancel click takes effect mid-stage instead of waiting for the
+        Siril command to return. The Siril command then surfaces a
+        CommandError, which run() reclassifies as a cancellation.
         """
         try:
             import psutil
         except ImportError:
             return
+        # StarNet ships under several binary names depending on which
+        # release is installed (starnet++, rgb_starnet++, mono_starnet++,
+        # starnet_cli…). All of them carry "starnet" in the basename, so
+        # a substring match on name/cmdline catches the lot without
+        # over-matching: Siril itself does not have "starnet" in its
+        # cmdline — it dispatches the external binary as a child.
+        targets = ("graxpert", "starnet")
         killed = 0
         for proc in psutil.process_iter(["pid", "name", "cmdline"]):
             try:
@@ -1786,7 +1904,7 @@ class PipelineWorker(QObject):
                 name = (info.get("name") or "").lower()
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
-            if "graxpert" in cmdline or "graxpert" in name:
+            if any(t in cmdline or t in name for t in targets):
                 try:
                     proc.terminate()
                     killed += 1
@@ -1795,7 +1913,7 @@ class PipelineWorker(QObject):
         if killed:
             try:
                 self.pipeline.siril.log(
-                    f"Cancel: terminated {killed} GraXpert process(es)"
+                    f"Cancel: terminated {killed} external process(es)"
                 )
             except Exception:
                 pass

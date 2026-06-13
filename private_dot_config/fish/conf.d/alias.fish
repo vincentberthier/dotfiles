@@ -209,7 +209,7 @@ function astro_copy --description "Pull N.I.N.A images off the Gaius, deleting s
         echo "astro_copy: destination $dst not mounted — aborting" >&2
         return 1
     end
-    for attempt in (seq 1 10)
+    for attempt in (seq 1 100000)
         command rsync -ahP --info=progress2 --partial \
             --remove-source-files --bwlimit=30m --timeout=300 \
             $src $dst
