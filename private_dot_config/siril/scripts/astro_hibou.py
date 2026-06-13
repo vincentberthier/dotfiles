@@ -483,6 +483,20 @@ class Pipeline:
         self.cluster_mode: bool = False
         # Weight of Ha in the HaLRGB-R/L blends: channel = (1-w)*base + w*Ha.
         self.ha_weight: float = 0.5
+        # VeraLux. The pre-stretch checkpoint (_STRETCH_ME pair) is always
+        # written. The interactive continuation launches the real VeraLux
+        # GUI scripts one stage at a time and blocks on each until the user
+        # closes its window; default OFF (most runs stop at the checkpoint
+        # and stretch by hand). Per-stage flags only act while
+        # veralux_interactive is True.
+        self.write_stretch_me: bool = True
+        self.veralux_interactive: bool = False
+        self.vlx_silentium: bool = True
+        self.vlx_stretch: bool = True
+        self.vlx_revela: bool = True
+        self.vlx_curves: bool = True
+        self.vlx_vectra: bool = True
+        self.vlx_starcompose: bool = True
         # Common names (FR/EN) entered in the GUI; threaded into the
         # YAML sidecar at the end of each per-target pipeline run.
         self.common_name_fr: str | None = None
@@ -1587,6 +1601,10 @@ class Pipeline:
             common_name_fr=self.common_name_fr,
             common_name_en=self.common_name_en,
         )
+        if self.write_stretch_me:
+            self._write_stretch_me(image)
+        if self.veralux_interactive:
+            self.veraluxify(image)
 
     def do_process_cluster(self, image: str) -> None:
         """Cluster path: no starnet, stellar deconv, save a linear
@@ -1642,6 +1660,8 @@ class Pipeline:
             common_name_fr=self.common_name_fr,
             common_name_en=self.common_name_en,
         )
+        if self.veralux_interactive:
+            self._veraluxify_cluster(image)
 
     def deconvolve(self, image: str, *, on_full: bool) -> None:
         cwd = self.cwd()
@@ -1705,6 +1725,205 @@ class Pipeline:
         self.siril.cmd("save", out.stem)
         self.open_image(out.stem)
         self.history.mark_done(cwd, "denoise", detail=image)
+
+    # --- VeraLux: checkpoint + interactive continuation ---------------
+
+    def _stretch_me_dir(self) -> Path:
+        return self.cwd() / "_STRETCH_ME"
+
+    def _target_tag(self) -> str:
+        """Filesystem-safe target id used in checkpoint/reference names."""
+        name = self.root_dir.name.strip().replace(os.sep, "_")
+        return re.sub(r"\s+", "_", name) or "target"
+
+    def _write_stretch_me(self, image: str) -> None:
+        """Copy the pre-stretch pair into a clearly-named _STRETCH_ME/
+        folder with a README. This is the default hand-off: stretch the
+        denoised-linear STARLESS by hand; the linear STARS mask feeds star
+        recomposition. Always runs (write_stretch_me defaults True).
+        """
+        cwd = self.cwd()
+        starless = cwd / f"starless_{image}_denoised.fit"
+        starmask = cwd / f"starmask_processing_{image}.fit"
+        if not starless.exists():
+            self.siril.log(
+                f"_STRETCH_ME: {starless.name} missing; skipping checkpoint"
+            )
+            return
+        out_dir = self._stretch_me_dir()
+        out_dir.mkdir(exist_ok=True)
+        tag = self._target_tag()
+        mode = image.upper()
+        out_starless = out_dir / f"{tag}_{mode}_STARLESS.fit"
+        out_stars = out_dir / f"{tag}_{mode}_STARS.fit"
+        self._step(f"Checkpoint -> _STRETCH_ME/{out_starless.name}")
+        shutil.copy2(starless, out_starless)
+        if starmask.exists():
+            shutil.copy2(starmask, out_stars)
+        else:
+            self.siril.log(
+                f"_STRETCH_ME: {starmask.name} missing; STARS not written"
+            )
+        (out_dir / "README.txt").write_text(
+            "_STRETCH_ME - pre-stretch hand-off pairs.\n\n"
+            "  *_STARLESS.fit : denoised, LINEAR starless. Stretch by hand.\n"
+            "  *_STARS.fit    : LINEAR star mask. Feed to star recomposition\n"
+            "                   (VeraLux StarComposer / GIMP); stars go in\n"
+            "                   linear, over the stretched starless.\n\n"
+            "Pairs are named <target>_<MODE>_{STARLESS,STARS}.fit.\n"
+        )
+
+    def _veralux_stage(
+        self, image: str, stage: str, script: str, src: Path
+    ) -> Path:
+        """Launch one in-place VeraLux GUI tool on `src`, block until the
+        user closes its window, then save Siril's (now-modified) image to a
+        per-stage output. Returns the stage output path.
+        """
+        cwd = self.cwd()
+        out = cwd / f"veralux_{image}_{stage}.fit"
+        if self.history.is_done(
+            cwd, f"veralux_{stage}", detail=image,
+            outputs=[out], inputs=[src],
+        ):
+            self.siril.log(f"VeraLux {stage}: already done, skipping")
+            return out
+        self._step(
+            f"VeraLux {stage}: opening {script} on {src.name} - "
+            "process the image, then CLOSE the window to resume"
+        )
+        self.siril.cmd("load", f'"{src.stem}"')
+        # Blocks until the VeraLux window is closed (same pyscript mechanism
+        # as the GraXpert/StarNet calls). The tool writes its result back
+        # into Siril's loaded image; we persist that under the stage name.
+        self.siril.cmd("pyscript", script)
+        self.siril.cmd("save", out.stem)
+        self.history.mark_done(cwd, f"veralux_{stage}", detail=image)
+        return out
+
+    def veraluxify(self, image: str) -> None:
+        """Optional interactive continuation past the linear checkpoint:
+        run the enabled VeraLux GUI tools in chain order, each launched and
+        waited-on, to build a finished *reference* image. Order: Silentium
+        (linear denoise) -> HyperMetric Stretch -> Revela -> Curves ->
+        Vectra -> StarComposer. Every stage is optional.
+        """
+        cwd = self.cwd()
+        if self.vlx_silentium:
+            # Silentium owns denoise: branch from the pre-GraXpert-denoise
+            # starless so the same pixels aren't denoised twice. (This is
+            # exactly denoise()'s input file.) The GraXpert-denoised
+            # _STRETCH_ME checkpoint is left untouched as a parallel result.
+            if self.deconv_full_image:
+                src = cwd / f"starless_processing_{image}.fit"
+            else:
+                src = cwd / f"starless_{image}_deconvolved.fit"
+        else:
+            # No VeraLux denoise: start from the GraXpert-denoised starless
+            # so the data is denoised before the stretch.
+            src = cwd / f"starless_{image}_denoised.fit"
+        if not src.exists():
+            self.siril.log(
+                f"VeraLux: {src.name} missing; nothing to continue from"
+            )
+            return
+        scripts = {
+            "silentium": "VeraLux_Silentium.py",
+            "stretch": "VeraLux_HyperMetric_Stretch.py",
+            "revela": "VeraLux_Revela.py",
+            "curves": "VeraLux_Curves.py",
+            "vectra": "VeraLux_Vectra.py",
+        }
+        chain = [
+            ("silentium", self.vlx_silentium),
+            ("stretch", self.vlx_stretch),
+            ("revela", self.vlx_revela),
+            ("curves", self.vlx_curves),
+            ("vectra", self.vlx_vectra),
+        ]
+        current = src
+        for stage, enabled in chain:
+            if not enabled:
+                continue
+            current = self._veralux_stage(image, stage, scripts[stage], current)
+        if self.vlx_starcompose:
+            self._veralux_starcompose(image, current)
+
+    def _veralux_starcompose(self, image: str, stretched: Path) -> None:
+        """Launch StarComposer to screen the linear star mask back onto the
+        stretched starless. StarComposer uses its own file pickers and saves
+        to VeraLux_StarComposer_result.fit; we move that to a clearly-named
+        REFERENCE image and tell the user which two files to pick.
+        """
+        cwd = self.cwd()
+        tag = self._target_tag()
+        mode = image.upper()
+        ref = cwd / f"{tag}_{mode}_REFERENCE.fit"
+        result = cwd / "VeraLux_StarComposer_result.fit"
+        if self.history.is_done(
+            cwd, "veralux_starcompose", detail=image,
+            outputs=[ref], inputs=[stretched],
+        ):
+            self.siril.log("VeraLux StarComposer: already done, skipping")
+            return
+        starmask = self._stretch_me_dir() / f"{tag}_{mode}_STARS.fit"
+        self._step(
+            "VeraLux StarComposer: opening - pick STARLESS = "
+            f"{stretched.name} (stretched) and STARS = {starmask.name} "
+            "(linear), then CLOSE the window to resume"
+        )
+        # Detect a fresh result by mtime rather than deleting the old one.
+        before = result.stat().st_mtime if result.exists() else -1.0
+        self.siril.cmd("pyscript", "VeraLux_StarComposer.py")
+        if result.exists() and result.stat().st_mtime > before:
+            shutil.move(str(result), str(ref))
+            self.siril.log(f"VeraLux: reference image -> {ref.name}")
+            self.history.mark_done(cwd, "veralux_starcompose", detail=image)
+        else:
+            self.siril.log(
+                "VeraLux StarComposer: no fresh result produced "
+                "(skipped or saved elsewhere)"
+            )
+
+    def _veraluxify_cluster(self, image: str) -> None:
+        """Cluster-path VeraLux continuation. Branches from the LINEAR
+        prestretch checkpoint (post stellar-deconv), since Silentium needs
+        linear input and HyperMetric *is* the stretch. Revela (luminance
+        structure) and StarComposer (needs the starless/starmask
+        decomposition) don't fit point-source fields, so they're excluded.
+        The normal autostretch `<image>_cluster.fit` is left intact as the
+        baseline; this writes a VeraLux reference alongside it.
+        """
+        cwd = self.cwd()
+        src = cwd / f"{image}_cluster_prestretch.fit"
+        if not src.exists():
+            self.siril.log(
+                f"VeraLux: {src.name} missing; nothing to continue from"
+            )
+            return
+        scripts = {
+            "silentium": "VeraLux_Silentium.py",
+            "stretch": "VeraLux_HyperMetric_Stretch.py",
+            "curves": "VeraLux_Curves.py",
+            "vectra": "VeraLux_Vectra.py",
+        }
+        chain = [
+            ("silentium", self.vlx_silentium),
+            ("stretch", self.vlx_stretch),
+            ("curves", self.vlx_curves),
+            ("vectra", self.vlx_vectra),
+        ]
+        current = src
+        for stage, enabled in chain:
+            if not enabled:
+                continue
+            current = self._veralux_stage(
+                image, f"cluster_{stage}", scripts[stage], current
+            )
+        if current != src:
+            ref = cwd / f"{self._target_tag()}_{image.upper()}_REFERENCE.fit"
+            shutil.copy2(current, ref)
+            self.siril.log(f"VeraLux: cluster reference -> {ref.name}")
 
     # --- stats --------------------------------------------------------
 
@@ -1858,6 +2077,13 @@ class PipelineWorker(QObject):
         ha_weight: float,
         common_name_fr: str = "",
         common_name_en: str = "",
+        veralux_interactive: bool = False,
+        vlx_silentium: bool = True,
+        vlx_stretch: bool = True,
+        vlx_revela: bool = True,
+        vlx_curves: bool = True,
+        vlx_vectra: bool = True,
+        vlx_starcompose: bool = True,
     ) -> None:
         super().__init__()
         self.pipeline = pipeline
@@ -1871,6 +2097,13 @@ class PipelineWorker(QObject):
         self.ha_weight = ha_weight
         self.common_name_fr = common_name_fr
         self.common_name_en = common_name_en
+        self.veralux_interactive = veralux_interactive
+        self.vlx_silentium = vlx_silentium
+        self.vlx_stretch = vlx_stretch
+        self.vlx_revela = vlx_revela
+        self.vlx_curves = vlx_curves
+        self.vlx_vectra = vlx_vectra
+        self.vlx_starcompose = vlx_starcompose
         self._cancel_requested = False
 
     def cancel(self) -> None:
@@ -1928,6 +2161,13 @@ class PipelineWorker(QObject):
         self.pipeline.ha_weight = self.ha_weight
         self.pipeline.common_name_fr = self.common_name_fr
         self.pipeline.common_name_en = self.common_name_en
+        self.pipeline.veralux_interactive = self.veralux_interactive
+        self.pipeline.vlx_silentium = self.vlx_silentium
+        self.pipeline.vlx_stretch = self.vlx_stretch
+        self.pipeline.vlx_revela = self.vlx_revela
+        self.pipeline.vlx_curves = self.vlx_curves
+        self.pipeline.vlx_vectra = self.vlx_vectra
+        self.pipeline.vlx_starcompose = self.vlx_starcompose
         try:
             if len(self.days) == 1:
                 self.pipeline.process_single_day(
@@ -2090,6 +2330,8 @@ class Interface(QWidget):
         self.common_name_fr_edit: QLineEdit | None = None
         self.common_name_en_edit: QLineEdit | None = None
         self.cluster_mode_check: QCheckBox | None = None
+        self.veralux_interactive_check: QCheckBox | None = None
+        self.vlx_stage_checks: dict[str, QCheckBox] = {}
         self.ha_weight_spin: QDoubleSpinBox | None = None
         self.reset_history_btn: QPushButton | None = None
         self.proceed_btn: QPushButton | None = None
@@ -2147,6 +2389,7 @@ class Interface(QWidget):
         processing_options_group = QGroupBox("Processing options")
         po_layout = QVBoxLayout()
         self.cluster_mode_check = QCheckBox("Star cluster mode")
+        self.cluster_mode_check.toggled.connect(self._on_cluster_toggled)
         po_layout.addWidget(self.cluster_mode_check)
         po_form = QFormLayout()
         self.ha_weight_spin = QDoubleSpinBox()
@@ -2195,6 +2438,34 @@ class Interface(QWidget):
         proc_layout.addWidget(self.reset_history_btn)
         processing_group.setLayout(proc_layout)
         main_layout.addWidget(processing_group)
+
+        veralux_group = QGroupBox("VeraLux interactive continuation")
+        vlx_layout = QVBoxLayout()
+        self.veralux_interactive_check = QCheckBox(
+            "Continue past the linear checkpoint with VeraLux "
+            "(opens each tool; close its window to resume)"
+        )
+        self.veralux_interactive_check.setChecked(False)
+        vlx_layout.addWidget(self.veralux_interactive_check)
+        self.vlx_stage_checks = {}
+        for key, label in (
+            ("silentium", "Silentium (denoise)"),
+            ("stretch", "HyperMetric Stretch"),
+            ("revela", "Revela (structure)"),
+            ("curves", "Curves"),
+            ("vectra", "Vectra (color)"),
+            ("starcompose", "StarComposer (recombine stars)"),
+        ):
+            cb = QCheckBox(label)
+            cb.setChecked(True)
+            cb.setEnabled(False)
+            self.vlx_stage_checks[key] = cb
+            vlx_layout.addWidget(cb)
+        self.veralux_interactive_check.toggled.connect(
+            self._on_veralux_toggled
+        )
+        veralux_group.setLayout(vlx_layout)
+        main_layout.addWidget(veralux_group)
 
         # Status row reserved at construction time so the window doesn't
         # change size when work starts.
@@ -2291,6 +2562,31 @@ class Interface(QWidget):
 
     # --- signal handlers ---------------------------------------------
 
+    def _on_veralux_toggled(self, on: bool) -> None:
+        self._sync_veralux_stage_checks()
+
+    def _on_cluster_toggled(self, on: bool) -> None:
+        self._sync_veralux_stage_checks()
+
+    def _sync_veralux_stage_checks(self) -> None:
+        # Per-stage checks are live only when the continuation is on. In
+        # cluster mode, Revela (luminance structure) and StarComposer (needs
+        # the starless/starmask decomposition) don't apply, so grey just
+        # those two — Silentium/Stretch/Curves/Vectra still run, branching
+        # from the linear prestretch checkpoint.
+        if self.veralux_interactive_check is None:
+            return
+        vlx_on = self.veralux_interactive_check.isChecked()
+        cluster_on = (
+            self.cluster_mode_check.isChecked()
+            if self.cluster_mode_check is not None
+            else False
+        )
+        cluster_excluded = {"revela", "starcompose"}
+        for key, cb in self.vlx_stage_checks.items():
+            applies = not (cluster_on and key in cluster_excluded)
+            cb.setEnabled(vlx_on and applies)
+
     def _on_day_toggled(self, checked: bool) -> None:
         # If the user just unchecked the last day, revert: re-check the
         # sender so at least one day is always selected.
@@ -2329,6 +2625,8 @@ class Interface(QWidget):
         assert self.common_name_en_edit is not None
         common_name_fr = self.common_name_fr_edit.text().strip()
         common_name_en = self.common_name_en_edit.text().strip()
+        veralux_interactive = self.veralux_interactive_check.isChecked()
+        vlx = {k: cb.isChecked() for k, cb in self.vlx_stage_checks.items()}
 
         self._set_running(True, "Starting…")
 
@@ -2345,6 +2643,13 @@ class Interface(QWidget):
             ha_weight=ha_weight,
             common_name_fr=common_name_fr,
             common_name_en=common_name_en,
+            veralux_interactive=veralux_interactive,
+            vlx_silentium=vlx["silentium"],
+            vlx_stretch=vlx["stretch"],
+            vlx_revela=vlx["revela"],
+            vlx_curves=vlx["curves"],
+            vlx_vectra=vlx["vectra"],
+            vlx_starcompose=vlx["starcompose"],
         )
         self._worker.moveToThread(self._thread)
         self._thread.started.connect(self._worker.run)
