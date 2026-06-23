@@ -69,9 +69,7 @@
       "Skill(*)",
       "WebFetch(*)",
       "WebSearch(*)",
-      "Write(*)",
-      "mcp__plugin_tyrex-workflow_tyrex-gitlab__*",
-      "mcp__plugin_tyrex-squash_tyrex-squash__*"
+      "Write(*)"
     ],
     "deny": [
       "Read(/home/vincent/.ssh/*)",
