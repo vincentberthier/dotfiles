@@ -1,32 +1,36 @@
 #!/usr/bin/env python3
-"""Claude Code PreToolUse hook: hard-block every `probe-rs` invocation from Bash,
-INCLUDING via a `just` recipe.
+r"""Claude Code PreToolUse hook: keep the agent on the wedge-proof rail for driving
+`probe-rs` against the i.MX RT EVK boards (see the `imxrt-evk-flashing` skill).
 
-User directive (2026-06-21, after repeatedly wedging i.MX RT EVK boards): the
-agent must have ZERO ways to drive the probe. Raw probe-rs flash/reset/
-connect-under-reset cannot flash a WFI-idling board over SWD and strands it
-("wedged"); only the user flashing in their own terminal, or SDP serial-download,
-is safe. An earlier version of this hook allowed `just` recipes as an exception —
-and the agent promptly added a probe-rs `just` recipe and wedged the board through
-it. So `just` is NO LONGER a blanket exception: a `just <recipe>` that
-(transitively) runs probe-rs is blocked too. Only probe-rs-free recipes
-(`just checks`, `just build`, `just ci`, …) pass.
+User directive (2026-06, after repeatedly stranding i.MX RT EVK boards): the agent
+must have NO ad-hoc way to drive the probe. The sanctioned path is a GUARDED `just`
+recipe — one that runs the host-side `flash-guard.sh` preflight and never escalates
+(`--connect-under-reset` doesn't beat a WFI core on these EVKs and correlates with a
+dead AP). Everything else is blocked. This hook enforces the runtime half so safety
+does not depend on the agent's recall.
 
-The agent is additionally forbidden to ADD any probe-rs command anywhere unless
-the user specifically asks — a behavioural rule; this hook enforces the runtime
-half so it does not depend on the agent's recall.
+Policy — BLOCK when:
+  1. `probe-rs` runs at a COMMAND POSITION — direct, after a shell operator
+     (`|`/`&&`/`;`/`$(...)`), behind a transparent prefix (`env`/`doas`/`sudo`/
+     `nohup`/`setsid`/`exec`/`stdbuf`/`xargs`), inside a script the command
+     EXECUTES, or inside an interpreter `-c`/`-e` code string.
+  2. a `just` recipe the command runs (transitively) invokes `probe-rs` WITHOUT the
+     `flash-guard` preflight.
+  3. a `just` recipe the command runs invokes `probe-rs` AND its body contains a
+     banned reset-escalation flag (`--connect-under-reset` / `--attach-under-reset`)
+     — blocked even when guarded, because escalation is the wedge.
 
-Detection:
-- `_RX` matches `probe-rs` only as a real command word (not the substring inside
-  `block-probe-rs.py` / `probe-rs.py`), but matches `probe-rs ...`, `&& probe-rs`,
-  `|probe-rs`, `/usr/bin/probe-rs`, `os.system('probe-rs ...')`.
-- Inline: block if `_RX` matches the command string.
-- Script vector: block if the command *executes* a script file (interpreter,
-  `source`/`.`, or an executable path) whose contents `_RX`-match. Files merely
-  *read* (`cat`/`rg`/`jq`) are NOT scanned.
-- Just vector: block if the command runs `just <recipe>` and that recipe (or any
-  of its dependencies, transitively, parsed from the nearest Justfile) `_RX`-matches.
-- Fail OPEN only on a malformed hook payload (harness error).
+ALLOW:
+  - guarded, escalation-free recipes (the sanctioned path);
+  - read-only MENTIONS of the tool as an ARGUMENT — `command -v probe-rs`,
+    `which probe-rs`, `rg probe-rs Justfile`, `cat`/`jq` of a file that names it.
+    Files merely read are never scanned; only files the command executes are.
+
+Precision rules (learned the hard way): match `probe-rs` only as a command WORD
+(`(?<![\w.-])probe-rs(?![\w.])`) so `block-probe-rs.py` / `probe-rs.py` filenames
+don't false-trigger; treat the token as blocking only when it sits at a command
+position (so an argument like `rg probe-rs` is allowed). Fail OPEN only on a
+malformed hook payload (harness error); fail toward BLOCK on an unparseable command.
 """
 
 import json
@@ -35,22 +39,31 @@ import re
 import shlex
 import sys
 
-# `probe-rs` as a command word — see module docstring for the boundary rules.
+# `probe-rs` as a command word — boundary class excludes word chars, dot, dash so
+# `block-probe-rs`, `probe-rs.py`, `my-probe-rs` do not match.
 _RX = re.compile(r"(?<![\w.-])probe-rs(?![\w.])")
+
+# Reset-escalation flags that wedge these EVKs — banned even inside a guarded recipe.
+_BANNED_RESET = re.compile(r"(?:connect|attach)-under-reset")
 
 # Shell tokens that end one simple command and start another.
 _OPERATORS = {"|", "||", "&&", ";", "&", "|&", "(", ")", "{", "}", "\n"}
 
-# Interpreters whose *next* file argument is a script we should scan.
+# Interpreters whose next file argument is a script to scan (and whose `-c`/`-e`
+# argument is inline code to scan).
 _INTERPRETERS = {"bash", "sh", "zsh", "dash", "ksh", "python", "python3", "perl", "ruby", "node"}
 
-# A just recipe header: `name [params]:` at column 0, the `:` NOT being `:=`
-# (which is a variable assignment). Captures the recipe name and its dependency tail.
+# Transparent prefixes: they execute the command that FOLLOWS, so a probe-rs after
+# one of these is still a probe-rs invocation. Deliberately excludes query tools
+# (`command`/`type`/`which`/`hash`) whose argument is inspected, not executed.
+_CMD_PREFIXES = {"env", "doas", "sudo", "nohup", "setsid", "exec", "stdbuf", "xargs"}
+
+# A just recipe header: `name [params]:` at column 0, the `:` NOT being `:=`.
 _RECIPE_HDR = re.compile(r"^([A-Za-z0-9_-]+)([^:\n]*):(?!=)(.*)$")
 _IDENT = re.compile(r"[A-Za-z0-9_-]+")
 
 _MAX_FILE_BYTES = 1_000_000
-_MAX_TOKENS = 128
+_MAX_TOKENS = 256
 
 
 def _file_invokes_probe_rs(path: str) -> bool:
@@ -72,35 +85,59 @@ def _tokenize(command: str):
         return None
 
 
-def _executed_script_invokes_probe_rs(command: str) -> bool:
-    """True if the command executes a script file whose contents invoke probe-rs."""
+def _command_invokes_probe_rs(command: str) -> bool:
+    """True if probe-rs runs at a command position, in an executed script, or in an
+    interpreter `-c`/`-e` code string. Arguments that merely name it are allowed."""
     tokens = _tokenize(command)
     if tokens is None:
-        return False
+        # Unbalanced quotes etc. — can't reason precisely, so fail toward BLOCK.
+        return bool(_RX.search(command))
+
     at_cmd_pos = True
-    expect_script_for_interp = False
+    in_prefix = False        # consuming a transparent prefix's own flags/assignments
+    mode = None              # None | "script" (scan next file) | "code" (scan next string)
     for tok in tokens:
         if tok in _OPERATORS:
-            at_cmd_pos = True
-            expect_script_for_interp = False
+            at_cmd_pos, in_prefix, mode = True, False, None
             continue
-        base = tok.rsplit("/", 1)[-1]
-        if expect_script_for_interp:
+
+        if mode == "code":
             if tok.startswith("-"):
+                continue
+            if _RX.search(tok):
+                return True
+            at_cmd_pos, mode = False, None
+            continue
+
+        if mode == "script":
+            if tok.startswith("-"):
+                if tok[:2] in ("-c", "-e"):
+                    mode = "code"
                 continue
             if _file_invokes_probe_rs(tok):
                 return True
-            expect_script_for_interp = False
+            at_cmd_pos, mode = False, None
+            continue
+
+        if in_prefix:
+            # Skip the prefix's own flags / VAR=val / numeric args; the first bare
+            # word after them is the real command — fall through to evaluate it.
+            if tok.startswith("-") or "=" in tok or tok.isdigit():
+                continue
+            in_prefix = False
+
+        if at_cmd_pos:
+            if _RX.search(tok):
+                return True
+            base = tok.rsplit("/", 1)[-1]
+            if base in _CMD_PREFIXES:
+                in_prefix = True
+                continue  # stay at_cmd_pos for the wrapped command
+            if base in _INTERPRETERS or base in ("source", "."):
+                mode = "script"
             at_cmd_pos = False
             continue
-        if at_cmd_pos:
-            if base in _INTERPRETERS:
-                expect_script_for_interp = True
-            elif base in ("source", "."):
-                expect_script_for_interp = True
-            elif _file_invokes_probe_rs(tok):
-                return True
-            at_cmd_pos = False
+        # Argument position, nothing special — ignore (allows `rg probe-rs file`).
     return False
 
 
@@ -130,7 +167,6 @@ def _parse_recipes(justfile: str):
     while i < n:
         line = lines[i]
         m = _RECIPE_HDR.match(line)
-        # Header must start at column 0 (recipe), not be indented or a comment.
         if m and not line[:1].isspace() and not line.lstrip().startswith("#"):
             name = m.group(1)
             deps = _IDENT.findall(m.group(3))
@@ -145,22 +181,29 @@ def _parse_recipes(justfile: str):
     return recipes
 
 
-def _recipe_hits(name: str, recipes: dict, seen: set) -> bool:
+def _recipe_text(name: str, recipes: dict, seen: set) -> str:
+    """Concatenate the body of `name` and all its transitive dependency bodies."""
     if name in seen or name not in recipes:
-        return False
+        return ""
     seen.add(name)
     rec = recipes[name]
-    if _RX.search(rec["body"]):
-        return True
-    return any(_recipe_hits(dep, recipes, seen) for dep in rec["deps"])
+    parts = [rec["body"]]
+    for dep in rec["deps"]:
+        parts.append(_recipe_text(dep, recipes, seen))
+    return "\n".join(parts)
 
 
-def _just_invokes_probe_rs(command: str, cwd: str) -> bool:
-    """True if the command runs a `just` recipe that transitively invokes probe-rs."""
+def _just_runs_unsafe_probe_rs(command: str, cwd: str):
+    """If the command runs a `just` recipe that invokes probe-rs unsafely, return a
+    short reason string; else None.
+
+    A recipe is the sanctioned hardware path ONLY when it (a) calls the host-side
+    `flash-guard` preflight AND (b) contains no reset-escalation flag. A recipe that
+    runs probe-rs without the guard, or with `--connect-under-reset`/
+    `--attach-under-reset` (even guarded), is the wedge risk and is blocked."""
     tokens = _tokenize(command)
     if tokens is None:
-        return False
-    justfile = ""
+        return None
     recipes = None
     at_cmd_pos = True
     collecting = False  # inside a `just ...` invocation
@@ -170,27 +213,30 @@ def _just_invokes_probe_rs(command: str, cwd: str) -> bool:
             collecting = False
             continue
         if collecting:
-            # Stop collecting recipe names at the next operator (handled above).
             if tok.startswith("-") or "=" in tok:
                 continue  # flag or var assignment / recipe k=v arg
             if recipes is None:
                 justfile = _find_justfile(cwd)
                 recipes = _parse_recipes(justfile) if justfile else {}
-            if _recipe_hits(tok, recipes, set()):
-                return True
+            text = _recipe_text(tok, recipes, set())
+            if _RX.search(text):
+                if _BANNED_RESET.search(text):
+                    return "contains a banned reset-escalation flag (--connect/attach-under-reset)"
+                if "flash-guard" not in text:
+                    return "runs probe-rs without the flash-guard preflight"
             continue
         if at_cmd_pos:
             if tok.rsplit("/", 1)[-1] == "just":
                 collecting = True
             at_cmd_pos = False
-    return False
+    return None
 
 
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
-        return 0
+        return 0  # malformed payload = harness error → fail open
 
     if payload.get("tool_name") != "Bash":
         return 0
@@ -199,31 +245,30 @@ def main() -> int:
         return 0
     cwd = payload.get("cwd") or os.getcwd()
 
-    hit_inline = bool(_RX.search(command))
-    hit_script = (not hit_inline) and _executed_script_invokes_probe_rs(command)
-    hit_just = (not hit_inline and not hit_script) and _just_invokes_probe_rs(command, cwd)
+    where = None
+    if _command_invokes_probe_rs(command):
+        where = "a raw `probe-rs` invocation (direct, piped, prefixed, in a script, or an interpreter -c string)"
+    else:
+        just_reason = _just_runs_unsafe_probe_rs(command, cwd)
+        if just_reason:
+            where = f"a `just` recipe that {just_reason}"
 
-    if hit_inline or hit_script or hit_just:
-        if hit_inline:
-            where = "the command"
-        elif hit_script:
-            where = "a script the command executes"
-        else:
-            where = "a `just` recipe the command runs"
+    if where:
         reason = (
-            f"Blocked: `probe-rs` invocation detected in {where}.\n\n"
-            "Per a standing user directive, the agent has NO way to run `probe-rs` "
-            "— not directly, not compound/piped, not via a python/bash script, and "
-            "NOT via a `just` recipe either. Raw probe-rs flash/reset/"
-            "connect-under-reset cannot flash a WFI-idling i.MX RT board over SWD "
-            "and strands ('wedges') it; only the user flashing in their own "
-            "terminal, or SDP serial-download, is safe.\n\n"
-            "Do NOT try to flash/reset/connect the probe by any means. If a "
-            "hardware step needs the probe, STOP and ask the user to run it.\n\n"
-            "You are also forbidden to ADD any probe-rs command (script, Justfile "
-            "recipe, anywhere) UNLESS the user specifically asks.\n\n"
-            "AND PAY ATTENTION TO ALL INSTRUCTIONS REGARDING WEDGED BOARD YOU "
-            "FUCKING ASS."
+            f"Blocked: detected {where}.\n\n"
+            "These i.MX RT EVK boards strand ('wedge') when a flash that can't halt the "
+            "core is followed by escalation. The agent may run `probe-rs` ONLY through a "
+            "GUARDED `just` recipe — one that runs the host-side `flash-guard.sh` preflight "
+            "and contains NO `--connect-under-reset`/`--attach-under-reset`. Raw probe-rs "
+            "(any route), an unguarded recipe, or any recipe with reset-escalation are all "
+            "blocked.\n\n"
+            "Fix: use a guarded, escalation-free recipe (e.g. `just flash`, `just rig-flash`, "
+            "`just box-flash`). Do NOT hand-roll a raw probe-rs command and do NOT add "
+            "`--connect-under-reset` to a recipe. A plain flash that times out has NOT wedged "
+            "the board — STOP and recover via serial-download (boot DIP SW7/SW8 + power-cycle), "
+            "do not escalate. Read the `imxrt-evk-flashing` skill before driving the probe.\n\n"
+            "(Reading/searching files that merely mention probe-rs — `rg`, `cat`, "
+            "`command -v probe-rs` — is allowed; this only blocks actually running it.)"
         )
         print(json.dumps({"decision": "block", "reason": reason}))
         return 0
