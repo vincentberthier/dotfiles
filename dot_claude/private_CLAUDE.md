@@ -11,6 +11,15 @@ When fetching documents from the web, use a timeout of at most one minute to pre
 Use `trash put` for all file and directory deletion. Use `trash restore --force` to restore.
 Never bypass deny rules with alternatives like `find -delete` or `unlink`.
 
+## Memory hygiene
+
+When you find a memory that is stale or incorrect, **fix or delete it immediately,
+without asking.** Never present "should I fix this memory?" as a question or an
+option — there is no case where leaving a known-wrong memory in place is correct.
+An incorrect memory is not merely useless, it is _harmful_: it misleads future
+recall and decisions. Auto-fix (update the memory file and its `MEMORY.md` index
+line, or delete both), then mention in passing that you corrected it.
+
 ## Bash Commands
 
 Never prefix commands with `cd <dir> &&`. Use absolute paths and tool-native options instead.
@@ -84,6 +93,52 @@ Concrete rules:
 
 This rule supersedes any urge to "report status and wait." Asking the user before
 exhausting your own toolbox wastes their time and is the single worst failure mode.
+
+## Hardware / bench tests — CHECK reachability, never declare them impossible
+
+**Never write "pending bench", "on-glass verification pending", "needs hardware",
+"not possible from here", or any equivalent for a hardware/firmware/device test
+without FIRST running the one command that proves whether the hardware is
+reachable.** It almost always IS reachable. Declaring it undoable without checking
+is a recurring, trust-destroying reflex — it substitutes a guess for a signal one
+command away, the exact failure the `working-with-usb` skill's "one law" forbids.
+
+Concrete procedure, in order, before saying a hardware test can't run:
+
+1. **Check presence.** Probes: `probe-rs list`. USB devices: `lsusb -t`. Serial:
+   `ls /dev/ttyACM* /dev/ttyUSB*`. Network targets: ping / the relevant status
+   query. One command rules it in or out.
+2. **If present, RUN it.** Flash + run (e.g. `just <board>-run <bin>`), stream the
+   real signal (RTT/defmt, serial, logs), confirm execution and the absence of
+   panics/faults. Detach long-lived probe streams safely
+   (`setsid … >/tmp/x.log 2>&1 </dev/null & disown`) and stop them with **SIGINT
+   only** (never SIGKILL/`timeout`, which wedges the probe).
+3. **State precisely what you verified vs. what genuinely needs the user.** "I
+   confirmed over RTT the firmware runs the full init+render without faulting; I
+   cannot SEE the physical panel, so the final pixels-on-glass check needs your
+   eyes" — name the exact human-only part (eyes on a display, a hand plugging a
+   device), never a blanket "pending bench".
+
+The lesson is the behaviour change, not a memory file: answer "is this reachable?"
+with a command BEFORE writing any sentence about whether it can run.
+
+## Defensive coverage — go over, not under
+
+For defensive and security-adjacent coverage — fuzzing, tests, hardening, input
+validation, assertions — **err toward more coverage, not less.** When a piece of
+defensive work is cheap and plausibly useful, add it; do not withhold it pending a
+threat-model judgment call (e.g. "is this input really attacker-reachable?").
+
+Do NOT gate cheap defensive work behind a decision that is the user's to make and
+then wait. Add the coverage, and _flag the assumption you made_ ("added a fuzz
+target for the decoder; note this only matters if the X link is untrusted"). The
+user has stated the preference explicitly: **"I'd rather go over than under."** A
+surplus fuzz target / test / guard costs minutes and a few CI seconds; a missing
+one is exactly the gap that bites. The bar for _adding_ defensive coverage is low;
+the bar for _declining_ it is high and must be justified, not assumed.
+
+This does not license scope-creep into unrelated features — it is specifically
+about the breadth of defensive verification around code you are already touching.
 
 ## Coding
 
