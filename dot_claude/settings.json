@@ -74,11 +74,11 @@
       "mcp__plugin_tyrex-squash_tyrex-squash__*"
     ],
     "deny": [
-      "Bash(ssh:*)",
       "Read(/home/vincent/.ssh/*)",
       "Read(/home/vincent/.config/glab-cli/config.yml)"
     ]
   },
+  "model": "opus[1m]",
   "hooks": {
     "PreToolUse": [
       {
@@ -91,6 +91,23 @@
           {
             "type": "command",
             "command": "python3 /home/vincent/.claude/hooks/block-rg-replace.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 /home/vincent/.claude/hooks/block-probe-rs.py"
+          },
+          {
+            "type": "command",
+            "command": "/home/vincent/.claude/hooks/sigint-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "TaskStop",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/vincent/.claude/hooks/sigint-guard.sh"
           }
         ]
       },
