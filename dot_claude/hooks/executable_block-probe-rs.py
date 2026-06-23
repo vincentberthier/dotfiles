@@ -21,6 +21,10 @@ Policy — BLOCK when:
      — blocked even when guarded, because escalation is the wedge.
 
 ALLOW:
+  - read-only, non-driving subcommands — `probe-rs list` and `probe-rs info` (and a
+    bare `probe-rs` / `--version` / `--help`, which only print usage). These never
+    flash or reset the target, so they cannot wedge a board; the skill and the bench
+    workflow both call for running them directly to confirm probe presence;
   - guarded, escalation-free recipes (the sanctioned path);
   - read-only MENTIONS of the tool as an ARGUMENT — `command -v probe-rs`,
     `which probe-rs`, `rg probe-rs Justfile`, `cat`/`jq` of a file that names it.
@@ -45,6 +49,12 @@ _RX = re.compile(r"(?<![\w.-])probe-rs(?![\w.])")
 
 # Reset-escalation flags that wedge these EVKs — banned even inside a guarded recipe.
 _BANNED_RESET = re.compile(r"(?:connect|attach)-under-reset")
+
+# Read-only, non-driving probe-rs subcommands: they enumerate probes / read target
+# info but never flash, run, or reset, so they cannot wedge a board. Allowed raw.
+# A bare `probe-rs` / `--version` / `--help` (no subcommand) only prints usage and is
+# likewise allowed (see `_safe_subcommand`).
+_SAFE_PROBE_RS_SUBCMDS = {"list", "info", "help", "version"}
 
 # Shell tokens that end one simple command and start another.
 _OPERATORS = {"|", "||", "&&", ";", "&", "|&", "(", ")", "{", "}", "\n"}
@@ -85,9 +95,26 @@ def _tokenize(command: str):
         return None
 
 
+def _safe_subcommand(tokens, idx: int) -> bool:
+    """probe-rs sits at tokens[idx]. True if it uses only a read-only, non-driving
+    subcommand (`list`/`info`/`help`/`version`) — or none at all (bare/`--version`/
+    `--help`, which just print usage). The subcommand is the first bare word after
+    probe-rs; leading flags are skipped, and a shell operator ends the command."""
+    for j in range(idx + 1, len(tokens)):
+        tok = tokens[j]
+        if tok in _OPERATORS:
+            break
+        if tok.startswith("-"):
+            continue
+        return tok in _SAFE_PROBE_RS_SUBCMDS
+    return True  # no subcommand → usage/help only, harmless
+
+
 def _command_invokes_probe_rs(command: str) -> bool:
-    """True if probe-rs runs at a command position, in an executed script, or in an
-    interpreter `-c`/`-e` code string. Arguments that merely name it are allowed."""
+    """True if a HARDWARE-DRIVING probe-rs runs at a command position, in an executed
+    script, or in an interpreter `-c`/`-e` code string. Arguments that merely name it
+    are allowed, and so are the read-only `list`/`info` subcommands at command position
+    (see `_safe_subcommand`)."""
     tokens = _tokenize(command)
     if tokens is None:
         # Unbalanced quotes etc. — can't reason precisely, so fail toward BLOCK.
@@ -96,7 +123,7 @@ def _command_invokes_probe_rs(command: str) -> bool:
     at_cmd_pos = True
     in_prefix = False        # consuming a transparent prefix's own flags/assignments
     mode = None              # None | "script" (scan next file) | "code" (scan next string)
-    for tok in tokens:
+    for i, tok in enumerate(tokens):
         if tok in _OPERATORS:
             at_cmd_pos, in_prefix, mode = True, False, None
             continue
@@ -128,7 +155,14 @@ def _command_invokes_probe_rs(command: str) -> bool:
 
         if at_cmd_pos:
             if _RX.search(tok):
-                return True
+                # Read-only `probe-rs list`/`info` (and bare usage) never drives the
+                # probe — let it through and keep scanning (a later command in a
+                # compound like `probe-rs list && probe-rs download` must still be
+                # caught). Anything else at command position is blocked outright.
+                if not _safe_subcommand(tokens, i):
+                    return True
+                at_cmd_pos = False
+                continue
             base = tok.rsplit("/", 1)[-1]
             if base in _CMD_PREFIXES:
                 in_prefix = True
@@ -139,6 +173,24 @@ def _command_invokes_probe_rs(command: str) -> bool:
             continue
         # Argument position, nothing special — ignore (allows `rg probe-rs file`).
     return False
+
+
+def _text_probe_rs_is_safe(text: str) -> bool:
+    """True if EVERY probe-rs occurrence in free-form text (a recipe body) uses only a
+    read-only, non-driving subcommand (`list`/`info`/`help`/`version`) or none at all.
+    The subcommand is the first bare word after probe-rs; leading flags are skipped.
+    Conservative: a flag that takes a value (`--probe X`) makes the value look like the
+    subcommand and fails toward 'unsafe', i.e. toward blocking."""
+    for m in _RX.finditer(text):
+        sub = None
+        for word in text[m.end():].split():
+            if word.startswith("-"):
+                continue
+            sub = word
+            break
+        if sub is not None and sub not in _SAFE_PROBE_RS_SUBCMDS:
+            return False
+    return True
 
 
 def _find_justfile(start: str) -> str:
@@ -219,7 +271,7 @@ def _just_runs_unsafe_probe_rs(command: str, cwd: str):
                 justfile = _find_justfile(cwd)
                 recipes = _parse_recipes(justfile) if justfile else {}
             text = _recipe_text(tok, recipes, set())
-            if _RX.search(text):
+            if _RX.search(text) and not _text_probe_rs_is_safe(text):
                 if _BANNED_RESET.search(text):
                     return "contains a banned reset-escalation flag (--connect/attach-under-reset)"
                 if "flash-guard" not in text:
