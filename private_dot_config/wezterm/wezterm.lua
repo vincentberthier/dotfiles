@@ -127,6 +127,11 @@ config.keys = {
 	{ key = "r", mods = "LEADER", action = act.ReloadConfiguration },
 	{ key = "d", mods = "LEADER", action = act.ShowDebugOverlay },
   { key = "p", mods = "LEADER", action = act.ActivateCommandPalette },
+  {
+    key = "Enter",
+    mods = "SHIFT",
+    action = wezterm.action.SendString("\x1b[200~\n\x1b[201~"),
+  },
   -- Splits
 	{ key = 'k', mods = 'CTRL|SHIFT', action = act.CloseCurrentPane{ confirm = false } },
 	{ key = 't', mods = 'CTRL|SHIFT', action = act.ActivatePaneDirection 'Prev' },
