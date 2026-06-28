@@ -122,9 +122,8 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "npx -y ccstatusline@latest",
-    "padding": 0,
-    "refreshInterval": 10
+    "command": "~/.local/bin/tyrex-statusline",
+    "padding": 3
   },
   "enabledPlugins": {
     "claudit@quickstop": false,
