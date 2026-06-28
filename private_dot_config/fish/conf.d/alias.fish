@@ -90,14 +90,19 @@ alias grep="grep --color=auto"
 alias egrep="egrep --color=auto"
 alias fgrep="fgrep --color=auto"
 
-# rsync-based cp/mv with progress and safety
-function cp --wraps cp --description "Copy with rsync progress (skips newer files on dest)"
+function rsync --wraps rsync
     if contains -- --server $argv
         command rsync $argv # remote --server: stay pristine
     else
         command rsync -azv --progress $argv
     end
 end
+
+# rsync-based cp/mv with progress and safety
+function cp --wraps cp --description "Copy with rsync progress (skips newer files on dest)"
+    command rsync -ah --info=progress2 --update $argv
+end
+
 function mv --wraps mv --description "Move with rsync progress"
     command rsync -ah --info=progress2 --remove-source-files $argv
     # Clean up empty directories left behind by rsync
@@ -147,7 +152,6 @@ alias cat="bat"
 alias less="cat"
 alias rms="shred -uz" # Shred (remove + overwrite) files
 alias ping="ping -c 5"
-alias rsync="rsync -azv --progress"
 alias scp="command rsync -azv --progress"
 alias wget="wget -c" # Resume wget by default
 alias top="htop"
