@@ -14,12 +14,12 @@ Générer des plans repas bihebdomadaires sous forme de fichiers Obsidian Markdo
 
 ## Fichiers de référence
 
-| Fichier                        | Contenu                                              | Quand le lire                                          |
-| ------------------------------ | ---------------------------------------------------- | ------------------------------------------------------ |
-| `references/profil.md`         | Profil utilisateur, contraintes, préférences         | Toujours, en début de génération                       |
-| `references/nutrition-guide.md`| Recommandations PNNS/ANSES/OMS/HAS                  | Toujours, pour calibrer les menus                      |
-| `references/generation-guidelines.md` | Règles de conception des menus et courses     | Toujours, pour respecter les contraintes pratiques      |
-| `references/obsidian-conventions.md`  | Formats de fichiers, frontmatter, structure   | Toujours, pour produire les fichiers au bon format      |
+| Fichier                               | Contenu                                      | Quand le lire                                      |
+| ------------------------------------- | -------------------------------------------- | -------------------------------------------------- |
+| `references/profil.md`                | Profil utilisateur, contraintes, préférences | Toujours, en début de génération                   |
+| `references/nutrition-guide.md`       | Recommandations PNNS/ANSES/OMS/HAS           | Toujours, pour calibrer les menus                  |
+| `references/generation-guidelines.md` | Règles de conception des menus et courses    | Toujours, pour respecter les contraintes pratiques |
+| `references/obsidian-conventions.md`  | Formats de fichiers, frontmatter, structure  | Toujours, pour produire les fichiers au bon format |
 
 Lire les 4 fichiers de référence avant toute génération.
 
@@ -28,7 +28,8 @@ Lire les 4 fichiers de référence avant toute génération.
 ```
 /home/vincent/Documents/Perso/Projets/Meal-Plan/
 ├── CLAUDE.md                # Contexte projet (logistique, données caloriques, leçons)
-├── Recettes/
+├── Recettes/                # Fiches recettes complètes (technique, sources Ciqual)
+├── Assemblages/             # Fiches d'assemblage légères (ingrédients + 3-4 étapes)
 ├── Archive/
 ├── Fonds-de-placard.md
 ├── Semaine-YYYY-WNN.md
@@ -42,7 +43,7 @@ Lire les 4 fichiers de référence avant toute génération.
 1. Lire les 4 fichiers de référence
 2. Lire `CLAUDE.md` dans le dossier du projet pour le contexte spécifique (logistique courses, données caloriques vérifiées, leçons des cycles précédents)
 3. Lire `Fonds-de-placard.md` pour connaître le stock actuel
-4. Lire les recettes existantes dans `Recettes/` — noter les `note:` pour favoriser les bien notées (≥ 4) et exclure les mal notées (≤ 2)
+4. Lire les recettes existantes dans `Recettes/` et les assemblages dans `Assemblages/` — noter les `note:` pour favoriser les bien notés (≥ 4) et exclure les mal notés (≤ 2)
 5. Identifier la saison courante (date du jour)
 6. Identifier les numéros de semaine ISO à planifier
 
@@ -61,7 +62,10 @@ Concevoir 2 semaines de déjeuners et dîners (14 déjeuners + 14 dîners) en re
 Dans cet ordre :
 
 1. **Archiver** les plans et courses précédents dans `Archive/`
-2. **Créer les recettes manquantes** dans `Recettes/` — réutiliser les recettes existantes bien notées quand pertinent. Pour chaque nouvelle recette, chercher une recette de référence en ligne (voir `generation-guidelines.md` § Source References) et l'inclure dans la section `# Sources`.
+2. **Créer les fiches manquantes** — réutiliser les recettes et assemblages bien notés quand pertinent. Pour chaque nouveau plat :
+   - **Recette complète** (vraie technique) → fichier dans `Recettes/`, avec source en ligne dans `# Sources` (voir `generation-guidelines.md` § Source References).
+   - **Assemblage** (procédure simple, aide-mémoire) → fichier dans `Assemblages/`, format réduit (voir `obsidian-conventions.md` § Format des Fiches d'Assemblage).
+   - **Repas trivial** (composition évidente) → pas de fichier, juste lister les composants dans le plan hebdomadaire.
 3. **Créer les 2 fichiers de plan hebdomadaire** (`Semaine-YYYY-WNN.md`)
 4. **Créer le fichier de courses** (`Courses-YYYY-WNN.md`) couvrant les 2 semaines
 5. **Mettre à jour `Fonds-de-placard.md`** si des articles du fonds de placard manquent
@@ -75,6 +79,7 @@ Spot-checker 5-6 recettes représentatives contre Ciqual (voir `generation-guide
 ### Étape 5 : Résumé
 
 Présenter à l'utilisateur :
+
 - Le plan des 2 semaines (tableau récapitulatif)
 - Les points nutritionnels clés (calories approximatives, répartition protéines)
 - Le nombre de recettes créées / réutilisées

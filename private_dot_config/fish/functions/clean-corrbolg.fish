@@ -12,8 +12,12 @@ function clean-corrbolg --description 'Delete Siril process/ dirs and .history f
         end
     end
 
-    if not test -d $root
-        echo "clean-corrbolg: $root is not mounted" >&2
+    # Scope strictly to the Siril data tree. NEVER scan all of $root: it also
+    # holds a home backup with source dirs named "process" (rust/tokio/cmake)
+    # and an npm "process" package — a blind name-match would delete those.
+    set -l scan $root/Astro
+    if not test -d $scan
+        echo "clean-corrbolg: $scan not found (drive mounted?)" >&2
         return 1
     end
 
@@ -22,14 +26,23 @@ function clean-corrbolg --description 'Delete Siril process/ dirs and .history f
     set -l targets
     while read -lz d
         set -a targets $d
-    end <(fd -0 -I --type d --glob process $root | psub)
+    end <(fd -0 -I --type d --glob process $scan | psub)
     while read -lz f
         set -a targets $f
-    end <(fd -0 -I -H --type f --glob '.history' $root | psub)
+    end <(fd -0 -I -H --type f --glob '.history' $scan | psub)
 
     if test (count $targets) -eq 0
-        echo "clean-corrbolg: nothing to clean under $root"
+        echo "clean-corrbolg: nothing to clean under $scan"
         return 0
+    end
+
+    # Safety net: never delete anything outside the Astro tree, no matter what
+    # the search returned. Belt-and-suspenders against a future scope change.
+    for t in $targets
+        if not string match -q -- "$scan/*" $t
+            echo "clean-corrbolg: ABORT — '$t' is outside $scan" >&2
+            return 1
+        end
     end
 
     printf '%s\n' $targets

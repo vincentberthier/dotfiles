@@ -4,14 +4,46 @@ This reference defines the rules and constraints for generating meal plans, reci
 
 ---
 
-## Assemblage vs Recette
+## Trois types de repas
 
-Tous les repas n'ont pas besoin d'une fiche recette. Distinguer :
+Distinguer trois catégories selon la complexité, chacune avec son traitement :
 
-- **Repas d'assemblage** : combinaison simple de produits sans véritable préparation culinaire (cordon bleu + purée + légumes en conserve, salade de thon en boîte + pain, etc.). Pas de fichier recette — noter directement les composants et calories dans le plan hebdomadaire.
-- **Recette** : plat nécessitant des étapes de préparation/cuisson (galette sarrasin, poulet papillote, gratin, curry, etc.). Créer un fichier dans `Recettes/`.
+### 1. Repas trivial (sans fiche)
 
-La majorité des repas quotidiens seront des assemblages. Ne créer des recettes que quand il y a une vraie valeur ajoutée (étapes, proportions, technique).
+Combinaison directe de produits sans aucune préparation culinaire : ouvrir une barquette + 1 tranche de pain, sortir un plat préparé, etc.
+
+- **Exemple** : Salade de thon barquette + pain, Pizza surgelée
+- **Pas de fichier**. Lister directement les composants dans le plan hebdomadaire avec leurs kcal.
+
+### 2. Repas d'assemblage (fiche légère dans `Assemblages/`)
+
+Assemblage de quelques produits avec une procédure simple à se rappeler (ordre, cuisson basique, montage). Pas de technique culinaire complexe, mais besoin d'un aide-mémoire.
+
+- **Exemples** : Tartines avocat-œuf, Asperges poêlées, Pommes de terre vapeur, Carottes râpées + œufs durs, Cordon bleu + purée + petits pois
+- **Fichier court** dans `Assemblages/` (pas dans `Recettes/`) :
+  - Frontmatter standard fileclass `recette`
+  - Section `# Ingrédients` : liste sans quantités précises (ou très approximatives), pas de kcal détaillées
+  - Section `# Préparation` : 3-4 étapes numérotées courtes (max ~15 mots par étape)
+  - **Pas** de section Notes longue, Sources, ni validation Ciqual
+- Wikilinkable depuis les plans : `[[Tartines avocat-œuf]]`.
+
+### 3. Recette (fiche complète dans `Recettes/`)
+
+Plat nécessitant une vraie technique : cuisson orchestrée, sauce, gratin, levée, marinade, étapes interdépendantes.
+
+- **Exemples** : Galette sarrasin, Poulet basquaise, Gratin de courgettes au chèvre, Filet mignon, Blanquette, Ratatouille
+- **Fichier complet** dans `Recettes/` :
+  - Frontmatter standard
+  - Ingrédients avec quantités précises et kcal/composant
+  - Préparation détaillée
+  - Notes (variantes, conservation)
+  - Sources (au moins une URL de recette de référence)
+
+### Règle de décision
+
+Si un humain peut deviner la procédure en regardant juste le titre du plat → **trivial**.
+S'il faut un rappel court (ordre, timing, astuce) mais aucune technique → **assemblage**.
+S'il faut une vraie procédure ou des proportions précises → **recette**.
 
 ---
 

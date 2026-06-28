@@ -9,12 +9,15 @@ Structure :
 
 ```
 Projets/Meal-Plan/
-├── Recettes/                    # Fiches recettes individuelles
+├── Recettes/                    # Fiches recettes complètes (technique, sources)
+├── Assemblages/                 # Fiches d'assemblage légères (ingrédients + 3-4 étapes)
 ├── Fonds-de-placard.md          # Inventaire des ingrédients de base
 ├── Semaine-YYYY-WNN.md          # Plan hebdomadaire (ex: Semaine-2026-W06.md)
 ├── Courses-YYYY-WNN.md          # Liste de courses pour cette période
 └── Archive/                     # Plans précédents déplacés ici
 ```
+
+Voir `generation-guidelines.md` § _Trois types de repas_ pour la distinction entre trivial (pas de fichier), assemblage (fiche légère dans `Assemblages/`) et recette (fiche complète dans `Recettes/`).
 
 ## Frontmatter - Fileclass "recette"
 
@@ -73,6 +76,34 @@ Notes :
 
 - Section **Notes** : optionnelle, pour astuces de conservation, variantes, ou accompagnements alternatifs.
 - Section **Sources** : obligatoire. Lien(s) vers la ou les recettes en ligne ayant servi de référence ou correspondance proche. Permet à l'utilisateur de consulter l'original et d'adapter.
+
+## Format des Fiches d'Assemblage (dans `Assemblages/`)
+
+Frontmatter identique aux recettes (fileclass `recette`), mais contenu réduit :
+
+```markdown
+# Ingrédients
+
+- 2 tranches de pain complet
+- ½ avocat mûr
+- 1 œuf
+- Tomates cerises, citron, huile d'olive, sel, poivre
+
+# Préparation
+
+1. Toaster le pain.
+2. Écraser l'avocat avec citron, sel.
+3. Cuire l'œuf (au plat, mollet ou poché).
+4. Monter et arroser d'huile.
+```
+
+Règles :
+
+- Limité à **2 sections** : `# Ingrédients` et `# Préparation`.
+- Ingrédients : liste sans quantités précises (ou très approximatives), pas de kcal par ligne.
+- Préparation : **3-4 étapes** maximum, courtes (max ~15 mots).
+- **Pas** de section Notes, Sources, ni validation Ciqual détaillée.
+- `calories-approx` dans le frontmatter reste indicatif (estimation globale, pas validée Ciqual).
 
 ## Format du Plan Hebdomadaire (Semaine-YYYY-WNN.md)
 
