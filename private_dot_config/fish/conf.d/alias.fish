@@ -92,7 +92,11 @@ alias fgrep="fgrep --color=auto"
 
 # rsync-based cp/mv with progress and safety
 function cp --wraps cp --description "Copy with rsync progress (skips newer files on dest)"
-    command rsync -ah --info=progress2 --update $argv
+    if contains -- --server $argv
+        command rsync $argv # remote --server: stay pristine
+    else
+        command rsync -azv --progress $argv
+    end
 end
 function mv --wraps mv --description "Move with rsync progress"
     command rsync -ah --info=progress2 --remove-source-files $argv
