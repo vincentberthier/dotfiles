@@ -1,3 +1,4 @@
+{{- $niri := index .niri .chezmoi.hostname -}}
 // This config is in the KDL format: https://kdl.dev
 // "/-" comments out the following node.
 // Check the wiki for a full description of the configuration:
@@ -9,16 +10,10 @@
 input {
     keyboard {
         xkb {
-            // You can set rules, model, layout, variant and options.
-            // For more information, see xkeyboard-config(7).
-
-            // For example:
-            // layout "us,ru"
-            // options "grp:win_space_toggle,compose:ralt,ctrl:nocaps"
-
-            // If this section is empty, niri will fetch xkb settings
-            // from org.freedesktop.locale1. You can control these using
-            // localectl set-x11-keymap.
+{{- if $niri.xkb_layout }}
+            layout "{{ $niri.xkb_layout }}"
+            variant "{{ $niri.xkb_variant }}"
+{{- end }}
         }
 
         // Enable numlock on startup, omitting this setting disables it.
@@ -69,72 +64,13 @@ input {
     focus-follows-mouse max-scroll-amount="95%"
 }
 
-{{ if eq .chezmoi.hostname "hephaistos" -}}
-output "DP-1" {
-    mode "1920x1080@60.000"
-    position x=0 y=0
+{{ range $niri.outputs -}}
+output "{{ .name }}" {
+    mode "{{ .mode }}"
+    position x={{ .x }} y={{ .y }}
 }
 
-output "DP-2" {
-    off
-}
-
-output "DP-3" {
-    off
-}
-{{- else -}}
-output "DP-1" {
-    mode "1920x1080@120.000"
-    position x=-1920 y=0
-}
-
-output "DP-2" {
-    mode "1920x1080@144.001"
-    position x=0 y=0
-}
-
-output "DP-3" {
-    mode "1920x1080@120.000"
-    position x=1920 y=0
-}
-{{- end }}
-
-// You can configure outputs by their name, which you can find
-// by running `niri msg outputs` while inside a niri instance.
-// The built-in laptop monitor is usually called "eDP-1".
-// Find more information on the wiki:
-// https://yalter.github.io/niri/Configuration:-Outputs
-// Remember to uncomment the node by removing "/-"!
-/-output "eDP-1" {
-    // Uncomment this line to disable this output.
-    // off
-
-    // Resolution and, optionally, refresh rate of the output.
-    // The format is "<width>x<height>" or "<width>x<height>@<refresh rate>".
-    // If the refresh rate is omitted, niri will pick the highest refresh rate
-    // for the resolution.
-    // If the mode is omitted altogether or is invalid, niri will pick one automatically.
-    // Run `niri msg outputs` while inside a niri instance to list all outputs and their modes.
-    mode "1920x1080@120.030"
-
-    // You can use integer or fractional scale, for example use 1.5 for 150% scale.
-    scale 2
-
-    // Transform allows to rotate the output counter-clockwise, valid values are:
-    // normal, 90, 180, 270, flipped, flipped-90, flipped-180 and flipped-270.
-    transform "normal"
-
-    // Position of the output in the global coordinate space.
-    // This affects directional monitor actions like "focus-monitor-left", and cursor movement.
-    // The cursor can only move between directly adjacent outputs.
-    // Output scale and rotation has to be taken into account for positioning:
-    // outputs are sized in logical, or scaled, pixels.
-    // For example, a 3840×2160 output with scale 2.0 will have a logical size of 1920×1080,
-    // so to put another output directly adjacent to it on the right, set its x to 1920.
-    // If the position is unset or results in an overlap, the output is instead placed
-    // automatically.
-    position x=1280 y=0
-}
+{{ end -}}
 
 // Settings that influence how windows are positioned and sized.
 // Find more information on the wiki:
@@ -293,47 +229,47 @@ layout {
 }
 
 workspace "" {
-    open-on-output "DP-1"
-}
-
-workspace "" {
-    open-on-output "DP-1"
-}
-
-workspace "󰬱" {
-    open-on-output "DP-1"
-}
-
-workspace "" {
-    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-2{{ end }}"
+    open-on-output "{{ $niri.output1 }}"
 }
 
 workspace "" {
-    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-2{{ end }}"
+    open-on-output "{{ $niri.output1 }}"
 }
 
-workspace "󰭎" {
-    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-2{{ end }}"
+workspace "󰬱" {
+    open-on-output "{{ $niri.output1 }}"
 }
 
-workspace "󰊖" {
-    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-2{{ end }}"
-}
-
-workspace "󰢹" {
-    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-2{{ end }}"
+workspace "" {
+    open-on-output "{{ $niri.output2 }}"
 }
 
 workspace "" {
-    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-3{{ end }}"
+    open-on-output "{{ $niri.output2 }}"
+}
+
+workspace "󰭎" {
+    open-on-output "{{ $niri.output2 }}"
+}
+
+workspace "󰊖" {
+    open-on-output "{{ $niri.output2 }}"
+}
+
+workspace "󰢹" {
+    open-on-output "{{ $niri.output2 }}"
+}
+
+workspace "" {
+    open-on-output "{{ $niri.output3 }}"
 }
 
 workspace "󰠮" {
-    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-3{{ end }}"
+    open-on-output "{{ $niri.output3 }}"
 }
 
 workspace "󰾔" {
-    open-on-output "{{ if eq .chezmoi.hostname "hephaistos" }}DP-1{{ else }}DP-3{{ end }}"
+    open-on-output "{{ $niri.output3 }}"
 }
 
 // Add lines like this to spawn processes at startup.
@@ -343,7 +279,6 @@ workspace "󰾔" {
 
 // Spawn at startup
 spawn-at-startup "udiskie"
-{{ if ne .chezmoi.hostname "hephaistos" -}}
 spawn-at-startup "zen-browser"
 spawn-at-startup "discord"
 spawn-at-startup "signal-desktop"
@@ -351,19 +286,16 @@ spawn-at-startup "thunderbird"
 spawn-at-startup "obsidian"
 spawn-at-startup "Telegram"
 spawn-at-startup "/opt/teams-for-linux/teams-for-linux"
-{{- end }}
 
 // To run a shell command (with variables, pipes, etc.), use spawn-sh-at-startup:
-spawn-sh-at-startup "qs -c noctalia-shell"
+spawn-sh-at-startup "noctalia run"
 spawn-sh-at-startup "TERM_STARTUP_MODE=initial wezterm"
-{{ if ne .chezmoi.hostname "hephaistos" -}}
 spawn-sh-at-startup "onedrivegui --minimize"
 spawn-sh-at-startup "/usr/bin/env fd . /home//home/vincent/.local/share/duplicacy -e log --changed-before 7d -X rm {}"
 spawn-sh-at-startup "~/.config/niri/scripts/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:home  /home/vincent/pcloud/"
 spawn-sh-at-startup "~/.config/niri/scripts/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:vault /home/vincent/vault/"
 spawn-sh-at-startup "~/.config/niri/scripts/wait_connection.sh; sleep 5; /usr/bin/env bash /home//home/vincent/duplicacy/restore.sh"
 spawn-sh-at-startup "~/.config/niri/scripts/setup_environment.sh"
-{{- end }}
 
 hotkey-overlay {
     // Uncomment this line to disable the "Important Hotkeys" pop-up at startup.
@@ -452,7 +384,7 @@ window-rule {
 window-rule {
     match title="^[Misc].* — Zen Browser$"
 
-    open-on-workspace ""
+    open-on-workspace ""
     default-column-width { proportion 1.00; }
 }
 
@@ -460,7 +392,7 @@ window-rule {
 window-rule {
     match title="^[WebDev].* — Zen Browser$"
 
-    open-on-workspace ""
+    open-on-workspace "󰾔"
     default-column-width { proportion 1.00; }
 }
 
@@ -514,12 +446,12 @@ window-rule {
 window-rule {
     match app-id=r#"^$"#
 
-    open-on-workspace ""
+    open-on-workspace ""
 }
 window-rule {
     match app-id=r#"^$"#
 
-    open-on-workspace ""
+    open-on-workspace ""
 }
 
 // Work around WezTerm's initial configure bug

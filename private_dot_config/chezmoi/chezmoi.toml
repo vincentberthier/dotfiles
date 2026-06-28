@@ -198,6 +198,41 @@
         ]
         output = ["DP-1", "DP-2", "DP-3"]
 
+[data.niri]
+    [data.niri.gaia]
+        xkb_layout = ""
+        xkb_variant = ""
+        output1 = "DP-1"
+        output2 = "DP-2"
+        output3 = "DP-3"
+        outputs = [
+            {name = "DP-1", mode = "1920x1080@120.000", x = -1920, y = 0},
+            {name = "DP-2", mode = "1920x1080@144.001", x = 0, y = 0},
+            {name = "DP-3", mode = "1920x1080@120.000", x = 1920, y = 0},
+        ]
+
+    [data.niri.athena]
+        xkb_layout = "fr"
+        xkb_variant = "bepo"
+        output1 = "eDP-1"
+        output2 = "eDP-1"
+        output3 = "eDP-1"
+        outputs = [
+            {name = "eDP-1", mode = "1920x1080@60.000", x = 0, y = 0},
+        ]
+
+    [data.niri.hephaistos]
+        xkb_layout = ""
+        xkb_variant = ""
+        output1 = "DP-1"
+        output2 = "DP-2"
+        output3 = "DP-3"
+        outputs = [
+            {name = "DP-1", mode = "1920x1080@60.000", x = 0, y = 0},
+            {name = "DP-2", mode = "1920x1080@60.000", x = 1920, y = 0},
+            {name = "DP-3", mode = "1920x1080@60.000", x = 3840, y = 0},
+        ]
+
 [edit]
     # Configure editor for chezmoi edit commands
     command = "helix"
