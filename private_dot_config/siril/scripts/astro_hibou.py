@@ -475,11 +475,12 @@ class Pipeline:
         self.progress_callback: Callable[[str], None] | None = None
         self.cancel_check: Callable[[], None] | None = None
         # Tunable post-processing knobs; the GUI overrides per run.
-        self.deconv_full_image: bool = False
+        # deconv_strength -> SyQon Parallax sharpen alpha; denoise_strength
+        # -> SyQon Prism modulation. Both 0..1.
         self.deconv_strength: float = 0.5
         self.denoise_strength: float = 0.5
         # Cluster mode swaps the deepsky do_process path for one tailored
-        # to star fields (no starnet, stellar deconv).
+        # to star fields (no star removal, full-image deconv + denoise).
         self.cluster_mode: bool = False
         # Weight of Ha in the HaLRGB-R/L blends: channel = (1-w)*base + w*Ha.
         self.ha_weight: float = 0.5
@@ -581,8 +582,11 @@ class Pipeline:
             self.prepare_flats(target_filters)
             self.prepare_channels(target_filters)
 
+            # Recombination (LRGB+SPCC / SHO / OHS / ...) runs in both
+            # modes: partial stops on the linear recombined master, full
+            # continues into deconv/denoise post-processing.
+            self.compose(options)
             if mode == "full":
-                self.compose(options)
                 self.process(options)
 
             if self.cwd() != start_dir:
@@ -613,8 +617,11 @@ class Pipeline:
         for filter_name in sorted(all_filters):
             self._combine_filter_across_days(start_dir, filter_name, days)
 
+        # Recombination (LRGB+SPCC / SHO / OHS / ...) runs in both modes:
+        # partial stops on the linear recombined master, full continues
+        # into deconv/denoise post-processing.
+        self.compose(options)
         if mode == "full":
-            self.compose(options)
             self.process(options)
 
         self.cd(start_dir)
@@ -1121,9 +1128,9 @@ class Pipeline:
         # seqapplyreg -framing=min keeps any pixel covered by at least one
         # frame, but partial-coverage rows/cols at the boundary become
         # channel-mismatched in the composed RGB. The mismatch reads as a
-        # faint colored sliver in linear data and GraXpert stellar deconv
-        # rings on it into a hard dark stripe (visible in cluster mode after
-        # autostretch; partly masked by StarNet in the regular path).
+        # faint colored sliver in linear data and the Parallax deconv rings
+        # on it into a hard dark stripe (visible in cluster mode after
+        # autostretch; partly masked by star removal in the regular path).
         # Restricting all aligned channels to the common-coverage rectangle
         # plus an adaptive inward margin removes the trigger.
         datasets: list[np.ndarray] = []
@@ -1521,12 +1528,12 @@ class Pipeline:
     def process(self, recombinations: list[str]) -> None:
         """Pre-stretch processing of each recombined image.
 
-        The pipeline stops at deconv + denoise on purpose: they're the
-        last steps that benefit from linear data. Stretching, star
-        recombination, and final cosmetic work happen by hand in Siril
-        and GIMP afterwards. That's why we leave the
-        `starless_*_denoised.fit` and `starmask_processing_*.fit` files
-        on disk and exit.
+        The pipeline stops after deconv -> denoise -> star removal on
+        purpose: those are the last steps that benefit from linear data.
+        Stretching, star recombination, and final cosmetic work happen by
+        hand in Siril and GIMP afterwards. That's why we leave the
+        `starless_*_denoised.fit` and `starmask_*_denoised.fit` files on
+        disk and exit.
         """
         # Option labels don't all map to filenames by lowercasing
         # (HaLRGB-R -> halrgb_r), so go through an explicit table.
@@ -1568,33 +1575,26 @@ class Pipeline:
             return
         cwd = self.cwd()
         final_out = cwd / f"starless_{image}_denoised.fit"
-        # Mode is part of the cache key so toggling deconv_full_image
-        # invalidates the previous run rather than serving stale output.
-        detail = f"{image}_{'full' if self.deconv_full_image else 'starless'}"
+        starmask_out = cwd / f"starmask_{image}_denoised.fit"
         if self.history.is_done(
             cwd,
             "do_process",
-            detail=detail,
-            outputs=[final_out],
+            detail=image,
+            outputs=[final_out, starmask_out],
             inputs=[cwd / f"{image}.fit"],
         ):
             self.siril.log("Step already done, skipping")
         else:
-            self.siril.cmd("load", f"{image}.fit")
-            if self.deconv_full_image:
-                # Deconv first: stars get sharpened too, but StarNet then
-                # works on cleaner data and tends to make tighter masks.
-                self.deconvolve(image, on_full=True)
-            self.siril.cmd("save", f"processing_{image}")
-            self.siril.cmd("load", f"processing_{image}.fit")
-            self.siril.cmd("starnet", "-stretch", "-upscale")
-            self.siril.cmd("load", f"starless_processing_{image}.fit")
-            if not self.deconv_full_image:
-                # Deconv only on the starless layer: avoids ringing around
-                # bright stars at the cost of overall sharpness.
-                self.deconvolve(image, on_full=False)
+            # Deconvolve -> denoise -> remove stars, all on linear data with
+            # stars present through the first two stages (the standard
+            # AI-tool order, SyQon Parallax -> Prism -> Starless). SyQon
+            # deconvolves with stars in place, so there's no separate
+            # starless-only deconv mode and denoise no longer runs after
+            # star removal.
+            self.deconvolve(image)
             self.denoise(image)
-            self.history.mark_done(cwd, "do_process", detail=detail)
+            self.remove_stars(image, f"{image}_denoised")
+            self.history.mark_done(cwd, "do_process", detail=image)
         write_metadata_sidecar(
             final_out,
             mode=image.upper(),
@@ -1607,19 +1607,21 @@ class Pipeline:
             self.veraluxify(image)
 
     def do_process_cluster(self, image: str) -> None:
-        """Cluster path: no starnet, stellar deconv, save a linear
-        pre-stretch checkpoint, autostretch, denoise, recover clipped star
-        cores. Designed for fields where there is no faint extended
-        structure to preserve, just point sources over background.
+        """Cluster path: no star removal. Deconvolve then denoise on linear
+        data, save a linear pre-stretch checkpoint, autostretch, recover
+        clipped star cores. Designed for fields where there is no faint
+        extended structure to preserve, just point sources over background.
 
-        The deconvolved-but-unstretched frame is saved to
-        `<image>_cluster_prestretch.fit` before the autostretch; the final
-        save targets a different file, so that checkpoint is never
-        overwritten and the (taste-driven) stretch can be redone by hand
-        from it.
+        Two linear checkpoints are kept: `<image>_cluster_deconvolved.fit`
+        (deconv only, before Prism denoise) is the branch point for the
+        VeraLux/Silentium continuation so pixels aren't denoised twice, and
+        `<image>_cluster_prestretch.fit` (deconv + denoise) is the
+        redo-the-stretch-by-hand checkpoint. The final save targets yet
+        another file, so neither checkpoint is overwritten.
         """
         cwd = self.cwd()
         final_out = cwd / f"{image}_cluster.fit"
+        deconv_out = cwd / f"{image}_cluster_deconvolved.fit"
         prestretch_out = cwd / f"{image}_cluster_prestretch.fit"
         detail = f"{image}_cluster"
         if self.history.is_done(
@@ -1632,23 +1634,18 @@ class Pipeline:
             self.siril.log("Step already done, skipping")
             self.open_image(final_out.stem)
         else:
-            self._step(f"Cluster: stellar deconvolve {image}")
+            self._step(f"Cluster: deconvolve {image}")
             self.siril.cmd("load", f"{image}.fit")
-            self.siril.cmd(
-                "pyscript", "GraXpert-AI.py", "-deconv_stellar",
-                f"-strength {self.deconv_strength:.2f}",
-            )
-            self.siril.undo_save_state("GraXpert Deconvolve Stellar")
+            self._run_parallax()
+            # Deconv-only linear checkpoint (pre-denoise) for the Silentium
+            # branch; the loaded image is unchanged by the save.
+            self.siril.cmd("save", deconv_out.stem)
+            self._step(f"Cluster: denoise {image}")
+            self._run_prism()
             self._step(f"Cluster: save pre-stretch checkpoint {image}")
             self.siril.cmd("save", prestretch_out.stem)
             self._step(f"Cluster: autostretch {image}")
             self.siril.cmd("autostretch")
-            self._step(f"Cluster: denoise {image}")
-            self.siril.cmd(
-                "pyscript", "GraXpert-AI.py", "-denoise",
-                f"-strength {self.denoise_strength:.2f}",
-            )
-            self.siril.undo_save_state("GraXpert Denoise")
             self._step(f"Cluster: recover star cores {image}")
             self.siril.cmd("unclipstars")
             self.siril.cmd("save", final_out.stem)
@@ -1663,68 +1660,109 @@ class Pipeline:
         if self.veralux_interactive:
             self._veraluxify_cluster(image)
 
-    def deconvolve(self, image: str, *, on_full: bool) -> None:
+    # --- SyQon engine wrappers -----------------------------------------
+    # Deconv, denoise, and star removal are the SyQon suite, run headless
+    # via pyscript (same mechanism as GraXpert background extraction). Each
+    # tool applies to the loaded image and pins its model edition through
+    # its own config JSON (Parallax=pro, Prism=deep, Starless=Axiom V3).
+
+    def _run_parallax(self) -> None:
+        """Deconvolve/sharpen the loaded image in place (SyQon Parallax).
+
+        Aberration correction stays on (its config default); star reduction
+        is forced off (`--star-level 0`) so only the deblur runs; the
+        sharpen alpha tracks deconv_strength. Applies in place — the caller
+        is responsible for saving.
+        """
+        self.siril.cmd(
+            "pyscript", "Parallax.py",
+            "--edition pro",
+            "--star-level 0",
+            f"--sharpen {self.deconv_strength:.2f}",
+        )
+        self.siril.undo_save_state("SyQon Parallax deconvolve")
+
+    def _run_prism(self) -> None:
+        """Denoise the loaded image in place (SyQon Prism, deep model).
+
+        `--modulation` blends 0.0 (original) .. 1.0 (full denoise); it is
+        driven by denoise_strength. Applies in place — the caller saves.
+        """
+        self.siril.cmd(
+            "pyscript", "Prism.py",
+            "--model deep",
+            f"--modulation {self.denoise_strength:.2f}",
+        )
+        self.siril.undo_save_state("SyQon Prism denoise")
+
+    def deconvolve(self, image: str) -> None:
+        """Deconvolve/sharpen the recombined master on linear data with
+        stars present (SyQon Parallax). SyQon handles stars in place, so
+        there is a single deconv path — no separate starless-only mode.
+        """
         cwd = self.cwd()
-        if on_full:
-            # Full-image deconv runs before starnet, on the recombined master.
-            inp = cwd / f"{image}.fit"
-            out = cwd / f"{image}_deconvolved.fit"
-            kind = "full"
-        else:
-            # Starless-only deconv runs after starnet, on its starless output.
-            inp = cwd / f"starless_processing_{image}.fit"
-            out = cwd / f"starless_{image}_deconvolved.fit"
-            kind = "starless"
-        detail = f"{image}_{kind}"
+        inp = cwd / f"{image}.fit"
+        out = cwd / f"{image}_deconvolved.fit"
         if self.history.is_done(
-            cwd,
-            "deconvolve",
-            detail=detail,
-            outputs=[out],
-            inputs=[inp],
+            cwd, "deconvolve", detail=image, outputs=[out], inputs=[inp],
         ):
             self.siril.log("Step already done, skipping")
             self.open_image(out.stem)
             return
-        self._step(f"Deconvolving {image} ({kind})")
-        self.siril.cmd(
-            "pyscript", "GraXpert-AI.py", "-deconv_obj",
-            f"-strength {self.deconv_strength:.2f}",
-        )
-        self.siril.undo_save_state("GraXpert Deconvolve Object")
+        self._step(f"Deconvolving {image}")
+        self.siril.cmd("load", f"{image}.fit")
+        self._run_parallax()
         self.siril.cmd("save", out.stem)
         self.open_image(out.stem)
-        self.history.mark_done(cwd, "deconvolve", detail=detail)
+        self.history.mark_done(cwd, "deconvolve", detail=image)
 
     def denoise(self, image: str) -> None:
+        """Denoise the deconvolved full-frame master on linear data, before
+        star removal (SyQon Prism). Input is deconvolve()'s output.
+        """
         cwd = self.cwd()
-        # Input is whatever do_process leaves loaded before this call: the
-        # deconvolved starless layer in starless-deconv mode, or starnet's
-        # raw starless output when deconv ran on the full image first.
-        if self.deconv_full_image:
-            inp = cwd / f"starless_processing_{image}.fit"
-        else:
-            inp = cwd / f"starless_{image}_deconvolved.fit"
-        out = cwd / f"starless_{image}_denoised.fit"
+        inp = cwd / f"{image}_deconvolved.fit"
+        out = cwd / f"{image}_denoised.fit"
         if self.history.is_done(
-            cwd,
-            "denoise",
-            detail=image,
-            outputs=[out],
-            inputs=[inp],
+            cwd, "denoise", detail=image, outputs=[out], inputs=[inp],
         ):
             self.siril.log("Step already done, skipping")
             self.open_image(out.stem)
             return
         self._step(f"Denoising {image}")
-        self.siril.cmd(
-            "pyscript", "GraXpert-AI.py", "-denoise",
-            f"-strength {self.denoise_strength:.2f}",
-        )
-        self.siril.undo_save_state("GraXpert Denoise")
+        self.siril.cmd("load", f"{image}_deconvolved.fit")
+        self._run_prism()
         self.siril.cmd("save", out.stem)
         self.open_image(out.stem)
         self.history.mark_done(cwd, "denoise", detail=image)
+
+    def remove_stars(self, image: str, src_stem: str) -> tuple[Path, Path]:
+        """Remove stars from `<src_stem>.fit` with SyQon Starless (Axiom
+        V3), the StarNet++ replacement. Starless names its outputs from the
+        loaded image's filename, so this writes `starless_<src_stem>.fit`
+        and `starmask_<src_stem>.fit` into the working dir and leaves the
+        starless loaded. Returns (starless_path, starmask_path).
+        """
+        cwd = self.cwd()
+        src = cwd / f"{src_stem}.fit"
+        starless = cwd / f"starless_{src_stem}.fit"
+        starmask = cwd / f"starmask_{src_stem}.fit"
+        if self.history.is_done(
+            cwd, "remove_stars", detail=src_stem,
+            outputs=[starless, starmask], inputs=[src],
+        ):
+            self.siril.log("Step already done, skipping")
+            self.open_image(starless.stem)
+            return starless, starmask
+        self._step(f"Removing stars: {src_stem}")
+        # Load so Starless derives its output basename from this file.
+        self.siril.cmd("load", f'"{src_stem}"')
+        # Axiom V3 pinned; the user runs Starless offline with no Zenith
+        # fallback model available. Starless writes both FITS files itself.
+        self.siril.cmd("pyscript", "Starless.py", "--axiom3")
+        self.open_image(starless.stem)
+        self.history.mark_done(cwd, "remove_stars", detail=src_stem)
+        return starless, starmask
 
     # --- VeraLux: checkpoint + interactive continuation ---------------
 
@@ -1744,7 +1782,7 @@ class Pipeline:
         """
         cwd = self.cwd()
         starless = cwd / f"starless_{image}_denoised.fit"
-        starmask = cwd / f"starmask_processing_{image}.fit"
+        starmask = cwd / f"starmask_{image}_denoised.fit"
         if not starless.exists():
             self.siril.log(
                 f"_STRETCH_ME: {starless.name} missing; skipping checkpoint"
@@ -1810,17 +1848,18 @@ class Pipeline:
         """
         cwd = self.cwd()
         if self.vlx_silentium:
-            # Silentium owns denoise: branch from the pre-GraXpert-denoise
-            # starless so the same pixels aren't denoised twice. (This is
-            # exactly denoise()'s input file.) The GraXpert-denoised
-            # _STRETCH_ME checkpoint is left untouched as a parallel result.
-            if self.deconv_full_image:
-                src = cwd / f"starless_processing_{image}.fit"
-            else:
-                src = cwd / f"starless_{image}_deconvolved.fit"
+            # Silentium owns denoise for the reference branch, so it must
+            # start from a starless that has NOT been Prism-denoised, or the
+            # pixels get denoised twice. The main order denoises before star
+            # removal, so no such starless exists yet — build one with a
+            # dedicated star-removal pass on the deconv-only frame. The
+            # Prism-denoised _STRETCH_ME checkpoint is left as a parallel
+            # result.
+            self.remove_stars(image, f"{image}_deconvolved")
+            src = cwd / f"starless_{image}_deconvolved.fit"
         else:
-            # No VeraLux denoise: start from the GraXpert-denoised starless
-            # so the data is denoised before the stretch.
+            # No VeraLux denoise: start from the Prism-denoised starless so
+            # the data is denoised before the stretch.
             src = cwd / f"starless_{image}_denoised.fit"
         if not src.exists():
             self.siril.log(
@@ -1895,7 +1934,14 @@ class Pipeline:
         baseline; this writes a VeraLux reference alongside it.
         """
         cwd = self.cwd()
-        src = cwd / f"{image}_cluster_prestretch.fit"
+        if self.vlx_silentium:
+            # Silentium is the sole denoiser here, so branch from the
+            # deconv-only linear checkpoint (before Prism denoise) to avoid
+            # denoising twice.
+            src = cwd / f"{image}_cluster_deconvolved.fit"
+        else:
+            # No Silentium: start from the Prism-denoised linear checkpoint.
+            src = cwd / f"{image}_cluster_prestretch.fit"
         if not src.exists():
             self.siril.log(
                 f"VeraLux: {src.name} missing; nothing to continue from"
@@ -2055,8 +2101,9 @@ class PipelineWorker(QObject):
     """Runs Pipeline.process_* on a QThread, surfacing progress and final
     state via Qt signals. Cancellation is cooperative — set by `cancel()`
     and checked by the pipeline at every `_step` boundary, plus a SIGTERM
-    nudge to any running GraXpert subprocess so a long-running deconv or
-    denoise doesn't pin the worker until completion.
+    nudge to any running SyQon / GraXpert subprocess so a long-running
+    deconv, denoise, or star-removal pass doesn't pin the worker until
+    completion.
     """
 
     progress = pyqtSignal(str)
@@ -2070,7 +2117,6 @@ class PipelineWorker(QObject):
         mode: str,
         options: list[str],
         *,
-        deconv_full_image: bool,
         deconv_strength: float,
         denoise_strength: float,
         cluster_mode: bool,
@@ -2090,7 +2136,6 @@ class PipelineWorker(QObject):
         self.days = days
         self.mode = mode
         self.options = options
-        self.deconv_full_image = deconv_full_image
         self.deconv_strength = deconv_strength
         self.denoise_strength = denoise_strength
         self.cluster_mode = cluster_mode
@@ -2113,7 +2158,7 @@ class PipelineWorker(QObject):
         self._kill_external_subprocesses()
 
     def _kill_external_subprocesses(self) -> None:
-        """Send SIGTERM to any running GraXpert or StarNet process so a
+        """Send SIGTERM to any running SyQon or GraXpert process so a
         cancel click takes effect mid-stage instead of waiting for the
         Siril command to return. The Siril command then surfaces a
         CommandError, which run() reclassifies as a cancellation.
@@ -2122,13 +2167,12 @@ class PipelineWorker(QObject):
             import psutil
         except ImportError:
             return
-        # StarNet ships under several binary names depending on which
-        # release is installed (starnet++, rgb_starnet++, mono_starnet++,
-        # starnet_cli…). All of them carry "starnet" in the basename, so
-        # a substring match on name/cmdline catches the lot without
-        # over-matching: Siril itself does not have "starnet" in its
-        # cmdline — it dispatches the external binary as a child.
-        targets = ("graxpert", "starnet")
+        # The SyQon tools run as pyscript children named Parallax.py /
+        # Prism.py / Starless.py; GraXpert (still used for background
+        # extraction) as GraXpert-AI.py. Match those script basenames in
+        # the cmdline — Siril's own process carries none of them. "starnet"
+        # is kept for any legacy StarNet child still lingering.
+        targets = ("graxpert", "parallax", "prism", "starless", "starnet")
         killed = 0
         for proc in psutil.process_iter(["pid", "name", "cmdline"]):
             try:
@@ -2154,7 +2198,6 @@ class PipelineWorker(QObject):
     def run(self) -> None:
         self.pipeline.progress_callback = self.progress.emit
         self.pipeline.cancel_check = self._raise_if_cancelled
-        self.pipeline.deconv_full_image = self.deconv_full_image
         self.pipeline.deconv_strength = self.deconv_strength
         self.pipeline.denoise_strength = self.denoise_strength
         self.pipeline.cluster_mode = self.cluster_mode
@@ -2324,7 +2367,6 @@ class Interface(QWidget):
         self.mode_partial: QRadioButton | None = None
         self.options_layout: QVBoxLayout | None = None
         self.options_group: QGroupBox | None = None
-        self.deconv_full_check: QCheckBox | None = None
         self.deconv_strength_spin: QDoubleSpinBox | None = None
         self.denoise_strength_spin: QDoubleSpinBox | None = None
         self.common_name_fr_edit: QLineEdit | None = None
@@ -2372,6 +2414,14 @@ class Interface(QWidget):
         mode_layout = QVBoxLayout()
         self.mode_full = QRadioButton("Full")
         self.mode_partial = QRadioButton("Partial")
+        self.mode_full.setToolTip(
+            "Calibrate, stack, recombine (LRGB+SPCC / SHO / OHS / ...), "
+            "then deconvolve + denoise to the linear pre-stretch checkpoint."
+        )
+        self.mode_partial.setToolTip(
+            "Calibrate, stack, and recombine (LRGB+SPCC / SHO / OHS / ...); "
+            "stop on the linear recombined master, before deconv/denoise."
+        )
         self.mode_full.setChecked(True)
         button_group = QButtonGroup(self)
         button_group.addButton(self.mode_full)
@@ -2404,11 +2454,6 @@ class Interface(QWidget):
 
         processing_group = QGroupBox("Processing")
         proc_layout = QVBoxLayout()
-        self.deconv_full_check = QCheckBox(
-            "Deconvolve full image (sharper; uncheck for safer starless-only)"
-        )
-        self.deconv_full_check.setChecked(False)
-        proc_layout.addWidget(self.deconv_full_check)
         proc_form = QFormLayout()
         self.deconv_strength_spin = QDoubleSpinBox()
         self.deconv_strength_spin.setRange(0.0, 1.0)
@@ -2611,12 +2656,10 @@ class Interface(QWidget):
         mode = self._selected_mode()
         options = self._selected_options() or ["LRGB"]
 
-        assert self.deconv_full_check is not None
         assert self.deconv_strength_spin is not None
         assert self.denoise_strength_spin is not None
         assert self.cluster_mode_check is not None
         assert self.ha_weight_spin is not None
-        deconv_full_image = self.deconv_full_check.isChecked()
         deconv_strength = self.deconv_strength_spin.value()
         denoise_strength = self.denoise_strength_spin.value()
         cluster_mode = self.cluster_mode_check.isChecked()
@@ -2636,7 +2679,6 @@ class Interface(QWidget):
             days,
             mode,
             options,
-            deconv_full_image=deconv_full_image,
             deconv_strength=deconv_strength,
             denoise_strength=denoise_strength,
             cluster_mode=cluster_mode,
