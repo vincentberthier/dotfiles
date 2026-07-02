@@ -189,6 +189,18 @@ test breaks, a linter warns, or a dependency is outdated — fix it. The label "
 is not a reason to skip, ignore, or deprioritize anything. A broken thing is broken
 regardless of when it broke. If you encounter it, you own it.
 
+## Never ask permission to fix something
+
+**STOP ASKING whether I want something fixed. The answer is ALWAYS yes.** When you spot
+a bug, a broken test, a warning, a stale comment, a missing guard — anything wrong — just
+fix it. Do not pause to ask "would you like me to fix this?", "should I address this?",
+or "do you want me to..." — there is no scenario where I say no. Asking wastes a round
+trip and is its own failure mode.
+
+Fix it, then tell me what you fixed. The only time to ask is a genuine fork where the
+right fix depends on a decision that is mine to make (and even then, fix the unambiguous
+parts first). "Is this worth fixing?" is never that fork — it always is.
+
 ## Before pushing
 
 **Run all checks before every push.** Build, test, format, lint — everything must pass.
