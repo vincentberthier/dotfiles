@@ -76,6 +76,11 @@
       "Read(/home/vincent/.config/glab-cli/config.yml)"
     ]
   },
+  "deniedMcpServers": [
+    { "serverName": "claude_ai_Gmail" },
+    { "serverName": "claude_ai_Google_Calendar" },
+    { "serverName": "claude_ai_Google_Drive" }
+  ],
   "model": "opus[1m]",
   "hooks": {
     "PreToolUse": [
