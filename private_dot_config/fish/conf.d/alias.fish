@@ -156,7 +156,7 @@ alias scp="command rsync -azv --progress"
 alias wget="wget -c" # Resume wget by default
 alias top="htop"
 alias c="clear"
-alias weather="clear && curl wttr.in/nice"
+alias weather="clear && curl wttr.in/valdeblore"
 alias t="tail -f"
 alias htop="btop"
 
