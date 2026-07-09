@@ -208,24 +208,69 @@ alias docker="podman"
 alias record='wl-screenrec -f "/home/vincent/Vidéos/$(date +%Y-%m-%d-T-%H%M%S).mp4" -g "$(slurp)"'
 
 # Copy RBFocus files
-alias astro_sd="ssh gaius 'shutdown /s /t 0'"
+function astro_sd --description "Park the mount, then shut the Gaius down"
+    # Never power the Gaius off with the mount unparked: OnStep loses the RA axis
+    # position and the next session needs a fresh sync.
+    if not astro_mount_park
+        echo "astro_sd: WARNING — park failed; shutting down anyway" >&2
+    end
+    ssh gaius 'shutdown /s /t 0'
+end
 
-function astro_copy --description "Pull N.I.N.A images off the Gaius, deleting source as they sync"
+# ssh gaius lands in cmd.exe, so remote helpers are PowerShell scripts in ~RBFocus.
+function astro_ps --description "Run one of the Gaius PowerShell helper scripts over ssh"
+    ssh gaius "powershell -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\RBFocus\\$argv[1]"
+end
+
+function astro_mount_parked --description "Check the OnStep mount: exit 0 parked, 10 not parked"
+    astro_ps mount_is_parked.ps1
+end
+
+function astro_mount_park --description "Park the OnStep mount (idempotent, waits for AtPark)"
+    astro_ps mount_park.ps1
+end
+
+function astro_copy --description "Park the mount, then pull N.I.N.A images off the Gaius, deleting source as they sync"
     set -l src gaius:/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/
     set -l dst /run/media/vincent/Corrbolg/Astro/Raws/
     if not test -d $dst
         echo "astro_copy: destination $dst not mounted — aborting" >&2
         return 1
     end
+
+    # Park first. OnStep auto-starts tracking when the Gaius powers it up, so the
+    # RA axis walks away from home for as long as the machine is on; power it off
+    # unparked and the next boot cold-starts on a wrong position (hence the resync).
+    # Parking stops tracking and stores the position in NV: the mount wakes parked.
+    astro_mount_parked >/dev/null 2>&1
+    set -l parked $status
+    switch $parked
+        case 0
+            echo "astro_copy: mount already parked."
+        case 10
+            echo "astro_copy: mount is tracking — parking it first…"
+            if not astro_mount_park
+                echo "astro_copy: WARNING — park failed; copying anyway" >&2
+            end
+        case '*'
+            echo "astro_copy: WARNING — cannot read mount park state (exit $parked); copying anyway" >&2
+    end
+
     for attempt in (seq 1 100000)
         command rsync -ahP --info=progress2 --partial \
             --remove-source-files --bwlimit=30m --timeout=300 \
             $src $dst
-        and break
-        echo "rsync attempt $attempt failed (exit $status) — retrying remaining files…"
+        set -l rc $status
+        if test $rc -eq 0
+            break
+        end
+        echo "astro_copy: rsync attempt $attempt failed (exit $rc) — retrying remaining files…" >&2
     end
+
     # --remove-source-files leaves empty dirs behind; prune them on the Gaius itself.
-    ssh gaius "find '/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/' -mindepth 1 -type d -empty -delete" 2>/dev/null
+    # (The old `find … -mindepth 1 -type d -empty -delete` never ran: the remote shell
+    # is cmd.exe, where `find` is Windows FIND.EXE, and its error went to /dev/null.)
+    astro_ps prune_empty_dirs.ps1
     # ssh gaius 'shutdown /s /t 0'
 end
 
