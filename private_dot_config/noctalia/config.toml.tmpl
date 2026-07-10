@@ -1,0 +1,240 @@
+{{- $niri := index .niri .chezmoi.hostname -}}
+# Migrated from Noctalia v4 settings.json (settingsVersion 22).
+
+[shell]
+avatar_path = "{{ .chezmoi.homeDir }}/Images/HibouRonchon.jpg"
+font_family = "Roboto"
+clipboard_enabled = false
+time_format = "{:%H:%M}"
+corner_radius_scale = 1.0
+ui_scale = 1.0
+setup_wizard_enabled = false
+
+    [shell.animation]
+    enabled = true
+    speed = 1.0
+
+    [shell.launcher]
+    sort_by_usage = true
+
+    [shell.mpris]
+    blacklist = []
+
+    [shell.panel]
+    transparency_mode = "solid"
+    shadow = true
+    control_center_placement = "attached"
+    control_center_position = "auto"
+    launcher_placement = "floating"
+    launcher_position = "center"
+    session_placement = "floating"
+    session_position = "center"
+    wallpaper_placement = "attached"
+    wallpaper_position = "auto"
+
+    [shell.screen_corners]
+    enabled = false
+
+    [shell.shadow]
+    direction = "down"
+
+    [[shell.session.actions]]
+    action = "lock"
+    enabled = true
+    shortcut = "1"
+    countdown_seconds = 0.0
+
+    [[shell.session.actions]]
+    action = "logout"
+    enabled = true
+    shortcut = "2"
+    countdown_seconds = 10.0
+
+    [[shell.session.actions]]
+    action = "lock_and_suspend"
+    enabled = true
+    shortcut = "3"
+    countdown_seconds = 10.0
+
+    [[shell.session.actions]]
+    action = "reboot"
+    enabled = true
+    shortcut = "4"
+    countdown_seconds = 10.0
+
+    [[shell.session.actions]]
+    action = "shutdown"
+    enabled = true
+    shortcut = "5"
+    variant = "destructive"
+    countdown_seconds = 10.0
+
+# NOT v4's dimDesktop: this is a permanent blur+tint over the wallpaper.
+[backdrop]
+enabled = false
+
+[audio]
+enable_overdrive = false
+
+[brightness]
+enable_ddcutil = false
+
+[theme]
+source = "builtin"
+builtin = "Catppuccin"
+mode = "dark"
+wallpaper_scheme = "m3-content"
+
+    # v4 had every app template target disabled.
+    [theme.templates]
+    enable_builtin_templates = false
+    enable_community_templates = false
+    builtin_ids = []
+    community_ids = []
+
+[location]
+address = "Nice"
+auto_locate = false
+sunrise = "06:30"
+sunset = "18:30"
+
+[weather]
+enabled = true
+unit = "metric"
+
+[calendar]
+enabled = true
+
+[nightlight]
+enabled = false
+force = false
+temperature_day = 6500
+temperature_night = 4000
+
+[notification]
+enable_daemon = true
+position = "top_center"
+layer = "overlay"
+background_opacity = 1.0
+monitors = [ "{{ $niri.output3 }}" ]
+
+[osd]
+position = "top_right"
+monitors = []
+
+[dock]
+enabled = false
+
+[wallpaper]
+enabled = true
+directory = "{{ .chezmoi.homeDir }}/Images/wallpapers"
+fill_mode = "crop"
+fill_color = "#000000"
+transition_duration = 1500.0
+edge_smoothness = 0.05
+per_monitor_directories = false
+
+    # v5 keeps the live selection in state; this is the value it falls back to.
+    [wallpaper.default]
+    path = "{{ .chezmoi.homeDir }}/Images/wallpapers/wallpaper_default.png"
+
+    [wallpaper.automation]
+    enabled = false
+    interval_seconds = 300
+    recursive = true
+
+[control_center]
+hidden_tabs = []
+
+    [[control_center.shortcuts]]
+    type = "wifi"
+
+    [[control_center.shortcuts]]
+    type = "bluetooth"
+
+    [[control_center.shortcuts]]
+    type = "screen_recorder"
+
+    [[control_center.shortcuts]]
+    type = "wallpaper"
+
+    [[control_center.shortcuts]]
+    type = "notification"
+
+    [[control_center.shortcuts]]
+    type = "power_profile"
+
+    [[control_center.shortcuts]]
+    type = "caffeine"
+
+    [[control_center.shortcuts]]
+    type = "nightlight"
+
+[bar]
+order = [ "default" ]
+
+    # v4: transparent, flush to the top edge, square corners, reserves space.
+    [bar.default]
+    position = "top"
+    reserve_space = true
+    background_opacity = 0.0
+    capsule = true
+    shadow = true
+    margin_edge = 0
+    margin_ends = 0
+    radius = 0
+    radius_top_left = 0
+    radius_top_right = 0
+    radius_bottom_left = 0
+    radius_bottom_right = 0
+    start = [ "control-center", "clock", "workspaces" ]
+    center = [ "media" ]
+    end = [ "tray", "notifications", "volume", "vpn", "backup", "cpu", "temp", "ram" ]
+
+[widget.clock]
+type = "clock"
+format = "{:%H:%M %a, %b %d}"
+
+# niri names its workspaces with single Nerd Font glyphs, so "name" renders icons.
+[widget.workspaces]
+type = "workspaces"
+display = "name"
+max_label_chars = 2
+# niri's trailing "new workspace" slot has no name; without this it falls back to
+# its numeric id. There is no glyph-fallback setting, so blank the label instead.
+labels_only_when_occupied = true
+
+[widget.media]
+type = "media"
+max_length = 500.0
+title_scroll = "on_hover"
+
+[widget.tray]
+type = "tray"
+pinned = [ "Microsoft Teams", "Discord" ]
+
+# v5 custom_button cannot poll a command for display text; the scripts are wired
+# to left-click instead of a 1s/60s text refresh.
+[widget.vpn]
+type = "custom_button"
+glyph = "shield-heart"
+tooltip = "VPN status"
+command = "{{ .chezmoi.homeDir }}/.config/noctalia/scripts/vpn.sh"
+
+[widget.backup]
+type = "custom_button"
+glyph = "database-heart"
+tooltip = "Backup status"
+command = "{{ .chezmoi.homeDir }}/.config/noctalia/scripts/backup.sh"
+
+[widget.cpu]
+type = "sysmon"
+stat = "cpu_usage"
+
+[widget.temp]
+type = "sysmon"
+stat = "cpu_temp"
+
+[widget.ram]
+type = "sysmon"
+stat = "ram_used"
