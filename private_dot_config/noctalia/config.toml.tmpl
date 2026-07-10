@@ -93,7 +93,10 @@ wallpaper_scheme = "m3-content"
     community_ids = []
 
 [location]
-address = "Nice"
+# api.noctalia.dev/geocode takes a bare city name: "Valdeblore, 06420, France" 404s.
+# latitude/longitude validate but are ignored whenever address resolves, so they
+# are omitted rather than left in as a misleading override.
+address = "Valdeblore"
 auto_locate = false
 sunrise = "06:30"
 sunset = "18:30"
