@@ -20,7 +20,7 @@ from pathlib import Path
 
 # Make the sibling core library importable regardless of Siril's working
 # directory (Siril sets cwd to the data folder, not the script folder).
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 
 import sirilpy  # noqa: E402
 from sirilpy import CommandError, SirilError  # noqa: E402
@@ -83,14 +83,19 @@ class Interface(QWidget):
 
         self._setup_ui()
         self._update_option_section()
-        self.adjustSize()
-        self.setFixedSize(self.size())
+        core.fit_to_content(self)
 
     # --- layout -------------------------------------------------------
 
     def _setup_ui(self) -> None:
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 10)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(10, 10, 10, 10)
+        # Every group goes inside a scroll area; the status row and the buttons
+        # stay pinned outside it so Proceed/Cancel are always reachable however
+        # many recombinations the selected days offer.
+        content = QWidget()
+        main_layout = QVBoxLayout(content)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
         if len(self.days_list) > 1:
             day_group = QGroupBox("Select Days")
@@ -165,10 +170,12 @@ class Interface(QWidget):
         self.denoise_strength_spin.setRange(0.0, 1.0)
         self.denoise_strength_spin.setSingleStep(0.05)
         self.denoise_strength_spin.setDecimals(2)
-        self.denoise_strength_spin.setValue(0.85)
+        self.denoise_strength_spin.setValue(1.0)
         self.denoise_strength_spin.setToolTip(
             "Prism modulation: blend fraction with the NOISY input\n"
-            "(out = m*denoised + (1-m)*original). 0.5 keeps half the noise."
+            "(out = m*denoised + (1-m)*original). 0.5 keeps half the noise.\n"
+            "Leave at 1.0 and derive the stretch from the PRE-denoise frame;\n"
+            "lowering it only keeps grain to hide Prism's residual."
         )
         proc_form.addRow("Denoise blend (1.0 = full):", self.denoise_strength_spin)
         # Common names — stamped into the YAML sidecar and consumed
@@ -191,6 +198,8 @@ class Interface(QWidget):
         proc_layout.addWidget(self.reset_history_btn)
         processing_group.setLayout(proc_layout)
         main_layout.addWidget(processing_group)
+        main_layout.addStretch(1)
+        outer.addWidget(core.scrollable(content), 1)
 
         # Status row reserved at construction time so the window doesn't
         # change size when work starts.
@@ -199,8 +208,8 @@ class Interface(QWidget):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(False)
-        main_layout.addWidget(self.status_label)
-        main_layout.addWidget(self.progress_bar)
+        outer.addWidget(self.status_label)
+        outer.addWidget(self.progress_bar)
 
         button_row = QHBoxLayout()
         button_row.addStretch(1)
@@ -210,7 +219,7 @@ class Interface(QWidget):
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
         button_row.addWidget(self.proceed_btn)
         button_row.addWidget(self.cancel_btn)
-        main_layout.addLayout(button_row)
+        outer.addLayout(button_row)
 
     def _update_option_section(self) -> None:
         assert self.options_layout is not None
@@ -230,8 +239,7 @@ class Interface(QWidget):
             self.option_checks[option] = cb
             self.options_layout.addWidget(cb)
 
-        self.adjustSize()
-        self.setFixedSize(self.size())
+        core.fit_to_content(self)
 
     # --- selection helpers --------------------------------------------
 

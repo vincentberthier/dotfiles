@@ -40,9 +40,37 @@ import runpy
 import sys
 import threading
 import time
+import urllib.request
 from pathlib import Path
 
 import sirilpy as s
+
+# --- network circuit-breaker ---------------------------------------------
+# SyQon's Starless.py calls urllib.request.urlopen() with no timeout to probe
+# https://siril.syqon.it for model updates. That host resolves but blackholes
+# TCP (no RST), so a bare urlopen() blocks for the OS connect timeout (~2m14s)
+# on every run. Upstream has no timeout and its once-per-hour throttle is dead
+# code (update_last_check_date() is defined but never called), so the probe
+# fires every time.
+#
+# The primary fix is data-side: a far-future engine_dir/last_update.date makes
+# should_check_for_updates() return False, so the probe never runs. This is the
+# backstop for when that file is absent (fresh engine dir) or overridden
+# (--force_update_check). Patching Starless.py itself is not durable: Siril's
+# in-app script updater runs `git reset --hard` on ~/.local/share/siril-scripts.
+#
+# Scoped to urlopen so torch/multiprocessing sockets keep their own semantics.
+_URLOPEN_TIMEOUT = 30.0
+_real_urlopen = urllib.request.urlopen
+
+
+def _urlopen_with_timeout(url, data=None, timeout=None, **kwargs):
+    if timeout is None:
+        timeout = _URLOPEN_TIMEOUT
+    return _real_urlopen(url, data, timeout, **kwargs)
+
+
+urllib.request.urlopen = _urlopen_with_timeout
 
 # --- locate the requested SyQon tool -------------------------------------
 if len(sys.argv) < 2:

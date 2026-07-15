@@ -28,11 +28,11 @@ import shutil
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 
 import sirilpy  # noqa: E402
 from sirilpy import CommandError, SirilError  # noqa: E402
-from PyQt6.QtCore import Qt, QThread  # noqa: E402
+from PyQt6.QtCore import QSettings, Qt, QThread  # noqa: E402
 from PyQt6.QtWidgets import (  # noqa: E402
     QApplication,
     QCheckBox,
@@ -76,7 +76,7 @@ class Continuable:
         self.cluster = cluster
 
     def label(self, show_dir: bool) -> str:
-        tag = f"{self.image.upper()}"
+        tag = core.mode_label(self.image)
         if self.cluster:
             tag += " (cluster)"
         if show_dir:
@@ -148,6 +148,44 @@ class VeraLuxPipeline(core.Pipeline):
         else:
             self.veraluxify(image)
 
+    @staticmethod
+    def _pin_hypermetric_mode() -> None:
+        """Open HyperMetric in **Scientific (Preserve)**, not Ready-to-Use.
+
+        HyperMetric remembers its processing mode in
+        `QSettings("VeraLux", "HyperMetricStretch")` -> `mode_ready`, which
+        defaults to **True** (Ready-to-Use). That mode is the one path that
+        cannot work on a Prism-denoised starless, and the launcher was handing
+        it to the operator every time.
+
+        Ready-to-Use ends in `adaptive_output_scaling()`, which sets
+        `global_floor = max(min_L, median_L - 2.7*sigma)` and expands to the
+        99th percentile. Prism deleted the noise that used to define `min_L`,
+        so on a denoised starless the frame's minimum sits only 8.4e-05 under
+        the sky instead of 1.01e-03: a 653x expansion instead of 373x, after
+        which the MTF *lifts* the background 2.4x rather than compressing it.
+        Measured 64-px background chroma structure: 0.00361 denoised vs
+        0.00025 un-denoised — 14x. That is the green/magenta continents.
+
+        No slider in that mode rescues it. `Log D` is inert (the output
+        background is bit-identical at log D 0.00 and 2.00, because
+        `adaptive_output_scaling` re-derives the tone map afterwards) and so is
+        `Protect b`. Only `Target Bg` moves it, linearly (0.15 -> 0.05 takes
+        chroma 0.00361 -> 0.00138) — i.e. it does not remove the residual, it
+        just crushes the sky until the residual is too dark to see, taking the
+        faint outer halo with it.
+
+        Scientific (Preserve) skips `adaptive_output_scaling` entirely, so
+        `log D` alone sets the stretch: chroma 0.00022 at the *same* background
+        level, 16x cleaner. It rebuilds no contrast, so the result is flat —
+        finish with Curves / Revela, or stretch by hand.
+
+        This is a *default*, not a lock: the radio button is still there.
+        """
+        s = QSettings("VeraLux", "HyperMetricStretch")
+        s.setValue("mode_ready", False)
+        s.sync()
+
     def _veralux_stage(
         self, image: str, stage: str, script: str, src: Path
     ) -> Path:
@@ -163,6 +201,8 @@ class VeraLuxPipeline(core.Pipeline):
         ):
             self.siril.log(f"VeraLux {stage}: already done, skipping")
             return out
+        if stage == "stretch":
+            self._pin_hypermetric_mode()
         self._step(
             f"VeraLux {stage}: opening {script} on {src.name} - "
             "process the image, then CLOSE the window to resume"
@@ -232,9 +272,7 @@ class VeraLuxPipeline(core.Pipeline):
         REFERENCE image and tell the user which two files to pick.
         """
         cwd = self.cwd()
-        tag = self._target_tag()
-        mode = image.upper()
-        ref = cwd / f"{tag}_{mode}_REFERENCE.fit"
+        ref = cwd / f"{self._stretch_me_base(image)}_REFERENCE.fit"
         result = cwd / "VeraLux_StarComposer_result.fit"
         if self.history.is_done(
             cwd, "veralux_starcompose", detail=image,
@@ -242,7 +280,16 @@ class VeraLuxPipeline(core.Pipeline):
         ):
             self.siril.log("VeraLux StarComposer: already done, skipping")
             return
-        starmask = self._stretch_me_dir() / f"{tag}_{mode}_STARS.fit"
+        # The checkpoint carries the *pipeline* run's date, which is not this
+        # launcher's; resolve it by glob rather than rebuilding the name.
+        starmask = self.find_stretch_me(image, "STARS.fit")
+        if starmask is None:
+            self.siril.log(
+                f"VeraLux StarComposer: no STARS mask found in "
+                f"{self._stretch_me_dir().name}/ for {core.mode_label(image)}; "
+                "skipping"
+            )
+            return
         self._step(
             "VeraLux StarComposer: opening - pick STARLESS = "
             f"{stretched.name} (stretched) and STARS = {starmask.name} "
@@ -304,7 +351,7 @@ class VeraLuxPipeline(core.Pipeline):
                 image, f"cluster_{stage}", scripts[stage], current
             )
         if current != src:
-            ref = cwd / f"{self._target_tag()}_{image.upper()}_REFERENCE.fit"
+            ref = cwd / f"{self._stretch_me_base(image)}_REFERENCE.fit"
             shutil.copy2(current, ref)
             self.siril.log(f"VeraLux: cluster reference -> {ref.name}")
 
@@ -350,12 +397,16 @@ class VeraLuxInterface(QWidget):
         self._worker: core.PipelineWorker | None = None
 
         self._setup_ui()
-        self.adjustSize()
-        self.setFixedSize(self.size())
+        core.fit_to_content(self)
 
     def _setup_ui(self) -> None:
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 10)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(10, 10, 10, 10)
+        # The continuable-image list grows with the number of recombinations
+        # found on disk, so it scrolls; the buttons stay pinned.
+        content = QWidget()
+        main_layout = QVBoxLayout(content)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
         img_group = QGroupBox("Recombined images to continue")
         img_layout = QVBoxLayout()
@@ -386,14 +437,16 @@ class VeraLuxInterface(QWidget):
         self.reset_history_btn = QPushButton("Reset history")
         self.reset_history_btn.clicked.connect(self._on_reset_history)
         main_layout.addWidget(self.reset_history_btn)
+        main_layout.addStretch(1)
+        outer.addWidget(core.scrollable(content), 1)
 
         self.status_label = QLabel(" ")
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(False)
-        main_layout.addWidget(self.status_label)
-        main_layout.addWidget(self.progress_bar)
+        outer.addWidget(self.status_label)
+        outer.addWidget(self.progress_bar)
 
         button_row = QHBoxLayout()
         button_row.addStretch(1)
@@ -403,7 +456,7 @@ class VeraLuxInterface(QWidget):
         self.cancel_btn.clicked.connect(self._on_cancel_clicked)
         button_row.addWidget(self.proceed_btn)
         button_row.addWidget(self.cancel_btn)
-        main_layout.addLayout(button_row)
+        outer.addLayout(button_row)
 
     # --- selection helpers --------------------------------------------
 
