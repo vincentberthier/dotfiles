@@ -14,7 +14,9 @@
 
 local dt = require "darktable"
 
-local SCRIPT = os.getenv("HOME") .. "/.config/siril/scripts/astro_inject_meta.py"
+-- Moved out of Siril's script dir on 2026-07-19: it has no sirilpy import, so
+-- it is a plain CLI tool and only cluttered the Scripts menu.
+local SCRIPT = os.getenv("HOME") .. "/.local/bin/astro-inject-meta"
 local EXPORT_ROOT = os.getenv("HOME") .. "/Images/Photos/Astro"
 
 local function shell_quote(s)

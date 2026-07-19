@@ -1,0 +1,402 @@
+#!/usr/bin/env python3
+"""Inject astrophotography metadata from a YAML sidecar into an exported JPG.
+
+The sidecar is produced by astro_hibou.py at the end of the Siril pipeline,
+next to the final FIT in process/. After GIMP + darktable export, this script
+reads the sidecar, maps the JPG back to it by (target name, mode), and writes
+the metadata as EXIF + XMP via exiftool.
+
+Usage:
+    astro_inject_meta.py [-v] [--dry-run] [--force] [--sidecar PATH]
+                         <jpg-or-dir>...
+
+Idempotency: a custom XMP-astrohibou:InjectedBy signature tag marks files
+already processed; re-runs skip them unless --force is passed.
+
+Pair handling: when given <name>.jpg, also processes <name>-web.jpg (and
+vice versa) so master + web stay in sync.
+
+Requires: exiftool (perl-image-exiftool), PyYAML.
+Custom XMP namespace defined in ~/.ExifTool_config.
+"""
+
+from __future__ import annotations
+
+import argparse
+import re
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Iterable
+
+import yaml
+
+
+RAWS_ROOT = Path("/run/media/vincent/Corrbolg/Astro/Raws")
+EXPORT_ROOT = Path.home() / "Images/Photos/Astro"
+INJECTOR_VERSION = "astro_inject_meta v1"
+
+# JPG filename: YYYY-MM-DD_<target>-<mode>[-extra...][-web].jpg
+# The "extra" segment is rare (e.g. "M8-SHO-first") so we keep mode loose.
+RE_JPG = re.compile(
+    r"^(?P<date>\d{4}-\d{2}-\d{2})_(?P<target>[^_]+?)-(?P<mode>[A-Za-z]+)"
+    r"(?P<extra>(?:-[^-]+)*?)(?P<web>-web)?\.jpg$"
+)
+
+# Modes we recognise as recombination outputs from astro_hibou.py.
+KNOWN_MODES = {"LRGB", "RGB", "SHO", "HOO", "OHS", "HSO", "FORAX", "FORAXX",
+               "HALRGB_R", "HALRGB_L"}
+
+
+def normalize_target(name: str) -> str:
+    """Strip whitespace + lowercase for fuzzy target matching."""
+    return re.sub(r"\s+", "", name or "").lower()
+
+
+def parse_jpg_name(jpg: Path) -> tuple[str, str, bool] | None:
+    """Return (target_token, mode_upper, is_web) or None if unparseable."""
+    m = RE_JPG.match(jpg.name)
+    if not m:
+        return None
+    return m["target"], m["mode"].upper(), bool(m["web"])
+
+
+def _iter_sidecars() -> Iterable[Path]:
+    """Yield sidecars across both layouts:
+      - single-day:  Raws/<target>/process/*.meta.yaml
+      - multi-day:   Raws/<target>/<YYYY-MM-DD>/process/*.meta.yaml
+    """
+    yield from RAWS_ROOT.glob("*/process/*.meta.yaml")
+    yield from RAWS_ROOT.glob("*/*/process/*.meta.yaml")
+
+
+def _target_folder(sidecar: Path) -> str:
+    """The first path component under RAWS_ROOT — the target folder name,
+    regardless of whether a date subfolder sits in between."""
+    rel = sidecar.relative_to(RAWS_ROOT)
+    return rel.parts[0] if rel.parts else ""
+
+
+def find_sidecar(target_token: str, mode: str) -> Path | None:
+    """Scan Raws/ for a sidecar matching the target + mode."""
+    target_n = normalize_target(target_token)
+    candidates: list[Path] = []
+    for sidecar in _iter_sidecars():
+        try:
+            with open(sidecar) as f:
+                meta = yaml.safe_load(f) or {}
+        except (OSError, yaml.YAMLError):
+            continue
+        sidecar_target = (meta.get("target") or {}).get("name") or ""
+        sidecar_mode = ((meta.get("acquisition") or {}).get("mode") or "").upper()
+        if sidecar_mode != mode:
+            continue
+        if normalize_target(sidecar_target) == target_n:
+            return sidecar
+        # Folder name fallback: catalog aliases (B33 → Horsehead Nebula folder).
+        if normalize_target(_target_folder(sidecar)) == target_n:
+            candidates.append(sidecar)
+    # Single fallback match is good enough; ambiguity = give up.
+    return candidates[0] if len(candidates) == 1 else None
+
+
+def to_exif_datetime(iso: str | None) -> str | None:
+    """Convert 2026-03-26T21:40:44.542789 → 2026:03:26 21:40:44 (EXIF style)."""
+    if not iso:
+        return None
+    try:
+        dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return dt.strftime("%Y:%m:%d %H:%M:%S")
+
+
+def _common_label(target_block: dict) -> str:
+    """FR / EN common name, joined with ' / ' when both are set."""
+    fr = (target_block.get("common_name_fr") or "").strip()
+    en = (target_block.get("common_name_en") or "").strip()
+    if fr and en:
+        return f"{fr} / {en}"
+    return fr or en
+
+
+def build_description(meta: dict) -> str:
+    """Human-readable multi-line description packed into ImageDescription."""
+    target_block = meta.get("target") or {}
+    target = target_block.get("name") or "(unknown target)"
+    common = _common_label(target_block)
+    target_label = f"{target} - {common}" if common else target
+    acq = meta.get("acquisition") or {}
+    eq = meta.get("equipment") or {}
+    mode = acq.get("mode") or "?"
+    frames = acq.get("frames_stacked")
+    sub = acq.get("sub_exposure_s")
+    total_s = acq.get("total_integration_s")
+    telescope = eq.get("telescope") or "?"
+    camera = eq.get("camera") or "?"
+    date = (acq.get("date_obs_utc") or "")[:10]
+
+    if total_s:
+        hrs, rem = divmod(int(total_s), 3600)
+        mins = rem // 60
+        total_str = f"{hrs}h{mins:02d}m"
+    else:
+        total_str = "?"
+
+    lines = [f"{target_label} — {mode}"]
+    if frames and sub:
+        lines.append(f"{total_str} total integration ({frames} × {sub:g} s subs).")
+    elif total_s:
+        lines.append(f"{total_str} total integration.")
+    lines.append(f"{telescope} + {camera}.")
+    if date:
+        lines.append(f"Acquired {date} UTC.")
+    return "\n".join(lines)
+
+
+def gps_args(lat: float | int | None, lon: float | int | None) -> list[str]:
+    """exiftool GPS args; handles missing values gracefully."""
+    out: list[str] = []
+    if lat is not None:
+        out += [f"-GPSLatitude={abs(lat)}", f"-GPSLatitudeRef={'S' if lat < 0 else 'N'}"]
+    if lon is not None:
+        out += [f"-GPSLongitude={abs(lon)}", f"-GPSLongitudeRef={'W' if lon < 0 else 'E'}"]
+    return out
+
+
+def build_exiftool_args(meta: dict, jpg: Path) -> list[str]:
+    author_name = (meta.get("author") or {}).get("name") or ""
+    author_email = (meta.get("author") or {}).get("email") or ""
+    author = author_name + (f" <{author_email}>" if author_email else "")
+
+    target = meta.get("target") or {}
+    acq = meta.get("acquisition") or {}
+    eq = meta.get("equipment") or {}
+    site = meta.get("site") or {}
+    cond = meta.get("conditions") or {}
+    proc = meta.get("processing") or {}
+
+    description = build_description(meta)
+    date_utc = to_exif_datetime(acq.get("date_obs_utc"))
+    year = (acq.get("date_obs_utc") or "")[:4] or str(datetime.now().year)
+    copyright_str = f"© {year} {author_name}".strip()
+
+    args: list[str] = [
+        # Standard EXIF
+        f"-EXIF:Artist={author_name}",
+        f"-EXIF:Copyright={copyright_str}",
+        f"-EXIF:ImageDescription={description}",
+        # Standard XMP
+        f"-XMP-dc:Creator={author}",
+        f"-XMP-dc:Rights={copyright_str}",
+        f"-XMP-dc:Description={description}",
+        f"-XMP-dc:Title={target.get('name') or ''}"
+        + (f" - {_common_label(target)}" if _common_label(target) else ''),
+    ]
+
+    if date_utc:
+        args += [
+            f"-EXIF:DateTimeOriginal={date_utc}",
+            f"-XMP-photoshop:DateCreated={date_utc}",
+        ]
+
+    args += gps_args(site.get("latitude_deg"), site.get("longitude_deg"))
+
+    # Custom astro namespace — most fields are optional; only add if present.
+    def add(tag: str, value):
+        if value is None or value == "":
+            return
+        args.append(f"-XMP-astrohibou:{tag}={value}")
+
+    add("Object", target.get("name"))
+    add("CommonNameFr", (target.get("common_name_fr") or "").strip() or None)
+    add("CommonNameEn", (target.get("common_name_en") or "").strip() or None)
+    add("RA", target.get("ra_deg"))
+    add("Dec", target.get("dec_deg"))
+    add("Mode", acq.get("mode"))
+    add("DateObsUTC", acq.get("date_obs_utc"))
+    add("Frames", acq.get("frames_stacked"))
+    add("SubExposure", acq.get("sub_exposure_s"))
+    add("Integration", acq.get("total_integration_s"))
+    add("Airmass", acq.get("airmass"))
+    add("Telescope", eq.get("telescope"))
+    add("Camera", eq.get("camera"))
+    add("FilterWheel", eq.get("filter_wheel"))
+    add("FocalLength", eq.get("focal_length_mm"))
+    add("FocalRatio", eq.get("focal_ratio"))
+    add("PixelSize", eq.get("pixel_size_um"))
+    add("Binning", eq.get("binning"))
+    add("Gain", eq.get("gain"))
+    add("Offset", eq.get("offset"))
+    add("SensorTemp", eq.get("sensor_temp_c"))
+    add("AmbientTemp", cond.get("ambient_temp_c"))
+    add("Humidity", cond.get("humidity_pct"))
+    add("Pressure", cond.get("pressure_hpa"))
+    add("CloudCover", cond.get("cloud_cover_pct"))
+    add("WindSpeed", cond.get("wind_speed_kph"))
+    add("Software", proc.get("software"))
+
+    # Signature — lets future runs detect already-processed files.
+    add("InjectedBy", INJECTOR_VERSION)
+    add("InjectedAt", datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
+
+    return args
+
+
+def already_injected(jpg: Path) -> bool:
+    """Check the InjectedBy signature tag."""
+    try:
+        result = subprocess.run(
+            ["exiftool", "-config", str(Path.home() / ".ExifTool_config"),
+             "-s", "-s", "-s", "-XMP-astrohibou:InjectedBy", str(jpg)],
+            capture_output=True, text=True, timeout=30, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return bool(result.stdout.strip())
+
+
+def run_exiftool(jpg: Path, args: list[str], dry_run: bool, verbose: bool) -> bool:
+    cmd = [
+        "exiftool",
+        "-config", str(Path.home() / ".ExifTool_config"),
+        "-overwrite_original",
+        "-codedcharacterset=utf8",
+        *args,
+        str(jpg),
+    ]
+    if dry_run:
+        print(f"  [dry-run] exiftool args ({len(args)} fields)")
+        if verbose:
+            for a in args:
+                print(f"    {a}")
+        return True
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        print(f"  ! exiftool failed: {result.stderr.strip()}", file=sys.stderr)
+        return False
+    if verbose:
+        print(f"  {result.stdout.strip()}")
+    return True
+
+
+def pair_files(jpg: Path) -> list[Path]:
+    """Return [master, web] pair (filtered to those that exist)."""
+    if jpg.stem.endswith("-web"):
+        master = jpg.with_name(jpg.stem[:-4] + jpg.suffix)
+        web = jpg
+    else:
+        master = jpg
+        web = jpg.with_name(jpg.stem + "-web" + jpg.suffix)
+    return [p for p in (master, web) if p.exists()]
+
+
+def expand_inputs(inputs: Iterable[Path]) -> list[Path]:
+    """Resolve dirs to their .jpg children; leave files alone."""
+    out: list[Path] = []
+    for p in inputs:
+        if p.is_dir():
+            out.extend(sorted(p.glob("*.jpg")))
+        elif p.is_file():
+            out.append(p)
+        else:
+            print(f"! Not found: {p}", file=sys.stderr)
+    return out
+
+
+def process_one(
+    jpg: Path,
+    *,
+    explicit_sidecar: Path | None,
+    force: bool,
+    dry_run: bool,
+    verbose: bool,
+) -> bool:
+    print(f"→ {jpg.name}")
+    if not force and already_injected(jpg):
+        print("  already injected (use --force to redo)")
+        return True
+
+    if explicit_sidecar:
+        sidecar = explicit_sidecar
+    else:
+        parsed = parse_jpg_name(jpg)
+        if parsed is None:
+            print(f"  ! Cannot parse filename. Pass --sidecar to override.",
+                  file=sys.stderr)
+            return False
+        target_token, mode, _is_web = parsed
+        if mode not in KNOWN_MODES and verbose:
+            print(f"  (unrecognised mode '{mode}'; trying anyway)")
+        sidecar = find_sidecar(target_token, mode)
+        if sidecar is None:
+            print(f"  ! No sidecar for target='{target_token}' mode={mode}. "
+                  f"Pass --sidecar to override.", file=sys.stderr)
+            return False
+        if verbose:
+            print(f"  sidecar: {sidecar}")
+
+    try:
+        with open(sidecar) as f:
+            meta = yaml.safe_load(f) or {}
+    except (OSError, yaml.YAMLError) as e:
+        print(f"  ! Sidecar unreadable: {e}", file=sys.stderr)
+        return False
+
+    args = build_exiftool_args(meta, jpg)
+    return run_exiftool(jpg, args, dry_run=dry_run, verbose=verbose)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Inject astro YAML sidecar metadata into exported JPGs.",
+    )
+    parser.add_argument("inputs", nargs="+", type=Path,
+                        help="JPG files or directories to scan.")
+    parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Print exiftool args without writing.")
+    parser.add_argument("--force", action="store_true",
+                        help="Re-inject even if the signature tag is present.")
+    parser.add_argument("--sidecar", type=Path,
+                        help="Explicit sidecar path; skips auto-resolution.")
+    args = parser.parse_args()
+
+    if args.sidecar and not args.sidecar.exists():
+        parser.error(f"Sidecar not found: {args.sidecar}")
+
+    jpgs = expand_inputs(args.inputs)
+    # Expand each JPG to its master/web pair, deduplicate.
+    seen: set[Path] = set()
+    targets: list[Path] = []
+    for jpg in jpgs:
+        for p in pair_files(jpg):
+            if p not in seen:
+                seen.add(p)
+                targets.append(p)
+
+    if not targets:
+        print("No JPGs to process.", file=sys.stderr)
+        return 1
+
+    failures = 0
+    for jpg in targets:
+        ok = process_one(
+            jpg,
+            explicit_sidecar=args.sidecar,
+            force=args.force,
+            dry_run=args.dry_run,
+            verbose=args.verbose,
+        )
+        if not ok:
+            failures += 1
+
+    if failures:
+        print(f"\n{failures}/{len(targets)} failed.", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
