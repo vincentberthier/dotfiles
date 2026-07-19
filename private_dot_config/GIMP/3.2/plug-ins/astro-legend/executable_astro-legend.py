@@ -34,7 +34,7 @@ from gi.repository import Gegl, GLib, GObject, Gimp  # noqa: E402
 import yaml  # noqa: E402  (system PyYAML)
 
 
-ASTRO_ROOT = Path("/run/media/vincent/Corrbolg/Astro")
+ASTRO_ROOT = Path("/run/media/vincent/Corrbolg/dso")
 
 # The drive was reorganised 2026-07-20 (REORG_PLAN.md): the single `Raws/` tree
 # became data / calibration / process / products, split by replaceability. An
