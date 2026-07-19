@@ -1,5 +1,6 @@
 function mv --wraps mv --description "Move with rsync progress"
     command rsync -ah --info=progress2 --remove-source-files $argv
+    or return $status
     # Clean up empty directories left behind by rsync
     for arg in $argv[1..-2]
         if test -d "$arg"
