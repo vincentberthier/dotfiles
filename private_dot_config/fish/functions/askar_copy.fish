@@ -38,7 +38,7 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
     end
 
     set -l src gaius:/cygdrive/c/Users/RBFocus/Documents/N.I.N.A/Images/
-    set -l dst /run/media/vincent/Corrbolg/Astro/data/
+    set -l dst /run/media/vincent/Corrbolg/dso/data/
     if not test -d $dst
         echo "askar_copy: destination $dst not mounted — aborting" >&2
         return 1
