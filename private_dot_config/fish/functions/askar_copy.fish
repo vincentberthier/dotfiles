@@ -6,8 +6,9 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
         echo "usage: askar_copy [--park|--no-park] [--shutdown|--no-shutdown]"
         echo
         echo "  Pulls the N.I.N.A images off the Gaius into Raws/, deleting the source"
-        echo "  frames as they sync, prunes the cloud-check snapshots, and hardlinks the"
-        echo "  night's flats into every target that shot lights."
+        echo "  frames as they sync, prunes the cloud-check snapshots, normalises the"
+        echo "  target folder names to lowercase ASCII, and hardlinks the night's flats"
+        echo "  into every target that shot lights."
         echo
         echo "  --park / --no-park          park the mount first     (default: $askar_copy_park)"
         echo "  --shutdown / --no-shutdown  shut the Gaius down after (default: $askar_copy_shutdown)"
@@ -41,6 +42,15 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
     if not test -d $dst
         echo "askar_copy: destination $dst not mounted — aborting" >&2
         return 1
+    end
+
+    # The post-copy helpers live in the astro-pipeline repo, not on the data disk.
+    set -l astro_pipeline $HOME/Projets/astro-pipeline
+    for helper in normalize_target_dirs.py link_flats.py
+        if not test -x $astro_pipeline/tools/$helper
+            echo "askar_copy: missing $astro_pipeline/tools/$helper — aborting" >&2
+            return 1
+        end
     end
 
     # Park first. OnStep auto-starts tracking when the Gaius powers it up, so the
@@ -96,12 +106,27 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
     # is cmd.exe, where `find` is Windows FIND.EXE, and its error went to /dev/null.)
     askar_ps prune_empty_dirs.ps1
 
+    # N.I.N.A names folders after the target as typed into the sequence, so rsync
+    # keeps depositing "M 51" / "NGC 7023" next to the normalised "m-51" / "ngc-7023"
+    # already on disk. Fold them down before anything else touches the tree: exit 2
+    # means "merged, but some paths collided and were left in place" — worth a shout,
+    # not worth aborting the night's ingest over.
+    $astro_pipeline/tools/normalize_target_dirs.py
+    set -l norm $status
+    if test $norm -eq 2
+        echo "askar_copy: WARNING — target normalisation left conflicts (see above)" >&2
+    else if test $norm -ne 0
+        echo "askar_copy: WARNING — target normalisation failed (exit $norm)" >&2
+    end
+
     # Flats are shot once per night, from the sequence's End container, so they have
     # no target parent and land in the shared store Raws/Calibration/FLATS/<night>/
     # (same idea as DARKS). The Siril pipeline wants each night self-contained —
     # <target>/<night>/{LIGHTS,FLATS} — so hardlink them into every target that shot
     # lights that night. XFS: costs no extra bytes.
-    /run/media/vincent/Corrbolg/Astro/link_flats.py
+    #
+    # Runs after normalisation so the flats land in the final folder names.
+    $astro_pipeline/tools/link_flats.py
 
     if test $shutdown = yes
         echo "askar_copy: shutting the Gaius down…"
