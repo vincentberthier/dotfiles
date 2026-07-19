@@ -26,6 +26,7 @@ import argparse
 import re
 import subprocess
 import sys
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
@@ -50,8 +51,25 @@ KNOWN_MODES = {"LRGB", "RGB", "SHO", "HOO", "OHS", "HSO", "FORAX", "FORAXX",
 
 
 def normalize_target(name: str) -> str:
-    """Strip whitespace + lowercase for fuzzy target matching."""
-    return re.sub(r"\s+", "", name or "").lower()
+    """Reduce a target name to a separator- and accent-insensitive match key.
+
+    Keeps everything alphanumeric and discards the rest, so every spelling of a
+    target collapses to one key:
+
+        "M 51"  "m-51"  "m51"                    -> "m51"
+        "NGC 7023"  "ngc-7023"                   -> "ngc7023"
+        "Nebuleuse du Dragon chinois"
+        "nebuleuse-du-dragon-chinois"            -> "nebuleusedudragonchinois"
+
+    This previously stripped whitespace and lowercased only, which was enough to
+    match folder names against sidecars while folders were spelled "M 51". Once
+    tools/normalize_target_dirs.py renames them to "m-51", the hyphen has to
+    fold away too -- and accents with it, since "Nebuleuse" and its accented
+    form must not key differently.
+    """
+    folded = unicodedata.normalize("NFKD", name or "")
+    folded = "".join(c for c in folded if not unicodedata.combining(c))
+    return re.sub(r"[^a-z0-9]+", "", folded.lower())
 
 
 def parse_jpg_name(jpg: Path) -> tuple[str, str, bool] | None:
