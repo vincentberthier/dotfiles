@@ -4,8 +4,8 @@
 # invoked outside the Siril GUI; they are intentional, not debug cruft.
 """Astro-Hibou — interactive VeraLux continuation launcher.
 
-The main pipeline (astro_hibou.py) and the mosaic pipeline
-(astro_hibou_mosaic.py) both stop at the linear pre-stretch checkpoint
+The main pipeline (Single-Target.py) and the mosaic pipeline
+(Mosaic.py) both stop at the linear pre-stretch checkpoint
 (process/_STRETCH_ME/). This launcher continues past that point, building a
 finished *reference* image with the real VeraLux GUI tools — it opens each
 tool on the loaded image and blocks until you close its window, then saves and
@@ -619,7 +619,7 @@ def main() -> None:
     if not continuables:
         print(
             f"No recombined images found under {root_dir}. Run the pipeline "
-            "in full mode first (astro_hibou.py or astro_hibou_mosaic.py).",
+            "in full mode first (Single-Target.py or Mosaic.py).",
             file=sys.stderr,
         )
         siril.disconnect()

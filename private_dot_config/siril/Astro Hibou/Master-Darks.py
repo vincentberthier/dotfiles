@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-build_master_darks.py — stack dark subs into master_darks_<exp>.fit.
+Master-Darks.py — stack dark subs into master_darks_<exp>.fit.
 
 Point DARKS_ROOT at a folder holding one subfolder per exposure
 (0.20s/, 4.00s/, 60.00s/ …), each containing ONLY the dark subs for that

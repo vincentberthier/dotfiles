@@ -10,9 +10,9 @@ The GUI here is a thin front-end over the shared processing library
 deconv/denoise/star-removal to the linear pre-stretch checkpoint
 (process/_STRETCH_ME/). Everything past that hand-off is manual, except the
 optional interactive VeraLux continuation which lives in its own launcher,
-astro_hibou_veralux.py.
+VeraLux-Continuation.py.
 
-Multi-panel mosaics are handled by astro_hibou_mosaic.py.
+Multi-panel mosaics are handled by Mosaic.py.
 """
 
 import sys

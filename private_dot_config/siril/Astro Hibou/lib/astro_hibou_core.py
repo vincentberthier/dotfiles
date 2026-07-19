@@ -4,10 +4,10 @@
 This module is the common core imported by the three Astro-Hibou launcher
 scripts that live next to it:
 
-  - astro_hibou.py          — single-target GUI (calibrate → stack → recombine
+  - Single-Target.py          — single-target GUI (calibrate → stack → recombine
                               → deconv/denoise/star-removal → _STRETCH_ME).
-  - astro_hibou_mosaic.py   — multi-panel mosaic front-end.
-  - astro_hibou_veralux.py  — interactive VeraLux continuation past the linear
+  - Mosaic.py   — multi-panel mosaic front-end.
+  - VeraLux-Continuation.py  — interactive VeraLux continuation past the linear
                               checkpoint.
 
 It carries no GUI window of its own and is not meant to be launched from the
@@ -1168,7 +1168,7 @@ class Pipeline:
         # The pre-stretch checkpoint (_STRETCH_ME pair) is always written; it
         # is the hand-off point where the automated pipeline stops and manual
         # stretching begins. The optional interactive VeraLux continuation
-        # past this point lives in astro_hibou_veralux.py, not here.
+        # past this point lives in VeraLux-Continuation.py, not here.
         self.write_stretch_me: bool = True
         # Common names (FR/EN) entered in the GUI; threaded into the
         # YAML sidecar at the end of each per-target pipeline run.

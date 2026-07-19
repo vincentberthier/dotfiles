@@ -24,7 +24,7 @@ import astro_hibou_core as C
 TMP = Path(tempfile.mkdtemp(prefix="test_get_dark_"))
 atexit.register(shutil.rmtree, TMP, True)
 
-# A dark library named exactly as build_master_darks.py / the reshoot writes it.
+# A dark library named exactly as Master-Darks.py / the reshoot writes it.
 for exp in ("0.20s", "60.00s", "120.00s", "300.00s"):
     (TMP / f"master_darks_{exp}.fit").write_bytes(b"")
 
