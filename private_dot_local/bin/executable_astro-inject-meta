@@ -73,11 +73,29 @@ def normalize_target(name: str) -> str:
 
 
 def parse_jpg_name(jpg: Path) -> tuple[str, str, bool] | None:
-    """Return (target_token, mode_upper, is_web) or None if unparseable."""
+    """Return (target_token, mode_upper, is_web) or None if unparseable.
+
+    The mode group is [A-Za-z]+, so it stops at the hyphen in a name like
+    2026-07-10_M101-HaLRGB-R.jpg and yields "HALRGB" while the "-R" falls into
+    the extra group. Sidecars written by the pipeline record the full
+    "HALRGB_R", and find_sidecar rejects on mode before it ever compares
+    targets -- so every one of those exports silently found no sidecar.
+
+    Re-attach the leading extra segment when doing so names a known mode.
+    """
     m = RE_JPG.match(jpg.name)
     if not m:
         return None
-    return m["target"], m["mode"].upper(), bool(m["web"])
+
+    mode = m["mode"].upper()
+    extra = (m["extra"] or "").strip("-")
+    if extra:
+        # "R", "L", or a decorated "R_v2" -- only the leading token qualifies.
+        token = re.split(r"[-_]", extra)[0].upper()
+        if token and f"{mode}_{token}" in KNOWN_MODES:
+            mode = f"{mode}_{token}"
+
+    return m["target"], mode, bool(m["web"])
 
 
 def _iter_sidecars() -> Iterable[Path]:
