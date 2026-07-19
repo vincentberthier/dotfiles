@@ -126,7 +126,17 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
     # lights that night. XFS: costs no extra bytes.
     #
     # Runs after normalisation so the flats land in the final folder names.
+    #
+    # Check the exit code. When the scripts were extracted into their own repo
+    # this tool started resolving its data root as <repo>/tools/Raws and aborted
+    # on every run -- and because nothing here looked at $status, the failure was
+    # invisible from both ends. A night with no <target>/<night>/FLATS/ simply
+    # does not process, and that is not discovered until you sit down to stack.
     $astro_pipeline/tools/link_flats.py
+    set -l linked $status
+    if test $linked -ne 0
+        echo "askar_copy: WARNING — flat linking failed (exit $linked); this night's targets have no FLATS" >&2
+    end
 
     if test $shutdown = yes
         echo "askar_copy: shutting the Gaius down…"
