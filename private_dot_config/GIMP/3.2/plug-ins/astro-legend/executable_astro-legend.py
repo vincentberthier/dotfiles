@@ -9,7 +9,7 @@ image:
 Data sources:
   - Filename (YYYY-MM-DD_<target>-<mode>.<ext>) supplies the session date
     and the target token + mode.
-  - Matching YAML sidecar under RAWS_ROOT provides the catalog target name
+  - Matching YAML sidecar under the process tree provides the catalog target name
     (target.name) and, once entered once, the French common name
     (target.common_name_fr).
 
@@ -20,6 +20,7 @@ re-runs don't ask again.
 Menu: Filters → Astro → Add astro legend
 """
 
+import os
 import re
 import sys
 from pathlib import Path
@@ -33,7 +34,21 @@ from gi.repository import Gegl, GLib, GObject, Gimp  # noqa: E402
 import yaml  # noqa: E402  (system PyYAML)
 
 
-RAWS_ROOT = Path("/run/media/vincent/Corrbolg/Astro/Raws")
+ASTRO_ROOT = Path("/run/media/vincent/Corrbolg/Astro")
+
+# The drive was reorganised 2026-07-20 (REORG_PLAN.md): the single `Raws/` tree
+# became data / calibration / process / products, split by replaceability. An
+# image handed to this plug-in can now sit under EITHER root -- exports live in
+# products/, while pipeline intermediates live under process/ -- so the target
+# folder is resolved against both.
+TARGET_ROOTS = (ASTRO_ROOT / "products", ASTRO_ROOT / "data")
+
+# process/ is its own tree now, mirroring data/ (<process root>/<target>/<night>),
+# and is relocatable via the same env var the pipeline uses. The legacy in-data
+# layout is still searched so sidecars written before the reorg resolve.
+PROCESS_ROOT = Path(
+    os.environ.get("ASTRO_HIBOU_PROCESS_PATH", str(ASTRO_ROOT / "process"))
+)
 
 # YYYY-MM-DD_<target>-<mode>[-extra…].<ext>
 RE_NAME = re.compile(
@@ -66,23 +81,36 @@ def _french_date(year: str, month: str, day: str) -> str:
 
 # Recombination tokens that can appear in a pipeline filename, longest /
 # most-specific first so 'halrgb_r' wins over the 'rgb' it contains.
+#
+# Both separators are listed. Pipeline intermediates keep the underscore
+# ('halrgb_r_denoised.fit'); the _STRETCH_ME checkpoints and the exports use
+# the hyphenated mode label ('2026-07-10_M101-HaLRGB-R_STARLESS.fit'). Order
+# matters more than it looks: 'halrgb-r' must precede 'lrgb', which is a
+# substring of it, or every HaLRGB image is silently labelled LRGB.
 MODE_TOKENS = (
-    "halrgb_r", "halrgb_l", "lrgb", "forax",
+    "halrgb_r", "halrgb_l", "halrgb-r", "halrgb-l", "lrgb", "forax",
     "sho", "hoo", "ohs", "hso", "rgb",
 )
 
 
 def _target_folder(image_path: Path) -> str | None:
-    """Target folder name: the first path component under RAWS_ROOT.
+    """Target folder name: the first path component under a known root.
 
-    Works wherever the file sits under the target (process/, the target
-    root, …) — by convention one target per folder (e.g. 'M 4').
+    Works wherever the file sits under the target (products/, data/, the
+    process tree, …) — by convention one target per folder (e.g. 'M 4').
     """
     try:
-        rel = image_path.resolve().relative_to(RAWS_ROOT.resolve())
-    except (ValueError, OSError):
+        resolved = image_path.resolve()
+    except OSError:
         return None
-    return rel.parts[0] if rel.parts else None
+    for root in (*TARGET_ROOTS, PROCESS_ROOT):
+        try:
+            rel = resolved.relative_to(root.resolve())
+        except (ValueError, OSError):
+            continue
+        if rel.parts:
+            return rel.parts[0]
+    return None
 
 
 def _mode_from_name(name: str) -> str | None:
@@ -101,13 +129,29 @@ def _parse_ymd(value) -> tuple[str, str, str] | None:
 
 
 def _iter_sidecars():
-    yield from RAWS_ROOT.glob("*/process/*.meta.yaml")
-    yield from RAWS_ROOT.glob("*/*/process/*.meta.yaml")
+    # Current layout: <process root>/<target>[/<night>]/*.meta.yaml
+    yield from PROCESS_ROOT.glob("*/*.meta.yaml")
+    yield from PROCESS_ROOT.glob("*/*/*.meta.yaml")
+    # Legacy layout: the process dir nested inside each data dir.
+    for root in TARGET_ROOTS:
+        yield from root.glob("*/process/*.meta.yaml")
+        yield from root.glob("*/*/process/*.meta.yaml")
+
+
+def _mode_key(mode: str) -> str:
+    """Compare modes ignoring case and separator.
+
+    The same mode is spelled three ways across the pipeline: 'halrgb_r' in
+    intermediate filenames, 'HaLRGB-R' in the checkpoint names, sidecars and
+    exports, and 'HALRGB_R' in sidecars written before 2026-07-10. All three
+    must resolve to the same sidecar.
+    """
+    return re.sub(r"[^a-z0-9]", "", (mode or "").lower())
 
 
 def _find_sidecar(target_token: str, mode: str) -> Path | None:
     target_n = _normalize(target_token)
-    mode_u = mode.upper()
+    mode_k = _mode_key(mode)
     fallbacks: list[Path] = []
     for sidecar in _iter_sidecars():
         try:
@@ -115,13 +159,12 @@ def _find_sidecar(target_token: str, mode: str) -> Path | None:
                 meta = yaml.safe_load(f) or {}
         except (OSError, yaml.YAMLError):
             continue
-        if ((meta.get("acquisition") or {}).get("mode") or "").upper() != mode_u:
+        if _mode_key((meta.get("acquisition") or {}).get("mode")) != mode_k:
             continue
         sidecar_target = (meta.get("target") or {}).get("name") or ""
         if _normalize(sidecar_target) == target_n:
             return sidecar
-        rel = sidecar.relative_to(RAWS_ROOT)
-        if rel.parts and _normalize(rel.parts[0]) == target_n:
+        if _normalize(_target_folder(sidecar) or "") == target_n:
             fallbacks.append(sidecar)
     return fallbacks[0] if len(fallbacks) == 1 else None
 
@@ -153,7 +196,7 @@ def _resolve_metadata(image_path: str | None) -> dict:
         sidecar = _find_sidecar(m["target"], m["mode"])
     else:
         # File straight out of the pipeline (veralux_*, starless_*, *_cluster…):
-        # target is the folder under RAWS_ROOT, mode is the token in the name,
+        # target is the folder under products/ or data/, mode is the token in the name,
         # and the date is read from the sidecar below.
         target_folder = _target_folder(Path(image_path))
         mode_tok = _mode_from_name(name)
