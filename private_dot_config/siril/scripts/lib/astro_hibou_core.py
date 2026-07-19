@@ -289,12 +289,19 @@ STARLESS_CONFIG = {
 # Rather than lose the night, move the offending frame(s) out of LIGHTS/ into
 # DISPOSED/ (never deleted — this drive is the only copy) and rebuild.
 #
-# Tolerances are deliberately loose so only mechanical events trip them. On a
-# polar-aligned mount, real field rotation between subs is « 0.1 deg/night and
-# dither is ~10 px; anything past these is hardware moving, not tracking.
+# A frame is an outlier when its registered footprint overlaps the rest of the
+# sequence too little to survive `-framing=min` (which crops the stack to the
+# common area of every sub). Overlap — not rotation angle — is the right test:
+# the IMX533 is square, so a rotation *about the field centre* barely shrinks the
+# common area (a 45 deg rotation still overlaps 83 %, a ~180 deg meridian flip
+# 93-100 %), while a failed recenter or a train that shifted drops it sharply. A
+# raw rotation threshold cannot tell a benign cross-night meridian flip (both
+# pier sides, ~180 deg apart, near-full overlap — homography registration aligns
+# it fine) from a mechanical slip, and wrongly disposed the flipped night's subs.
+# 0.90 sits cleanly between the real cases measured on this rig: an M 101 Ha
+# misframe (82.9 %, dispose) and an NGC 7023 meridian flip (93.1 %, keep).
 DISPOSED_DIRNAME = "DISPOSED"
-QUARANTINE_ROT_TOL_DEG = 1.0
-QUARANTINE_SHIFT_TOL_FRAC = 0.20  # of the frame's short side
+QUARANTINE_MIN_OVERLAP = 0.90  # of the frame area, vs the majority footprint
 
 # Never let quarantine eat a sequence. If the outliers are anything but a clear
 # minority we cannot know which group is the good one (e.g. two nights shot at
@@ -418,7 +425,17 @@ def order_filters(codes: Iterable[str]) -> str:
 
 
 def get_dark(exposure: str) -> Path | None:
-    candidate = DARK_PATH / f"master_darks_{exposure}.fit"
+    # Dark masters are named with the exposure's trailing "s"
+    # (master_darks_120.00s.fit). RE_FLATS captures that "s" as part of its
+    # exposure group, but RE_LIGHTS does not — the "s" sits *outside* the
+    # group (`([\d\.]+)s_`), so a light's exposure reaches here as "120.00".
+    # Without re-suffixing it, get_dark("120.00") looks for a nonexistent
+    # master_darks_120.00.fit, returns None, and every light calibrates
+    # flat-only: no dark subtraction and no -cc=dark bad-pixel interpolation
+    # (proven on 2026-07-15 M 51 subs: dark=False in the FITS HISTORY).
+    # Normalise so both light and flat exposure tokens resolve.
+    exp = exposure if exposure.endswith("s") else f"{exposure}s"
+    candidate = DARK_PATH / f"master_darks_{exp}.fit"
     return candidate if candidate.exists() else None
 
 
@@ -841,21 +858,73 @@ def _rotation_deg(matrix: np.ndarray) -> float:
     return float(np.degrees(np.arctan2(matrix[1, 0], matrix[0, 0])))
 
 
-def _angle_delta(a: float, b: float) -> float:
-    """Shortest signed distance between two angles, in degrees."""
-    return (a - b + 180.0) % 360.0 - 180.0
+def _frame_footprint(
+    matrix: np.ndarray, width: int, height: int
+) -> np.ndarray:
+    """The frame's four corners mapped into reference space by its homography.
 
-
-def _circular_medoid(angles: list[float]) -> float:
-    """The angle minimising the summed wrapped distance to all the others.
-
-    A plain median is wrong on a wrapped quantity, and for the handful of
-    frames in a sequence the O(n^2) medoid is exact and free.
+    Siril's registration matrix maps a frame's pixel coordinates onto the
+    reference frame, so this is where the sub's field of view lands once
+    aligned — exactly the polygon `-framing=min` intersects.
     """
-    return min(
-        angles,
-        key=lambda cand: sum(abs(_angle_delta(a, cand)) for a in angles),
+    corners = np.array(
+        [[0, 0, 1], [width, 0, 1], [width, height, 1], [0, height, 1]],
+        dtype=float,
     )
+    mapped = corners @ matrix.T
+    return mapped[:, :2] / mapped[:, 2:3]
+
+
+def _convex_overlap_area(subject: np.ndarray, clipper: np.ndarray) -> float:
+    """Area of the intersection of two convex polygons (Sutherland-Hodgman).
+
+    Both footprints are convex quads, so clipping `subject` against every edge
+    of `clipper` yields their intersection; its shoelace area is what we want.
+    """
+
+    def inside(p, a, b):
+        return (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]) >= 0
+
+    def intersect(s, e, a, b):
+        dc = (a[0] - b[0], a[1] - b[1])
+        dp = (s[0] - e[0], s[1] - e[1])
+        n1 = a[0] * b[1] - a[1] * b[0]
+        n2 = s[0] * e[1] - s[1] * e[0]
+        den = dc[0] * dp[1] - dc[1] * dp[0]
+        if abs(den) < 1e-12:
+            return s
+        return np.array(
+            [(n1 * dp[0] - n2 * dc[0]) / den, (n1 * dp[1] - n2 * dc[1]) / den]
+        )
+
+    def as_ccw(poly):
+        p = np.asarray(poly, dtype=float)
+        x, y = p[:, 0], p[:, 1]
+        signed = 0.5 * (np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
+        return p if signed < 0 else p[::-1]
+
+    clip = as_ccw(clipper)
+    out = list(as_ccw(subject))
+    for i in range(len(clip)):
+        a, b = clip[i], clip[(i + 1) % len(clip)]
+        if not out:
+            break
+        prev = out[-1]
+        clipped = []
+        for cur in out:
+            if inside(cur, a, b):
+                if not inside(prev, a, b):
+                    clipped.append(intersect(prev, cur, a, b))
+                clipped.append(cur)
+            elif inside(prev, a, b):
+                clipped.append(intersect(prev, cur, a, b))
+            prev = cur
+        out = clipped
+    if len(out) < 3:
+        return 0.0
+    p = np.asarray(out, dtype=float)
+    x, y = p[:, 0], p[:, 1]
+    return 0.5 * abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
 
 def find_framing_outliers(
@@ -863,10 +932,21 @@ def find_framing_outliers(
 ) -> dict[int, str]:
     """Return {frame_index: reason} for frames that break `-framing=min`.
 
-    Judged against the *majority* framing, not against the reference: Siril's
-    2-pass reference is chosen on image quality, so the reference itself can
-    perfectly well be the odd one out (a sharp first sub taken before the
-    camera was nudged).
+    A frame is an outlier when its registered footprint overlaps the *rest of
+    the sequence* too little (below QUARANTINE_MIN_OVERLAP of the frame area).
+    Overlap is judged pairwise and reduced by the median, so the verdict rests
+    on the majority framing, not on the 2-pass reference: Siril picks that
+    reference on image quality, so it can itself be the odd one out (a sharp
+    first sub taken before the camera was nudged), and a median over the other
+    frames still puts a lone rogue below threshold while leaving the majority
+    above it.
+
+    Overlap, not rotation angle, is the criterion because the sensor is square:
+    a rotation about the field centre — including a ~180 deg cross-night
+    meridian flip — barely shrinks the common area that `-framing=min` keeps,
+    whereas a failed recenter or a shifted train collapses it. A raw rotation
+    threshold cannot tell those apart and used to dispose perfectly registrable
+    meridian-flipped subs.
 
     Returns {} when the sequence is too short to judge. The caller still has to
     apply the minority guard (QUARANTINE_MAX_OUTLIER_FRAC) before acting.
@@ -883,25 +963,22 @@ def find_framing_outliers(
     if len(usable) < QUARANTINE_MIN_FRAMES:
         return {}
 
-    rotations = [_rotation_deg(f.matrix) for f in usable]
-    ref_rot = _circular_medoid(rotations)
-
-    centre = np.array([width / 2.0, height / 2.0, 1.0])
-    shifts = np.array([(f.matrix @ centre)[:2] - centre[:2] for f in usable])
-    ref_shift = np.median(shifts, axis=0)
-    shift_tol = QUARANTINE_SHIFT_TOL_FRAC * min(width, height)
-
-    for f, rot, shift in zip(usable, rotations, shifts):
-        drot = _angle_delta(rot, ref_rot)
-        dshift = float(np.hypot(*(shift - ref_shift)))
-        if abs(drot) > QUARANTINE_ROT_TOL_DEG:
+    area = float(width * height)
+    footprints = {
+        f.index: _frame_footprint(f.matrix, width, height) for f in usable
+    }
+    for f in usable:
+        overlaps = sorted(
+            _convex_overlap_area(footprints[f.index], footprints[g.index])
+            / area
+            for g in usable
+            if g.index != f.index
+        )
+        median = float(np.median(overlaps))
+        if median < QUARANTINE_MIN_OVERLAP:
             outliers[f.index] = (
-                f"rotated {drot:+.2f} deg vs the rest of the sequence"
-            )
-        elif dshift > shift_tol:
-            outliers[f.index] = (
-                f"offset {dshift:.0f} px vs the rest of the sequence "
-                f"(tolerance {shift_tol:.0f} px)"
+                f"overlaps only {median:.0%} of the frame with the rest of "
+                f"the sequence (rotated {_rotation_deg(f.matrix):+.1f} deg)"
             )
 
     return outliers
@@ -1066,7 +1143,7 @@ class Pipeline:
         # the last 22 % of knot signal. Same story in luminance, worse: the
         # global blend made blended_luminance 1.64x noisier than pure L, 80.8 %
         # of its variance Ha — on the one channel that carries all the detail.
-        self.ha_weight: float = 0.3
+        self.ha_weight: float = 0.5
         # The pre-stretch checkpoint (_STRETCH_ME pair) is always written; it
         # is the hand-off point where the automated pipeline stops and manual
         # stretching begins. The optional interactive VeraLux continuation
@@ -1572,6 +1649,26 @@ class Pipeline:
 
         seq_name = filter_type
         remaining = list(files)
+
+        # A lone sub cannot go through convert/register/stack: Siril writes no
+        # <filter>_.seq for a single converted frame, so `calibrate <seq>`
+        # dies with "séquence d'entrée invalide" and takes the whole
+        # (multi-night) build down with it — observed on NGC 7023 2026-07-13,
+        # a cloud-wrecked night with one Blue/Green/Red sub each. Calibrate
+        # the single frame directly with `calibrate_single` so its
+        # pp_<filter>_00001.fit still flows into the cross-night pool; there is
+        # nothing to align or reject with one frame, so register/stack are
+        # skipped and the lone calibrated sub doubles as the diagnostic master.
+        if len(remaining) < 2:
+            self._build_single_frame_channel(
+                process_dir, lights_dir, filter_type, seq_name,
+                remaining, exposure,
+            )
+            self.history.mark_done(
+                lights_dir, "create_master_channel", detail=filter_type
+            )
+            return
+
         # One retry: register_lights quarantines rogue frames and raises, and
         # the rebuilt sequence is then free of them. A second failure is a
         # different problem and must surface rather than loop.
@@ -1610,6 +1707,49 @@ class Pipeline:
         self.history.mark_done(
             lights_dir, "create_master_channel", detail=filter_type
         )
+
+    def _build_single_frame_channel(
+        self,
+        process_dir: Path,
+        lights_dir: Path,
+        filter_type: str,
+        seq_name: str,
+        files: list[str],
+        exposure: str,
+    ) -> None:
+        """Calibrate a lone sub the sequence pipeline cannot handle.
+
+        `convert` writes no `<filter>_.seq` for a single frame, so
+        `calibrate`, `register` and `stack` all fail on it. Rather than lose
+        the sub — a full third of a thin night's colour data — calibrate it
+        directly with `calibrate_single` (same dark / -cc=dark / flat as the
+        sequence path), background-subtract it in place like any other sub,
+        and copy the result to master_<filter>.fit. The calibrated
+        pp_<filter>_00001.fit is exactly what _combine_filter_across_days
+        pools, so the frame still reaches the final cross-night stack; it only
+        skips the per-night register/stack that need >= 2 frames. Leaves the
+        caller in process_dir, matching create_master_channel's other paths.
+        """
+        # convert still emits the frame link + conversion.txt (the pool's
+        # source->light back-mapping reads the latter), just no .seq.
+        self._build_light_sequence(
+            process_dir, lights_dir, filter_type, seq_name, files
+        )
+        self.calibrate_single_light(
+            seq_name,
+            filter_type,
+            exposure,
+            source_paths=[lights_dir / f for f in files],
+        )
+        self.subtract_sky_gradient(seq_name, len(files))
+        pp_sub = process_dir / f"pp_{seq_name}_00001.fit"
+        master_path = process_dir / f"master_{filter_type}.fit"
+        shutil.copy2(pp_sub, master_path)
+        self.siril.log(
+            f"Single-frame channel {filter_type}: calibrated one sub, "
+            f"pooled as {pp_sub.name} (no per-night register/stack)"
+        )
+        self.cd(process_dir)
 
     def _build_light_sequence(
         self,
@@ -1725,6 +1865,52 @@ class Pipeline:
             )
         else:
             self.siril.cmd("calibrate", seq_name, flat_arg)
+        self.history.mark_done(
+            self.cwd(), "calibrate_lights", detail=filter_type
+        )
+
+    def calibrate_single_light(
+        self,
+        seq_name: str,
+        filter_type: str,
+        exposure: str,
+        source_paths: Iterable[Path] = (),
+    ) -> None:
+        """calibrate_lights for a lone frame: `calibrate_single`, not
+        `calibrate`.
+
+        Siril has no `<seq>_.seq` to hand `calibrate` when a channel holds one
+        sub, so the single-frame path calibrates the converted frame
+        `<seq>_00001` directly. Same dark / -cc=dark / flat as the sequence
+        path, producing pp_<seq>_00001.fit (the name the pool globs). Shares
+        the "calibrate_lights" History step/detail with the sequence path so
+        the record invalidates identically; the output it declares is the pp
+        frame rather than a `.seq`.
+        """
+        self.siril.log(
+            f"Calibrating {seq_name} (single frame, filter={filter_type}, "
+            f"exposure={exposure})"
+        )
+        pp_path = self.cwd() / f"pp_{seq_name}_00001.fit"
+        if self.history.is_done(
+            self.cwd(),
+            "calibrate_lights",
+            detail=filter_type,
+            outputs=[pp_path],
+            inputs=source_paths,
+        ):
+            self.siril.log("Step already done, skipping")
+            return
+        dark = get_dark(exposure)
+        flat_arg = f"-flat=master_flats_{filter_type}.fit"
+        frame = f"{seq_name}_00001"
+        if dark:
+            self.siril.cmd(
+                "calibrate_single", frame, f"-dark={dark}", "-cc=dark",
+                flat_arg,
+            )
+        else:
+            self.siril.cmd("calibrate_single", frame, flat_arg)
         self.history.mark_done(
             self.cwd(), "calibrate_lights", detail=filter_type
         )

@@ -147,7 +147,7 @@ class Interface(QWidget):
         self.ha_weight_spin.setRange(0.0, 1.0)
         self.ha_weight_spin.setSingleStep(0.05)
         self.ha_weight_spin.setDecimals(2)
-        self.ha_weight_spin.setValue(0.3)
+        self.ha_weight_spin.setValue(0.5)
         po_form.addRow("Ha blend weight:", self.ha_weight_spin)
         po_layout.addLayout(po_form)
         processing_options_group.setLayout(po_layout)
@@ -170,7 +170,7 @@ class Interface(QWidget):
         self.denoise_strength_spin.setRange(0.0, 1.0)
         self.denoise_strength_spin.setSingleStep(0.05)
         self.denoise_strength_spin.setDecimals(2)
-        self.denoise_strength_spin.setValue(1.0)
+        self.denoise_strength_spin.setValue(0.90)
         self.denoise_strength_spin.setToolTip(
             "Prism modulation: blend fraction with the NOISY input\n"
             "(out = m*denoised + (1-m)*original). 0.5 keeps half the noise.\n"
