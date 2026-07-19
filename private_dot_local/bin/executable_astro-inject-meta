@@ -34,7 +34,7 @@ from typing import Iterable
 import yaml
 
 
-RAWS_ROOT = Path("/run/media/vincent/Corrbolg/Astro/Raws")
+RAWS_ROOT = Path("/run/media/vincent/Corrbolg/Astro/data")
 EXPORT_ROOT = Path.home() / "Images/Photos/Astro"
 INJECTOR_VERSION = "astro_inject_meta v1"
 
