@@ -296,6 +296,7 @@ spawn-sh-at-startup "~/.config/niri/scripts/wait_connection.sh; rclone mount --v
 spawn-sh-at-startup "~/.config/niri/scripts/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:vault /home/vincent/vault/"
 spawn-sh-at-startup "~/.config/niri/scripts/wait_connection.sh; sleep 5; /usr/bin/env bash /home//home/vincent/duplicacy/restore.sh"
 spawn-sh-at-startup "~/.config/niri/scripts/setup_environment.sh"
+spawn-sh-at-startup "./local/bin/rpol_daemon"
 
 hotkey-overlay {
     // Uncomment this line to disable the "Important Hotkeys" pop-up at startup.
