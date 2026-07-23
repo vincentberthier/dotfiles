@@ -200,8 +200,14 @@
 
 [data.niri]
     [data.niri.gaia]
-        xkb_layout = ""
-        xkb_variant = ""
+        # Moonlander (bepo) + Razer (azerty): niri has no per-device xkb config,
+        # so both layouts are loaded globally and toggled with Mod+Space.
+        # Plain azerty is group 0 deliberately: Wine/Proton latches the active
+        # group at process start, and Windows has no bepo layout (Wine logs
+        # `Unknown variant "bepo"` and synthesizes one). Group 0 = azerty means
+        # anything launched fresh gets the real French layout (klid 0000040c).
+        xkb_layout = "fr,fr"
+        xkb_variant = ",bepo"
         output1 = "DP-1"
         output2 = "DP-2"
         output3 = "DP-3"

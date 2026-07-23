@@ -714,8 +714,9 @@ binds {
     // a matching layout switch hotkey configured in xkb options above.
     // Having both at once on the same hotkey will break the switching,
     // since it will switch twice upon pressing the hotkey (once by xkb, once by niri).
-    // Mod+Space       { switch-layout "next"; }
-    // Mod+Shift+Space { switch-layout "prev"; }
+    // Note: no xkb "grp:" option is set, so niri is the only thing switching layouts.
+    Mod+Space       { switch-layout "next"; }
+    Mod+Shift+Space { switch-layout "prev"; }
 
     Mod+P { screenshot; }
     Mod+Shift+P { screenshot-screen; }
