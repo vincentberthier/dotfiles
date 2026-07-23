@@ -46,7 +46,7 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
 
     # The post-copy helpers live in the astro-pipeline repo, not on the data disk.
     set -l astro_pipeline $HOME/Projets/astro-pipeline
-    for helper in normalize_target_dirs.py link_flats.py
+    for helper in normalize_target_dirs.py collect_flats.py link_flats.py
         if not test -x $astro_pipeline/tools/$helper
             echo "askar_copy: missing $astro_pipeline/tools/$helper — aborting" >&2
             return 1
@@ -106,6 +106,22 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
     # is cmd.exe, where `find` is Windows FIND.EXE, and its error went to /dev/null.)
     askar_ps prune_empty_dirs.ps1
 
+    # Same leftover on this side: SNAPSHOTS is excluded from the rsync but its parent
+    # Images\<date>\ is not, so every run deposits an empty YYYY-MM-DD dir at the data
+    # root. normalize_target_dirs.py deliberately skips bare date dirs — a non-empty
+    # one may hold frames from a block that ran outside a target container, and that
+    # needs a human — so only the empty ones go here. rmdir is the guard itself: it
+    # refuses a non-empty directory, so this cannot eat data even if the match widens.
+    # Match the date with `string match -r`, not a `????-??-??` glob: fish dropped `?`
+    # as a single-character wildcard in 3.0, so that glob silently matches nothing.
+    for stray in $dst/*
+        test -d $stray; or continue
+        string match -qr '^\d{4}-\d{2}-\d{2}$' -- (basename $stray); or continue
+        if command rmdir $stray 2>/dev/null
+            echo "askar_copy: removed empty snapshot-date dir "(basename $stray)
+        end
+    end
+
     # N.I.N.A names folders after the target as typed into the sequence, so rsync
     # keeps depositing "M 51" / "NGC 7023" next to the normalised "m-51" / "ngc-7023"
     # already on disk. Fold them down before anything else touches the tree: exit 2
@@ -119,19 +135,33 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
         echo "askar_copy: WARNING — target normalisation failed (exit $norm)" >&2
     end
 
-    # Flats are shot once per night, from the sequence's End container, so they have
-    # no target parent and land in the shared store Raws/Calibration/FLATS/<night>/
-    # (same idea as DARKS). The Siril pipeline wants each night self-contained —
-    # <target>/<night>/{LIGHTS,FLATS} — so hardlink them into every target that shot
-    # lights that night. XFS: costs no extra bytes.
+    # Flats are shot once per night, from the sequence's End container, so they
+    # have no target parent and rsync deposits them in N.I.N.A's raw layout at
+    # data/Calibration/FLATS/<night>/. Two steps get them where the Siril pipeline
+    # wants them — each night self-contained as <target>/<night>/{LIGHTS,FLATS}:
     #
-    # Runs after normalisation so the flats land in the final folder names.
+    #   1. collect_flats.py MOVES data/Calibration/FLATS/<night>/ into the canonical
+    #      store calibration/flats/<night>/. The 2026-07-20 reorg relocated the store
+    #      out of the data tree but left rsync depositing new nights in the old spot;
+    #      without this step link_flats looked in an up-to-date store, never saw the
+    #      new night, found no work, and exited 0 — a silent no-FLATS night, not
+    #      discovered until someone sat down to stack (sh2-157, 2026-07-20).
+    #   2. link_flats.py hardlinks the store's flats into every target that shot
+    #      lights that night. XFS: the hardlink costs no extra bytes.
     #
-    # Check the exit code. When the scripts were extracted into their own repo
-    # this tool started resolving its data root as <repo>/tools/Raws and aborted
-    # on every run -- and because nothing here looked at $status, the failure was
-    # invisible from both ends. A night with no <target>/<night>/FLATS/ simply
-    # does not process, and that is not discovered until you sit down to stack.
+    # Both run after normalisation so the flats land beside the final folder names.
+    #
+    # Check both exit codes. When the scripts were extracted into their own repo,
+    # link_flats resolved its data root as <repo>/tools/Raws and aborted on every
+    # run -- and because nothing here looked at $status, the failure was invisible
+    # from both ends. A night with no <target>/<night>/FLATS/ simply does not
+    # process, and that is not discovered until you sit down to stack.
+    $astro_pipeline/tools/collect_flats.py
+    set -l collected $status
+    if test $collected -ne 0
+        echo "askar_copy: WARNING — flat collection failed (exit $collected); the store may be missing this night" >&2
+    end
+
     $astro_pipeline/tools/link_flats.py
     set -l linked $status
     if test $linked -ne 0
