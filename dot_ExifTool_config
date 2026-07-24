@@ -35,6 +35,10 @@
     SubExposure    => { Writable => 'real' },     # seconds
     Integration    => { Writable => 'real' },     # seconds
     Airmass        => { Writable => 'real' },
+    # Set only when Frames/Integration were reconstructed from surviving light
+    # frames instead of read from a stack header (no stack survives for M 12
+    # and M 24). Absent means the figures are as-recorded.
+    Estimated      => { Writable => 'string' },
 
     # Equipment
     Telescope      => { Writable => 'string' },

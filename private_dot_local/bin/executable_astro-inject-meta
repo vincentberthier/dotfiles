@@ -23,6 +23,7 @@ Custom XMP namespace defined in ~/.ExifTool_config.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -34,20 +35,65 @@ from typing import Iterable
 import yaml
 
 
-RAWS_ROOT = Path("/run/media/vincent/Corrbolg/dso/data")
+DSO_ROOT = Path(os.environ.get("ASTRO_HIBOU_DSO_ROOT",
+                               "/run/media/vincent/Corrbolg/dso"))
+RAWS_ROOT = DSO_ROOT / "data"
+
+# The 2026-07-20 reorg moved processing out of data/<target>/process/ into a
+# top-level process/ tree that mirrors data/ (REORG_PLAN.md §2). Sidecars are
+# written beside their FITS (§3b), so they moved with it — and this script's
+# discovery globs were not in the list of call sites updated at the time, which
+# silently broke every injection from that date on. Both layouts are searched
+# now, so a re-run over the archive works regardless of when a file was made.
+PROCESS_ROOT = Path(os.environ["ASTRO_HIBOU_PROCESS_PATH"]) \
+    if os.environ.get("ASTRO_HIBOU_PROCESS_PATH") else DSO_ROOT / "process"
+PRODUCTS_ROOT = DSO_ROOT / "products"
+
 EXPORT_ROOT = Path.home() / "Images/Photos/Astro"
 INJECTOR_VERSION = "astro_inject_meta v1"
 
-# JPG filename: YYYY-MM-DD_<target>-<mode>[-extra...][-web].jpg
-# The "extra" segment is rare (e.g. "M8-SHO-first") so we keep mode loose.
+# JPG filename: YYYY-MM-DD_<target>[-<mode>][-extra...][_variant][-web].jpg
+#
+# The mode is optional: the earliest exports predate the mode suffix entirely
+# ("2025-06-23_M11.jpg"), and rejecting them meant they could never be injected.
+# A trailing "_variant" ("_16bit", "_syqon", "_v2") is a processing variant of
+# the same acquisition, so it is captured and discarded for matching purposes.
+# The lookaheads keep "-web" out of the mode and extra groups. Without them a
+# mode-less name like "2025-07-19_NGC7293-web.jpg" parses with mode="WEB",
+# which matches no sidecar and silently strands every mode-less web twin.
 RE_JPG = re.compile(
-    r"^(?P<date>\d{4}-\d{2}-\d{2})_(?P<target>[^_]+?)-(?P<mode>[A-Za-z]+)"
-    r"(?P<extra>(?:-[^-]+)*?)(?P<web>-web)?\.jpg$"
+    r"^(?P<date>\d{4}-\d{2}-\d{2})_(?P<target>[^_-]+?)"
+    r"(?:-(?!web\b)(?P<mode>[A-Za-z]+))?"
+    r"(?P<extra>(?:-(?!web\b)[^-_]+)*?)"
+    r"(?:_(?P<variant>[^-]+))?"
+    r"(?P<web>-web)?\.jpg$"
 )
 
 # Modes we recognise as recombination outputs from astro_hibou.py.
 KNOWN_MODES = {"LRGB", "RGB", "SHO", "HOO", "OHS", "HSO", "FORAX", "FORAXX",
                "HALRGB_R", "HALRGB_L"}
+
+# Wide-field / nightscape exports: no target, no mode, no FITS anywhere. They
+# get authorship and rights only — there is no acquisition metadata to recover
+# and inventing any would be worse than leaving the fields absent.
+NIGHTSCAPES = {
+    "Constellations": "Constellations",
+    "MilkyWay": "Voie lactée / Milky Way",
+    "Timelapse": "Timelapse",
+}
+
+AUTHOR = {"name": "Vincent Berthier", "email": "contact@astro-hibou.eu"}
+
+# Catalogue designations whose data lives under a folder named for the object's
+# common name. normalize_target() cannot bridge those — "B33" and
+# "horsehead-nebula" share no characters — so each needs an explicit mapping.
+#
+# Empty as of 2026-07-25: the three folders that needed entries here
+# (horsehead-nebula, nebuleuse-du-dragon-chinois, tweedledum-cluster) were
+# renamed to b-33, ngc-6559 and ngc-6633, so every export's target token now
+# matches its folder directly. Keep this table for the next common-name folder
+# rather than deleting it.
+TARGET_ALIASES: dict[str, str] = {}
 
 
 def normalize_target(name: str) -> str:
@@ -72,8 +118,8 @@ def normalize_target(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", folded.lower())
 
 
-def parse_jpg_name(jpg: Path) -> tuple[str, str, bool] | None:
-    """Return (target_token, mode_upper, is_web) or None if unparseable.
+def parse_jpg_name(jpg: Path) -> tuple[str, str | None, bool] | None:
+    """Return (target_token, mode_upper_or_None, is_web) or None if unparseable.
 
     The mode group is [A-Za-z]+, so it stops at the hyphen in a name like
     2026-07-10_M101-HaLRGB-R.jpg and yields "HALRGB" while the "-R" falls into
@@ -82,14 +128,18 @@ def parse_jpg_name(jpg: Path) -> tuple[str, str, bool] | None:
     targets -- so every one of those exports silently found no sidecar.
 
     Re-attach the leading extra segment when doing so names a known mode.
+
+    The mode is optional and comes back as None for the earliest exports, which
+    predate the suffix entirely ("2025-06-23_M11.jpg"). None means "match on
+    target alone" rather than "no match".
     """
     m = RE_JPG.match(jpg.name)
     if not m:
         return None
 
-    mode = m["mode"].upper()
+    mode = m["mode"].upper() if m["mode"] else None
     extra = (m["extra"] or "").strip("-")
-    if extra:
+    if mode and extra:
         # "R", "L", or a decorated "R_v2" -- only the leading token qualifies.
         token = re.split(r"[-_]", extra)[0].upper()
         if token and f"{mode}_{token}" in KNOWN_MODES:
@@ -98,43 +148,104 @@ def parse_jpg_name(jpg: Path) -> tuple[str, str, bool] | None:
     return m["target"], mode, bool(m["web"])
 
 
-def _iter_sidecars() -> Iterable[Path]:
-    """Yield sidecars across both layouts:
-      - single-day:  Raws/<target>/process/*.meta.yaml
-      - multi-day:   Raws/<target>/<YYYY-MM-DD>/process/*.meta.yaml
+def _iter_sidecars() -> Iterable[tuple[Path, str]]:
+    """Yield (sidecar, target_folder) across every layout this archive has used.
+
+    Post-reorg (2026-07-20), sidecars live beside their FITS under the
+    top-level process/ and products/ trees. Pre-reorg they sat under
+    data/<target>/[<date>/]process/. Both are searched so one pass covers the
+    whole archive; a target that exists in several trees simply yields several
+    candidates, which find_sidecar then disambiguates on mode.
     """
-    yield from RAWS_ROOT.glob("*/process/*.meta.yaml")
-    yield from RAWS_ROOT.glob("*/*/process/*.meta.yaml")
+    for root in (PROCESS_ROOT, PRODUCTS_ROOT):
+        if not root.is_dir():
+            continue
+        for sidecar in root.glob("*/**/*.meta.yaml"):
+            rel = sidecar.relative_to(root)
+            yield sidecar, rel.parts[0]
+
+    for pattern in ("*/process/*.meta.yaml", "*/*/process/*.meta.yaml"):
+        for sidecar in RAWS_ROOT.glob(pattern):
+            rel = sidecar.relative_to(RAWS_ROOT)
+            yield sidecar, rel.parts[0]
 
 
-def _target_folder(sidecar: Path) -> str:
-    """The first path component under RAWS_ROOT — the target folder name,
-    regardless of whether a date subfolder sits in between."""
-    rel = sidecar.relative_to(RAWS_ROOT)
-    return rel.parts[0] if rel.parts else ""
+def _date_distance(obs: str, near: str | None) -> int:
+    """Days between two YYYY-MM-DD strings, for ranking candidate sidecars.
+
+    A missing date on either side sorts last rather than raising: an undated
+    candidate is usable, just never preferred over a dated one.
+    """
+    if not obs or not near:
+        return sys.maxsize
+    try:
+        a = datetime.strptime(obs, "%Y-%m-%d")
+        b = datetime.strptime(near, "%Y-%m-%d")
+    except ValueError:
+        return sys.maxsize
+    return abs((a - b).days)
 
 
-def find_sidecar(target_token: str, mode: str) -> Path | None:
-    """Scan Raws/ for a sidecar matching the target + mode."""
+def find_sidecar(target_token: str, mode: str | None,
+                 near: str | None = None) -> Path | None:
+    """Scan the archive for a sidecar matching the target + mode.
+
+    `near` is the export's own date (from its filename), used to pick between
+    several sessions of the same target and mode: the candidate whose
+    observation date sits closest to it wins.
+
+    M16 is why this matters: products/m-16 holds both a 2025-06-25 SHO stack
+    (31 subs) and a 2025-07-13 one (110 subs). Without the date, matching is
+    decided by directory-walk order, and the 2025-06-25 export silently picks
+    up nine hours of integration it does not have.
+
+    Closest-date rather than a not-after bound, because the filename date is
+    not reliably the export date. It usually is (B33 is named 2025-12-13 for a
+    2025-11-29 acquisition), but m-8's exports are named 2025-06-25 while their
+    stack header reads 2025-06-26 — naming the session's first night while the
+    header records a later sub. Rejecting anything after the filename date
+    therefore throws away correct matches; ranking by distance does not, and
+    needs no tolerance constant to tune.
+    """
     target_n = normalize_target(target_token)
-    candidates: list[Path] = []
-    for sidecar in _iter_sidecars():
+    aliased = TARGET_ALIASES.get(target_n)
+    exact: list[tuple[str, Path]] = []
+    fallback: list[tuple[str, Path]] = []
+
+    for sidecar, folder in _iter_sidecars():
         try:
             with open(sidecar) as f:
                 meta = yaml.safe_load(f) or {}
         except (OSError, yaml.YAMLError):
             continue
-        sidecar_target = (meta.get("target") or {}).get("name") or ""
-        sidecar_mode = ((meta.get("acquisition") or {}).get("mode") or "").upper()
-        if sidecar_mode != mode:
+        acq = meta.get("acquisition") or {}
+        # Modes are compared through normalize_target because the pipeline has
+        # spelled the same mode several ways over time — "HaLRGB-R" in older
+        # sidecars against the "HALRGB_R" a filename parses to. Folding away
+        # case and separators makes those one value instead of two.
+        sidecar_mode = normalize_target(acq.get("mode") or "")
+        # A mode-less export ("2025-06-23_M11.jpg") matches on target alone;
+        # it predates the mode suffix, so there is nothing to disambiguate on.
+        if mode is not None and sidecar_mode != normalize_target(mode):
             continue
+
+        obs = (acq.get("date_obs_utc") or "")[:10]
+        sidecar_target = (meta.get("target") or {}).get("name") or ""
+        folder_n = normalize_target(folder)
         if normalize_target(sidecar_target) == target_n:
-            return sidecar
-        # Folder name fallback: catalog aliases (B33 → Horsehead Nebula folder).
-        if normalize_target(_target_folder(sidecar)) == target_n:
-            candidates.append(sidecar)
-    # Single fallback match is good enough; ambiguity = give up.
-    return candidates[0] if len(candidates) == 1 else None
+            exact.append((obs, sidecar))
+        elif folder_n == target_n or (aliased and folder_n == aliased):
+            fallback.append((obs, sidecar))
+
+    for pool in (exact, fallback):
+        if len(pool) == 1:
+            return pool[0][1]
+        if len(pool) > 1:
+            # Several sessions match; take the one observed closest to the
+            # export's own date. A candidate with no date sorts last, so a
+            # dated stack always beats an undated one.
+            return min(pool, key=lambda pair: _date_distance(pair[0], near))[1]
+    return None
 
 
 def to_exif_datetime(iso: str | None) -> str | None:
@@ -180,11 +291,19 @@ def build_description(meta: dict) -> str:
     else:
         total_str = "?"
 
+    # A sidecar rebuilt from light frames rather than from a stack header has
+    # no recorded frame count, so any figure in it is a reconstruction. Say so
+    # in the text a viewer actually reads: once these numbers are published
+    # they are indistinguishable from measured ones otherwise.
+    approx = "~" if acq.get("estimated") else ""
+    suffix = ", estimated" if acq.get("estimated") else ""
+
     lines = [f"{target_label} — {mode}"]
     if frames and sub:
-        lines.append(f"{total_str} total integration ({frames} × {sub:g} s subs).")
+        lines.append(f"{approx}{total_str} total integration "
+                     f"({approx}{frames} × {sub:g} s subs{suffix}).")
     elif total_s:
-        lines.append(f"{total_str} total integration.")
+        lines.append(f"{approx}{total_str} total integration{suffix}.")
     lines.append(f"{telescope} + {camera}.")
     if date:
         lines.append(f"Acquired {date} UTC.")
@@ -255,6 +374,9 @@ def build_exiftool_args(meta: dict, jpg: Path) -> list[str]:
     add("Frames", acq.get("frames_stacked"))
     add("SubExposure", acq.get("sub_exposure_s"))
     add("Integration", acq.get("total_integration_s"))
+    # Travels with the file so a consumer can tell a reconstructed frame count
+    # from one read out of a stack header.
+    add("Estimated", "true" if acq.get("estimated") else None)
     add("Airmass", acq.get("airmass"))
     add("Telescope", eq.get("telescope"))
     add("Camera", eq.get("camera"))
@@ -278,6 +400,46 @@ def build_exiftool_args(meta: dict, jpg: Path) -> list[str]:
     add("InjectedAt", datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
 
     return args
+
+
+def build_nightscape_args(jpg: Path, title: str) -> list[str]:
+    """Authorship and rights only, for wide-field frames with no acquisition data.
+
+    These are single-shot or timelapse frames that never went through Siril, so
+    there is no FITS header, no sidecar, and no integration to report. Stamping
+    the author, the rights and the capture date is everything that can honestly
+    be said about them; the astro namespace is left untouched rather than filled
+    with placeholders.
+    """
+    m = RE_JPG.match(jpg.name)
+    date = m["date"] if m else ""
+    year = date[:4] or str(datetime.now().year)
+    author = f"{AUTHOR['name']} <{AUTHOR['email']}>"
+    copyright_str = f"© {year} {AUTHOR['name']}"
+
+    args = [
+        f"-EXIF:Artist={AUTHOR['name']}",
+        f"-EXIF:Copyright={copyright_str}",
+        f"-XMP-dc:Creator={author}",
+        f"-XMP-dc:Rights={copyright_str}",
+        f"-XMP-dc:Title={title}",
+        f"-XMP-astrohibou:InjectedBy={INJECTOR_VERSION}",
+        f"-XMP-astrohibou:InjectedAt="
+        f"{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}",
+    ]
+    if date:
+        args.append(f"-XMP-photoshop:DateCreated={date.replace('-', ':')}")
+    return args
+
+
+def nightscape_title(jpg: Path) -> str | None:
+    """The display title for a wide-field export, or None if it isn't one."""
+    m = RE_JPG.match(jpg.name)
+    token = m["target"] if m else jpg.stem.split("_", 1)[-1]
+    for key, title in NIGHTSCAPES.items():
+        if normalize_target(key) == normalize_target(token or ""):
+            return title
+    return None
 
 
 def already_injected(jpg: Path) -> bool:
@@ -357,18 +519,38 @@ def process_one(
     if explicit_sidecar:
         sidecar = explicit_sidecar
     else:
+        title = nightscape_title(jpg)
+        if title is not None:
+            if verbose:
+                print(f"  nightscape: authorship only ({title})")
+            return run_exiftool(jpg, build_nightscape_args(jpg, title),
+                                dry_run=dry_run, verbose=verbose)
+
         parsed = parse_jpg_name(jpg)
         if parsed is None:
-            print(f"  ! Cannot parse filename. Pass --sidecar to override.",
+            print("  ! Cannot parse filename. Pass --sidecar to override.",
                   file=sys.stderr)
             return False
         target_token, mode, _is_web = parsed
-        if mode not in KNOWN_MODES and verbose:
+        if mode is not None and mode not in KNOWN_MODES and verbose:
             print(f"  (unrecognised mode '{mode}'; trying anyway)")
-        sidecar = find_sidecar(target_token, mode)
+        name_match = RE_JPG.match(jpg.name)
+        near = name_match["date"] if name_match else None
+        sidecar = find_sidecar(target_token, mode, near=near)
+        if sidecar is None and mode is not None:
+            # No sidecar records this mode. That is the normal case for a
+            # hand-built composite: "2025-06-25_M16-Custom.jpg" is a palette
+            # variation of that night's SHO stack, and no pipeline run ever
+            # emitted a "CUSTOM" mode. Retry on target alone — the acquisition
+            # is the same, and the date ranking still picks the right session.
+            sidecar = find_sidecar(target_token, None, near=near)
+            if sidecar is not None and verbose:
+                print(f"  (no sidecar for mode {mode}; matched on target + date)")
         if sidecar is None:
-            print(f"  ! No sidecar for target='{target_token}' mode={mode}. "
-                  f"Pass --sidecar to override.", file=sys.stderr)
+            print(f"  ! No sidecar for target='{target_token}' "
+                  f"mode={mode or '(any)'}. Generate one with "
+                  f"`astro-make-sidecar <stacked.fit>`, or pass --sidecar.",
+                  file=sys.stderr)
             return False
         if verbose:
             print(f"  sidecar: {sidecar}")
