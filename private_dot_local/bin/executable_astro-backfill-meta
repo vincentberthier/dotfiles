@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+"""Backfill sidecars for exports that never got any.
+
+Walks ~/Images/Photos/Astro, finds every export with no injected metadata,
+resolves it back to the stacked FITS it was made from, and calls
+astro-make-sidecar to produce the missing `.meta.yaml`. Running
+`astro-inject-meta` afterwards then stamps the exports as usual.
+
+This exists because the sidecar mechanism postdates most of the archive: the
+pipeline writes a sidecar for everything it processes now, but nothing did so
+for the 2025 material, which left the FITS on the drive as the only surviving
+record of how those images were acquired.
+
+Usage:
+    astro-backfill-meta            # report what would be generated
+    astro-backfill-meta --apply    # generate the sidecars
+
+Dry-run by default. Existing sidecars are never overwritten (that is
+astro-make-sidecar's guarantee), so re-running is safe and only fills gaps.
+
+Unresolved exports are listed rather than guessed at: a target with no FITS
+anywhere on the drive has genuinely lost its acquisition data, and inventing
+plausible numbers would be worse than leaving the fields empty.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+import importlib.util
+
+from importlib.machinery import SourceFileLoader
+
+# The injector has no .py extension, so spec_from_file_location cannot guess a
+# loader for it; name one explicitly.
+_path = str(Path.home() / ".local/bin/astro-inject-meta")
+spec = importlib.util.spec_from_loader("inject", SourceFileLoader("inject", _path))
+inject = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(inject)
+
+DSO = Path("/run/media/vincent/Corrbolg/dso")
+EXPORTS = Path.home() / "Images/Photos/Astro"
+
+
+def folder_for(target_token: str) -> Path | None:
+    """Resolve an export's target token to its folder under process/ or
+    products/, honouring the same aliases the injector uses."""
+    key = inject.normalize_target(target_token)
+    key = inject.TARGET_ALIASES.get(key, key)
+    for tree in ("process", "products"):
+        root = DSO / tree
+        if not root.is_dir():
+            continue
+        for d in root.iterdir():
+            if d.is_dir() and inject.normalize_target(d.name) == key:
+                yield_dir = d
+                yield yield_dir
+
+
+MODE_TOKENS = ["halrgb_r", "halrgb_l", "halrgb", "foraxx", "forax",
+               "lrgb", "rgb", "sho", "hoo", "ohs", "hso"]
+
+
+def _candidates(folder: Path) -> list[Path]:
+    """Every FITS in a target folder that could be a final stack.
+
+    starmask_* and master_* are intermediates, never the source of an export.
+    """
+    return [p for p in sorted(folder.rglob("*.fit"))
+            if not p.name.lower().startswith(("starmask_", "master_"))]
+
+
+def infer_folder_mode(folder: Path) -> str | None:
+    """The single recombination mode a folder's stacks are in, or None if the
+    folder holds several. Used to recover the mode for the earliest exports,
+    whose filenames predate the mode suffix — safe only when there is no
+    ambiguity to resolve."""
+    found = set()
+    for p in _candidates(folder):
+        name = p.name.lower()
+        for token in MODE_TOKENS:
+            if token in name:
+                found.add(token)
+                break
+    return found.pop().upper() if len(found) == 1 else None
+
+
+def best_fits(target_token: str, mode: str | None) -> tuple[Path, str] | None:
+    """Pick the stacked FITS an export was made from, plus the mode used.
+
+    Preference order matters: the export comes off the *final* stack, so a
+    denoised starless frame beats the raw starless one, which beats a bare
+    recombination. Matching is case-insensitive because the archive spells the
+    same mode both ways (m-42 has starless_HSO.fit, m-8 has hso.fit), and the
+    last pattern is a loose contains-match so date-prefixed names like
+    2026-05-21_M10-LRGB.fit still resolve.
+    """
+    for folder in folder_for(target_token):
+        effective = mode or infer_folder_mode(folder)
+        if not effective:
+            continue
+        m = effective.lower()
+        patterns = [
+            f"starless_{m}_denoised.fit",
+            f"starless_{m}.fit",
+            f"{m}_denoised.fit",
+            f"{m}.fit",
+            f"{m}_flats.fit",
+        ]
+        pool = _candidates(folder)
+        for pattern in patterns:
+            hits = [p for p in pool if p.name.lower() == pattern]
+            if hits:
+                return hits[-1], effective
+        # Loose fallback: any non-intermediate stack naming the mode.
+        loose = [p for p in pool if m in p.name.lower()]
+        if loose:
+            return loose[-1], effective
+    return None
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--apply", action="store_true")
+    args = ap.parse_args()
+
+    masters = sorted(p for p in EXPORTS.glob("*.jpg")
+                     if not p.stem.endswith("-web"))
+    proc = subprocess.run(
+        ["exiftool", "-json", "-q", "-q", "-FileName", "-XMP:InjectedBy",
+         *map(str, masters)], capture_output=True, text=True, check=False)
+    injected = {m["FileName"] for m in json.loads(proc.stdout or "[]")
+                if m.get("InjectedBy")}
+
+    todo, resolved, missing = [], [], []
+    for jpg in masters:
+        if jpg.name in injected:
+            continue
+        if inject.nightscape_title(jpg) is not None:
+            continue
+        parsed = inject.parse_jpg_name(jpg)
+        if parsed is None:
+            missing.append((jpg.name, "unparseable name"))
+            continue
+        target, mode, _ = parsed
+        if inject.find_sidecar(target, mode) is not None:
+            continue  # sidecar already there
+        hit = best_fits(target, mode)
+        if hit is None:
+            missing.append((jpg.name, f"no FITS for target={target} mode={mode}"))
+        else:
+            fits, effective = hit
+            inferred = "" if mode else f"  [mode inferred: {effective}]"
+            resolved.append((jpg.name, fits, inferred))
+            todo.append((fits, effective))
+
+    print(f"{len(resolved)} exports resolved to a FITS:")
+    for name, fits, inferred in resolved:
+        print(f"  {name:<42} <- {fits.relative_to(DSO)}{inferred}")
+    print(f"\n{len(missing)} unresolved:")
+    for name, why in missing:
+        print(f"  {name:<42} ({why})")
+
+    unique = sorted(set(todo))
+    print(f"\n{len(unique)} distinct FITS need a sidecar.")
+    if not args.apply:
+        print("(dry run — pass --apply to generate)")
+        return 0
+
+    # One call per FITS: the mode is passed explicitly rather than left to the
+    # generator's filename inference, because names like `final.fit` and
+    # `hoo_flats.fit` carry it unreliably or not at all.
+    failures = 0
+    for fits, mode in unique:
+        rc = subprocess.run(
+            [str(Path.home() / ".local/bin/astro-make-sidecar"),
+             "--mode", mode, str(fits)], check=False)
+        failures += rc.returncode != 0
+    if failures:
+        print(f"{failures}/{len(unique)} sidecars failed.", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
