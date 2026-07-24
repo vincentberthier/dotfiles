@@ -39,9 +39,15 @@ dt.register_event(
         dt.print_log("astro_inject_meta: " .. cmd)
         local rc = dt.control.execute(cmd)
         if rc ~= 0 then
-            dt.print_error(
-                ("astro_inject_meta failed (rc=%d) for %s"):format(rc, filename)
-            )
+            -- print_error only reaches darktable's log, which is invisible
+            -- unless you happen to be running `darktable -d lua`. A silent
+            -- failure here is how the 2026-07-20 reorg broke injection for
+            -- every subsequent export without it being noticed, so the
+            -- failure is also raised in the UI where it cannot be missed.
+            local msg = ("astro_inject_meta FAILED (rc=%d): %s")
+                :format(rc, filename:match("[^/]+$") or filename)
+            dt.print_error(msg)
+            dt.print(msg)
         end
     end
 )
