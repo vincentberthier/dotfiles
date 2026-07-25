@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+# Steam launch wrapper for Path of Exile 2 under niri, with Exiled Exchange 2.
+#
+# Usage — Steam launch options for app 2694490:
+#   poe2-gamescope %command%
+#
+# ---------------------------------------------------------------------------
+# Why every piece of this exists
+#
+# 1. gamescope
+#    EE2's overlay uses electron-overlay-window, which is X11-only and needs a
+#    real EWMH window manager: it tracks the game through _NET_ACTIVE_WINDOW /
+#    _NET_WM_NAME on the root window. niri + xwayland-satellite manages nothing
+#    (no _NET_CLIENT_LIST, X geometry unrelated to screen position), so the
+#    overlay attaches to nothing and never draws. gamescope ships its own
+#    Xwayland plus steamcompmgr as WM, which satisfies it.
+#
+# 2. Keymap fixup
+#    gamescope snapshots the host keymap at startup and flattens it to the one
+#    group active at the time. niri here is layout "fr,fr" / variant ",bepo";
+#    launching while BEPO is active leaves the game stuck on BEPO with no
+#    second group to switch to. So force the plain French layout on gamescope's
+#    display once it appears.
+#
+# 3. EE2 on gamescope's display
+#    EE2 has to be an X11 client of *gamescope's* X server, not the desktop's.
+#    Electron otherwise picks the Wayland backend and creates no window at all.
+#    It also holds a singleton lock in ~/.config/exiled-exchange-2, so any
+#    stale instance must die first or the new one just hands off and exits.
+#
+# 4. Overlay atoms (steamcompmgr.cpp)
+#      STEAM_OVERLAY              -> isOverlay          (painted, input-eligible)
+#      GAMESCOPE_EXTERNAL_OVERLAY -> isExternalOverlay  (painted, NEVER gets input)
+#      STEAM_INPUT_FOCUS          -> inputFocusMode
+#    line 3827: if ( w->isOverlay && w->inputFocusMode ) inputFocus = w;
+#    line 3884: if ( inputFocusMode == 2 ) keyboardFocusWin = focusWindow;
+#    So input needs STEAM_OVERLAY (not the external flag), and mode 2 sends the
+#    mouse to the overlay while leaving the keyboard with the game.
+# ---------------------------------------------------------------------------
+set -uo pipefail
+
+LAYOUT="${POE2_XKB_LAYOUT:-fr}"
+VARIANT="${POE2_XKB_VARIANT:-}"
+EE2="${POE2_EE2_APPIMAGE:-/home/vincent/Téléchargements/Exiled-Exchange-2-0.15.8.AppImage}"
+EE2_MODE="${POE2_EE2_MODE:-mouse}"    # mouse | full | external | off
+LOGDIR="${XDG_STATE_HOME:-$HOME/.local/state}/poe2-gamescope"
+mkdir -p "$LOGDIR"
+
+EE2_PATTERN='/tmp/\.mount_Exiled.*/exiled-exchange-2'
+
+note() { logger -t poe2-gamescope "$*"; echo "poe2-gamescope: $*" >&2; }
+
+kill_ee2() {
+    local pids
+    pids=$(pgrep -f "$EE2_PATTERN" | tr '\n' ' ')
+    [ -z "$pids" ] && return 0
+    kill $pids 2>/dev/null
+    for _ in $(seq 1 50); do
+        pgrep -f "$EE2_PATTERN" >/dev/null || return 0
+        sleep 0.1
+    done
+    # Electron's main process ignores SIGTERM when it owns a tray icon.
+    pids=$(pgrep -f "$EE2_PATTERN" | tr '\n' ' ')
+    [ -n "$pids" ] && kill -9 $pids 2>/dev/null
+    for _ in $(seq 1 50); do
+        pgrep -f "$EE2_PATTERN" >/dev/null || return 0
+        sleep 0.1
+    done
+}
+
+existing_displays() {
+    local d
+    for d in /tmp/.X11-unix/X*; do
+        [ -e "$d" ] && printf '%s\n' "${d##*/X}"
+    done
+}
+
+# The EE2 overlay window, as opposed to the 10x10 helper window it also maps.
+# steamcompmgr only treats overlays wider than 1200px as the main overlay plane.
+overlay_window() {
+    local w
+    for w in $(xdotool search --class 'exiled-exchange-2' 2>/dev/null); do
+        eval "$(xdotool getwindowgeometry --shell "$w" 2>/dev/null)"
+        [ "${WIDTH:-0}" -gt 1200 ] && { echo "$w"; return 0; }
+    done
+    return 1
+}
+
+before=$(existing_displays | sort -u | tr '\n' ' ')
+
+# Everything below runs once gamescope's Xwayland shows up, then exits.
+# gamescope itself stays in the foreground so Steam tracks the game's lifetime.
+(
+    newdisp=""
+    for _ in $(seq 1 900); do
+        for d in $(existing_displays); do
+            case " $before " in
+                *" $d "*) ;;
+                *) newdisp="$d"; break ;;
+            esac
+        done
+        [ -n "$newdisp" ] && break
+        sleep 0.1
+    done
+    [ -z "$newdisp" ] && { note "gamescope X display never appeared; skipping setup"; exit 0; }
+
+    export DISPLAY=":$newdisp"
+    unset WAYLAND_DISPLAY          # keep Electron off the Wayland backend
+
+    for _ in $(seq 1 100); do
+        xdpyinfo >/dev/null 2>&1 && break
+        sleep 0.1
+    done
+
+    setxkbmap -model pc105 -layout "$LAYOUT" ${VARIANT:+-variant "$VARIANT"} 2>/dev/null \
+        && note "xkb layout=$LAYOUT variant=${VARIANT:-none} on $DISPLAY"
+
+    if [ "$EE2_MODE" = off ] || [ ! -x "$EE2" ]; then
+        [ "$EE2_MODE" = off ] || note "EE2 not found at $EE2; skipping"
+        exit 0
+    fi
+
+    kill_ee2
+    setsid "$EE2" --ozone-platform=x11 >"$LOGDIR/ee2.log" 2>&1 </dev/null &
+    disown
+    note "launched EE2 on $DISPLAY"
+
+    win=""
+    for _ in $(seq 1 600); do
+        win=$(overlay_window) && [ -n "$win" ] && break
+        sleep 0.1
+    done
+    if [ -z "$win" ]; then
+        note "EE2 overlay window never appeared"
+        exit 0
+    fi
+
+    xprop -id "$win" -remove GAMESCOPE_EXTERNAL_OVERLAY 2>/dev/null
+    xprop -id "$win" -remove STEAM_OVERLAY 2>/dev/null
+    xprop -id "$win" -remove STEAM_INPUT_FOCUS 2>/dev/null
+    case "$EE2_MODE" in
+        mouse)    xprop -id "$win" -f STEAM_OVERLAY 32c -set STEAM_OVERLAY 1
+                  xprop -id "$win" -f STEAM_INPUT_FOCUS 32c -set STEAM_INPUT_FOCUS 2 ;;
+        full)     xprop -id "$win" -f STEAM_OVERLAY 32c -set STEAM_OVERLAY 1
+                  xprop -id "$win" -f STEAM_INPUT_FOCUS 32c -set STEAM_INPUT_FOCUS 1 ;;
+        external) xprop -id "$win" -f GAMESCOPE_EXTERNAL_OVERLAY 32c -set GAMESCOPE_EXTERNAL_OVERLAY 1 ;;
+    esac
+    note "EE2 overlay window $win set to mode=$EE2_MODE"
+) &
+
+gamescope -w 3840 -h 2160 -W 3840 -H 2160 -f -- "$@"
+rc=$?
+
+# Do not leave EE2 running: its singleton lock would block the next launch.
+kill_ee2
+note "game exited (rc=$rc), EE2 stopped"
+exit $rc
