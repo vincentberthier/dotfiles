@@ -1,7 +1,8 @@
 {
   "cleanupPeriodDays": 30,
   "env": {
-    "CLAUDE_CODE_DISABLE_MOUSE": "1"
+    "CLAUDE_CODE_DISABLE_MOUSE": "1",
+    "CLAUDE_CODE_TMPDIR": "/var/tmp"
   },
   "permissions": {
     "allow": [
@@ -69,19 +70,26 @@
       "Skill(*)",
       "WebFetch(*)",
       "WebSearch(*)",
-      "Write(*)"
+      "Write(*)",
+      "mcp__plugin_tyrex-debugger_mcp-debugger__*"
     ],
     "deny": [
       "Read(/home/vincent/.ssh/*)",
       "Read(/home/vincent/.config/glab-cli/config.yml)"
     ]
   },
-  "deniedMcpServers": [
-    { "serverName": "claude_ai_Gmail" },
-    { "serverName": "claude_ai_Google_Calendar" },
-    { "serverName": "claude_ai_Google_Drive" }
-  ],
   "model": "opus[1m]",
+  "deniedMcpServers": [
+    {
+      "serverName": "claude_ai_Gmail"
+    },
+    {
+      "serverName": "claude_ai_Google_Calendar"
+    },
+    {
+      "serverName": "claude_ai_Google_Drive"
+    }
+  ],
   "hooks": {
     "PreToolUse": [
       {
@@ -106,6 +114,16 @@
           }
         ]
       }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/vincent/.claude/hooks/clean-scratchpad.sh"
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -119,12 +137,17 @@
     "claude-code-setup@claude-plugins-official": false,
     "cowork-plugin-management@knowledge-work-plugins": true,
     "skill-creator@claude-plugins-official": true,
-    "tyrex-core@tyrex-plugins": true,
-    "tyrex-documents@tyrex-plugins": true,
-    "tyrex-jj@tyrex-plugins": true,
+    "tyrex-dev@tyrex-plugins": true,
+    "tyrex-starter@tyrex-plugins": true,
     "tyrex-workflow@tyrex-plugins": true,
-    "tyrex-squash@tyrex-plugins": true,
-    "tyrex-workflow-light@tyrex-plugins": true
+    "tyrex-knowledge@tyrex-plugins": true,
+    "tyrex-core@tyrex-plugins": true,
+    "tyrex-vcs@tyrex-plugins": true,
+    "tyrex-workflow-light@tyrex-plugins": true,
+    "tyrex-agents@tyrex-plugins": true,
+    "tyrex-gitlab@tyrex-plugins": true,
+    "tyrex-assurance@tyrex-plugins": true,
+    "tyrex-jj@tyrex-plugins": true
   },
   "extraKnownMarketplaces": {
     "knowledge-work-plugins": {
