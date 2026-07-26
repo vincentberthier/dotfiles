@@ -84,10 +84,54 @@ EE2="${POE2_EE2_APPIMAGE:-/home/vincent/Téléchargements/Exiled-Exchange-2-0.15
 EE2_MODE="${POE2_EE2_MODE:-mouse}"
 GAME_TITLE="${POE2_WINDOW_TITLE:-Path of Exile 2}"
 CLIPBOARD_BRIDGE="${POE2_CLIPBOARD_BRIDGE:-on}"
+CLIP_OUT="${POE2_CLIP_OUT:-off}"
 LOGDIR="${XDG_STATE_HOME:-$HOME/.local/state}/poe2-gamescope"
 mkdir -p "$LOGDIR"
 
 EE2_PATTERN='/tmp/\.mount_Exiled.*/exiled-exchange-2'
+
+# --- argument parsing ------------------------------------------------------
+#
+# Steam invokes this as `poe2-gamescope [flags] %command%`, and %command%
+# expands to the whole launch chain. So consume leading flags and treat the
+# first non-flag argument as the start of the command to run.
+usage() {
+    cat >&2 <<'EOF'
+usage: poe2-gamescope [options] COMMAND...
+
+  --clip / --no-clip        host->game clipboard bridge (default: on)
+  --clip-out / --no-clip-out
+                            game->host clipboard sync (default: off; noisy,
+                            EE2 rewrites the game clipboard on every price check)
+  --ee2 MODE                mouse | full | external | off (default: mouse)
+  --layout LAYOUT           xkb layout forced on gamescope's display (default: fr)
+  -h, --help                this message
+
+Every option also has an environment equivalent (POE2_CLIPBOARD_BRIDGE,
+POE2_CLIP_OUT, POE2_EE2_MODE, POE2_XKB_LAYOUT); the flag wins.
+EOF
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --clip)        CLIPBOARD_BRIDGE=on;  shift ;;
+        --no-clip)     CLIPBOARD_BRIDGE=off; shift ;;
+        --clip-out)    CLIP_OUT=on;          shift ;;
+        --no-clip-out) CLIP_OUT=off;         shift ;;
+        --ee2)         EE2_MODE="${2:-mouse}";  shift 2 ;;
+        --layout)      LAYOUT="${2:-fr}";       shift 2 ;;
+        -h|--help)     usage; exit 0 ;;
+        --)            shift; break ;;
+        -*)            echo "poe2-gamescope: unknown option $1" >&2; usage; exit 2 ;;
+        *)             break ;;
+    esac
+done
+
+if [ $# -eq 0 ]; then
+    echo "poe2-gamescope: no command given" >&2
+    usage
+    exit 2
+fi
 RESTORED_FLAG="$LOGDIR/.niri-restored.$$"
 
 note() { logger -t poe2-gamescope "$*"; echo "poe2-gamescope: $*" >&2; }
@@ -280,8 +324,9 @@ print(m.group(1) if m else "")'
         if [ -z "$HOST_WAYLAND_DISPLAY" ]; then
             note "clipboard bridge skipped: no host WAYLAND_DISPLAY to read from"
         elif command -v xclip >/dev/null 2>&1; then
-            WAYLAND_DISPLAY="$HOST_WAYLAND_DISPLAY" poe2-clipboard-bridge "$DISPLAY" &
-            note "clipboard bridge started (host $HOST_WAYLAND_DISPLAY -> $DISPLAY)"
+            WAYLAND_DISPLAY="$HOST_WAYLAND_DISPLAY" POE2_CLIP_OUT="$CLIP_OUT" \
+                poe2-clipboard-bridge "$DISPLAY" &
+            note "clipboard bridge started (host $HOST_WAYLAND_DISPLAY -> $DISPLAY, out=$CLIP_OUT)"
         else
             note "clipboard bridge skipped: xclip not installed"
         fi
