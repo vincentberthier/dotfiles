@@ -113,8 +113,8 @@ S'il faut une vraie procédure ou des proportions précises → **recette**.
 
 1. **Meat/fish**: buy as individual portions (1 chicken breast, 1 salmon fillet, 1 ground beef patty).
 2. **Fresh vegetables**: buy by unit or by the exact weight needed.
-3. **Dry starches** (rice, pasta, lentils): standard packages (500 g, 1 kg) will be consumed over 2 weeks or beyond. Plan to **use the full package** when possible.
-4. **Dairy**: one pot of fromage blanc, one carton of crème fraîche — plan **2-3 recipes** using it within the fortnight.
+3. **Dry starches** (rice, pasta, lentils): standard packages (500 g, 1 kg) span several cycles. Buy them only when the pantry is out, and carry the remainder forward rather than forcing full consumption inside one week.
+4. **Dairy**: one pot of fromage blanc, one carton of crème fraîche — plan **2-3 recipes** using it within the cycle, since a 7-day window is tighter than the old fortnight.
 5. **Canned goods**: use the **entire can** in one recipe (e.g., one can of chickpeas = one recipe, not 40% of a can).
 6. **Fresh herbs**: if a bunch of parsley is purchased, plan **2-3 recipes** using it within the week.
 
@@ -122,16 +122,25 @@ S'il faut une vraie procédure ou des proportions précises → **recette**.
 
 Organize the grocery list into these sections:
 
-| Section                      | Contents                                        | Notes                                        |
-| ---------------------------- | ----------------------------------------------- | -------------------------------------------- |
-| **Long-shelf-life stock**    | Rice, pasta, canned goods, frozen items, sauces | Online order, once per 2-week cycle          |
-| **Semaine N — Lundi**        | Fresh items needed Mon–Wed                      | Monday shopping trip                         |
-| **Semaine N — Jeudi**        | Fresh items needed Thu–Sun                      | Thursday shopping trip                       |
-| **Semaine N+1 — Lundi**      | Fresh items needed Mon–Wed                      | Monday shopping trip                         |
-| **Semaine N+1 — Jeudi**      | Fresh items needed Thu–Sun                      | Thursday shopping trip                       |
-| **Pantry staples to verify** | Spices, oils, condiments                        | Normally already in stock; list those needed |
+There is **one shopping trip per cycle**, on Wednesday, at a regular supermarket. Everything is bought in that single trip — no online order, no mid-cycle top-up. Organize the list **by supermarket aisle** so it can be walked in one pass:
 
-**Freshness rule**: assign each fresh item to the shopping trip **closest to but before** its first use. A salad for Friday dinner goes in the Thursday list, not the Monday one. Meat/fish for Wednesday goes in the Monday list.
+| Section                  | Contents                                      |
+| ------------------------ | --------------------------------------------- |
+| **Fruits & légumes**     | Fresh produce                                 |
+| **Boucherie / volaille** | Meat and poultry                              |
+| **Poissonnerie**         | Fresh fish and seafood                        |
+| **Crèmerie**             | Dairy, eggs, cheese                           |
+| **Épicerie salée**       | Rice, pasta, canned goods, sauces, condiments |
+| **Surgelés**             | Frozen items                                  |
+| **Boulangerie**          | Bread                                         |
+
+Omit empty aisles. Do **not** add a "pantry staples to verify" section — cross-check `Fonds-de-placard.md` during generation and put what is genuinely missing straight into its aisle.
+
+**Freshness rule**: with a single Wednesday trip, everything must survive up to 7 days. Schedule the most perishable items (fresh fish, salad greens, soft herbs, fresh mushrooms) on **Wednesday–Friday**. Reserve Monday and Tuesday for robust ingredients: canned goods, frozen items, eggs, dry starches, root vegetables, hard cheese, cured items.
+
+**No car constraint**: volume and weight are unrestricted, so the full week can be bought in one go without arbitrating what fits in a backpack.
+
+**Local markets**: possibly Friday afternoon (unconfirmed), Saturday morning unlikely. Never plan a meal that depends on a market purchase.
 
 ### Grocery Aggregation
 

@@ -120,23 +120,29 @@ terminée: false
 
 Corps du fichier : tableau Markdown avec liens vers les recettes.
 
-```markdown
-# Plan Semaine NN
+Le cycle va du **mercredi au mardi suivant**. `NN` est la semaine ISO du mercredi de départ. Les lignes suivent l'ordre du cycle, pas l'ordre lundi→dimanche.
 
-| Jour     | Déjeuner                         | Dîner                             |
-| -------- | -------------------------------- | --------------------------------- |
-| Lundi    | [[Salade de lentilles]]          | [[Poulet grillé aux légumes]]     |
-| Mardi    | [[Wrap au thon]]                 | [[Soupe de légumes et tartine]]   |
-| Mercredi | [[Salade de pâtes complètes]] ⚡ | [[Sauté de bœuf aux brocolis]] ⚡ |
-| Jeudi    | [[Tartine avocat-œuf]]           | [[Filet de saumon et riz]]        |
-| Vendredi | [[Soupe de pois chiches]]        | [[Omelette aux champignons]]      |
-| Samedi   | [[Taboulé de quinoa]]            | [[Gratin de courgettes]]          |
-| Dimanche | [[Salade composée]]              | [[Ratatouille et œuf au plat]]    |
+```markdown
+# Plan Semaine NN (mercredi DD/MM → mardi DD/MM)
+
+| Jour     | Déjeuner                         | Dîner                              |
+| -------- | -------------------------------- | ---------------------------------- |
+| Mercredi | [[Salade de pâtes complètes]] ⚡ | [[Sauté de bœuf aux brocolis]] ⚡  |
+| Jeudi    | [[Tartine avocat-œuf]]           | [[Filet de saumon et riz]]         |
+| Vendredi | [[Soupe de pois chiches]]        | [[Omelette aux champignons]]       |
+| Samedi   | [[Taboulé de quinoa]]            | [[Gratin de courgettes]] 🍽️        |
+| Dimanche | [[Salade composée]]              | [[Ratatouille et œuf au plat]]     |
+| Lundi    | [[Salade de lentilles]]          | [[Poulet grillé aux légumes]]      |
+| Mardi    | [[Wrap au thon]]                 | [[Gratin de coquillettes au thon]] |
 
 ⚡ = jour de sport (repas légèrement enrichis)
 🍽️ = repas élaboré de la semaine (jusqu'à 60 min)
 🌱 = repas végétarien
 ```
+
+Le mercredi est à la fois jour de course, jour de sport et premier jour du cycle → son dîner doit être rapide.
+
+Les produits très périssables (poisson frais, salade, herbes fraîches) se placent sur **mercredi–vendredi**. Lundi et mardi reposent sur des ingrédients robustes : conserves, surgelés, œufs, féculents, légumes racines, fromage.
 
 Notes sur le format du plan :
 
@@ -158,52 +164,52 @@ terminée: false
 ---
 ```
 
-Le fichier courses couvre 2 semaines. Il comporte une section longue durée (commande en ligne), puis **4 sections de produits frais** correspondant aux 4 courses en magasin (lundi et jeudi de chaque semaine), et enfin le fonds de placard à vérifier.
+Le fichier courses couvre **un seul cycle de 7 jours** et **une seule course**, le mercredi, en supermarché. Il n'y a plus de commande en ligne ni de second passage en magasin : tout est acheté en une fois.
 
-Chaque article frais est assigné à la course **la plus proche avant** sa première utilisation (ex : salade pour vendredi → jeudi ; poulet pour mercredi → lundi).
+Structure : les articles sont regroupés **par rayon**, dans l'ordre d'un parcours de supermarché, pour une course en une passe.
+
+Pas de section « fonds de placard à vérifier ». Croiser directement avec `Fonds-de-placard.md` pendant la génération et ajouter à la liste ce qui manque réellement, dans le rayon correspondant.
 
 ```markdown
-# Courses — Semaines NN et NN+1
+# Courses — Semaine NN (mercredi DD/MM)
 
-## Stock longue durée (commande en ligne)
+## Fruits & légumes
 
-Produits secs, conserves, surgelés — une fois toutes les 2 semaines.
-
-- [ ] 1 kg de riz complet
-- [ ] 500 g de pâtes complètes
-- [ ] ...
-
-## Semaine 1 — Lundi (courses pour lun–mer)
-
-- [ ] 4 blancs de poulet (~600 g)
 - [ ] Poireaux × 2
-- [ ] ...
-
-## Semaine 1 — Jeudi (courses pour jeu–dim)
-
-- [ ] 1 pavé de saumon ~180 g
 - [ ] Salade verte × 1
 - [ ] ...
 
-## Semaine 2 — Lundi (courses pour lun–mer)
+## Boucherie / volaille
 
-- [ ] Escalope de dinde ~200 g
-- [ ] ...
-
-## Semaine 2 — Jeudi (courses pour jeu–dim)
-
+- [ ] 4 blancs de poulet (~600 g)
 - [ ] Filet de porc ~250 g
+
+## Poissonnerie
+
+- [ ] 1 pavé de saumon ~180 g
+
+## Crèmerie
+
+- [ ] 1 pot de fromage blanc 500 g
 - [ ] ...
 
-## Fonds de placard — À vérifier
+## Épicerie salée
 
-Éléments normalement déjà en stock. Vérifier et cocher ce qui manque.
-Consulter [[Fonds-de-placard]] pour l'inventaire complet.
-
-- [ ] Huile d'olive
-- [ ] Moutarde de Dijon
+- [ ] 1 boîte de pois chiches 400 g
+- [ ] 500 g de pâtes complètes
 - [ ] ...
+
+## Surgelés
+
+- [ ] 1 sachet de haricots verts 750 g
+- [ ] ...
+
+## Boulangerie
+
+- [ ] 1 pain complet
 ```
+
+Omettre les rayons vides. Ne pas créer de rubrique pour un rayon sans article.
 
 ## Format du Fonds de Placard (Fonds-de-placard.md)
 

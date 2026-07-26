@@ -1,16 +1,18 @@
 ---
 name: meal-planner
 description: >-
-  Generate biweekly meal plans (lunch + dinner) as Obsidian Markdown files with recipes, grocery lists,
+  Generate weekly meal plans (lunch + dinner) as Obsidian Markdown files with recipes, grocery lists,
   and pantry tracking. Adapted for a French diet with weight-loss focus. Use when Claude needs to:
-  (1) generate a new 2-week meal plan, (2) create or update recipe files in Obsidian,
+  (1) generate a new weekly meal plan, (2) create or update recipe files in Obsidian,
   (3) generate a grocery shopping list, (4) update the pantry inventory, or
   (5) any meal planning task involving the Projets/Meal-Plan/ Obsidian folder.
 ---
 
 # Meal Planner
 
-Générer des plans repas bihebdomadaires sous forme de fichiers Obsidian Markdown, avec fiches recettes, listes de courses et suivi du fonds de placard.
+Générer des plans repas hebdomadaires sous forme de fichiers Obsidian Markdown, avec fiches recettes, listes de courses et suivi du fonds de placard.
+
+**Cycle** : du mercredi au mardi suivant, calé sur l'unique course hebdomadaire du mercredi.
 
 ## Fichiers de référence
 
@@ -43,13 +45,14 @@ Lire les 4 fichiers de référence avant toute génération.
 1. Lire les 4 fichiers de référence
 2. Lire `CLAUDE.md` dans le dossier du projet pour le contexte spécifique (logistique courses, données caloriques vérifiées, leçons des cycles précédents)
 3. Lire `Fonds-de-placard.md` pour connaître le stock actuel
-4. Lire les recettes existantes dans `Recettes/` et les assemblages dans `Assemblages/` — noter les `note:` pour favoriser les bien notés (≥ 4) et exclure les mal notés (≤ 2)
-5. Identifier la saison courante (date du jour)
-6. Identifier les numéros de semaine ISO à planifier
+4. Lire `Matériel.md` — **aucune recette ne doit exiger un ustensile ou un appareil absent de cette liste**. Vérifier avant d'écrire une fiche, pas après. Un blender, un robot, une râpe, un fouet électrique, un mixeur plongeant ne sont acquis que s'ils y figurent
+5. Lire les recettes existantes dans `Recettes/` et les assemblages dans `Assemblages/` — noter les `note:` pour favoriser les bien notés (≥ 4) et exclure les mal notés (≤ 2)
+6. Identifier la saison courante (date du jour)
+7. Identifier le mercredi de départ du cycle et le numéro de semaine ISO correspondant
 
 ### Étape 2 : Concevoir les menus
 
-Concevoir 2 semaines de déjeuners et dîners (14 déjeuners + 14 dîners) en respectant :
+Concevoir un cycle mercredi → mardi de déjeuners et dîners (7 déjeuners + 7 dîners) en respectant :
 
 - **Profil** : contraintes caloriques et macros de `profil.md`
 - **Nutrition** : recommandations de `nutrition-guide.md`
@@ -66,8 +69,8 @@ Dans cet ordre :
    - **Recette complète** (vraie technique) → fichier dans `Recettes/`, avec source en ligne dans `# Sources` (voir `generation-guidelines.md` § Source References).
    - **Assemblage** (procédure simple, aide-mémoire) → fichier dans `Assemblages/`, format réduit (voir `obsidian-conventions.md` § Format des Fiches d'Assemblage).
    - **Repas trivial** (composition évidente) → pas de fichier, juste lister les composants dans le plan hebdomadaire.
-3. **Créer les 2 fichiers de plan hebdomadaire** (`Semaine-YYYY-WNN.md`)
-4. **Créer le fichier de courses** (`Courses-YYYY-WNN.md`) couvrant les 2 semaines
+3. **Créer le fichier de plan hebdomadaire** (`Semaine-YYYY-WNN.md`, `NN` = semaine ISO du mercredi de départ)
+4. **Créer le fichier de courses** (`Courses-YYYY-WNN.md`) couvrant le cycle — une seule course, le mercredi
 5. **Mettre à jour `Fonds-de-placard.md`** si des articles du fonds de placard manquent
 
 Respecter scrupuleusement les formats définis dans `obsidian-conventions.md`.
@@ -80,7 +83,7 @@ Spot-checker 5-6 recettes représentatives contre Ciqual (voir `generation-guide
 
 Présenter à l'utilisateur :
 
-- Le plan des 2 semaines (tableau récapitulatif)
+- Le plan du cycle mercredi → mardi (tableau récapitulatif)
 - Les points nutritionnels clés (calories approximatives, répartition protéines)
 - Le nombre de recettes créées / réutilisées
 - Les articles à acheter / vérifier
@@ -105,12 +108,16 @@ Si l'utilisateur signale des changements de stock :
 ## Règles impératives
 
 - **Langue** : tout en français
+- **Matériel** : ne jamais écrire une étape qui suppose un appareil ou un ustensile absent de `Matériel.md`. En cas de doute, choisir la méthode manuelle (fouet plutôt que blender, couteau plutôt que robot) ou changer de recette
+- **Pas de jargon non expliqué** : écrire les gestes en clair. « Pendant que le blender tourne », pas « moteur en marche ». Si un terme technique est nécessaire, il doit figurer dans `Lexique cuisine.md` — sinon l'y ajouter en même temps que la fiche
 - **Pas d'abats** : jamais de foie, rognons, cervelle, tripes, etc.
 - **Quantités** : la règle concerne les achats et les conserves/paquets indivisibles — ne pas laisser des fonds de boîtes ou des restes de paquet inutilisables. En revanche, les produits surgelés ou facilement portionnables (pommes duchesse, poissons panés, steaks hachés, etc.) peuvent être utilisés en portions libres sur plusieurs repas sans problème
 - **Confection quotidienne** : 15-20 min en moyenne, 30 min maximum
 - **Repas élaboré** : 1 par semaine (dîner), jusqu'à 60 min. Doit être un plat gratifiant et « digne d'être servi à des invités » — pas juste long et laborieux. Marqué 🍽️ dans le plan
 - **Pas de batch cooking** : chaque repas se prépare indépendamment
 - **Congélation** : limitée à quelques portions maximum
-- **Jour de sport** : mercredi par défaut, marqué ⚡ dans le plan
+- **Jour de sport** : mercredi par défaut, marqué ⚡ dans le plan. Le mercredi cumule course + sport + début de cycle → prévoir un dîner rapide ce jour-là
+- **Fraîcheur en fin de cycle** : une seule course le mercredi, donc les produits les plus périssables (poisson frais, salade, herbes) se placent en début de cycle (mer–ven). Lundi et mardi reposent sur des ingrédients robustes (conserves, surgelés, œufs, féculents, légumes racines, fromage)
+- **Induction avec fryingSensor** : la plaque régule la température de la poêle. Les cuissons à la poêle exigeantes (saisie, réduction, sauce montée) sont réalistes — ne pas les éviter par prudence
 - **Petit-déjeuner** : pris en compte dans le budget calorique (~400-500 kcal) mais non planifié
 - **Collations** : fruits (raisin, clémentines, poires) ou oléagineux si mentionnés, non planifiés
