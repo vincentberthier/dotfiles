@@ -186,7 +186,50 @@ restore_niri_layout() {
     : >"$RESTORED_FLAG"
     niri_saved_idx=""
 }
-cleanup() { restore_niri_layout; rm -f "$RESTORED_FLAG"; }
+# --- GPU performance level -------------------------------------------------
+#
+# Measured on an RX 9070 XT: with power_dpm_force_performance_level=auto the
+# card sat pinned to DPM state 1 (1601MHz) even at 100% gpu_busy_percent, at
+# 113W of a 304W cap and 53C. A vsync-limited bursty load never raises the
+# governor's running average enough to reach state 2 (2400MHz), and at half
+# clocks each frame overruns the 60Hz deadline, which keeps utilisation low --
+# self-reinforcing. Forcing 'high' moved GPU frame time 10ms -> 7ms and the
+# frame rate 38 -> 54 with power still only 119W and the card at 50C.
+#
+# Only held for the duration of the game, so the desktop keeps its idle clocks
+# and fan curve.
+GPU_PERF="${POE2_GPU_PERF:-high}"
+GPU_PERF_PATH="${POE2_GPU_PERF_PATH:-}"
+if [ -z "$GPU_PERF_PATH" ]; then
+    for _c in /sys/class/drm/card*/device/power_dpm_force_performance_level; do
+        [ -e "$_c" ] && { GPU_PERF_PATH="$_c"; break; }
+    done
+fi
+
+gpu_saved_perf=""
+force_gpu_perf() {
+    [ "$GPU_PERF" = off ] && return 0
+    [ -n "$GPU_PERF_PATH" ] && [ -r "$GPU_PERF_PATH" ] || return 0
+    gpu_saved_perf=$(cat "$GPU_PERF_PATH" 2>/dev/null)
+    [ "$gpu_saved_perf" = "$GPU_PERF" ] && { gpu_saved_perf=""; return 0; }
+    # doas -n so this can never prompt: Steam gives us no tty, and a wrapper
+    # blocked on an invisible password prompt hangs the whole launch.
+    if printf '%s\n' "$GPU_PERF" | doas -n tee "$GPU_PERF_PATH" >/dev/null 2>&1; then
+        note "GPU performance level $gpu_saved_perf -> $GPU_PERF"
+    else
+        note "WARNING: could not set GPU performance level (needs passwordless doas)"
+        gpu_saved_perf=""
+    fi
+}
+restore_gpu_perf() {
+    [ -n "$gpu_saved_perf" ] || return 0
+    if printf '%s\n' "$gpu_saved_perf" | doas -n tee "$GPU_PERF_PATH" >/dev/null 2>&1; then
+        note "GPU performance level restored to $gpu_saved_perf"
+    fi
+    gpu_saved_perf=""
+}
+
+cleanup() { restore_niri_layout; restore_gpu_perf; rm -f "$RESTORED_FLAG"; }
 
 if [ -n "$NIRI_LAYOUT" ]; then
     target=$(niri_layout_index "$NIRI_LAYOUT")
