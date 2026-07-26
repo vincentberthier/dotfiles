@@ -207,7 +207,7 @@
         # `Unknown variant "bepo"` and synthesizes one). Group 0 = azerty means
         # anything launched fresh gets the real French layout (klid 0000040c).
         xkb_layout = "fr,fr"
-        xkb_variant = ",bepo"
+        xkb_variant = "bepo,"
         output1 = "DP-1"
         output2 = "DP-2"
         output3 = "DP-3"
