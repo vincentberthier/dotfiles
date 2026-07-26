@@ -55,7 +55,15 @@ else
 end
 config.default_cursor_style = "SteadyBar"
 -- font
-config.font = wezterm.font("Dank Mono")
+-- Dank Mono has no CJK coverage, so anything containing kanji/kana/hanzi (RPG
+-- notes, notification bodies) renders as placeholder boxes. Noto Sans Mono CJK
+-- JP is the fallback that fills it in; JP is chosen over SC/TC/KR because it
+-- covers the same unified ideographs with Japanese glyph variants.
+config.font = wezterm.font_with_fallback({
+	"Dank Mono",
+	"Noto Sans Mono CJK JP",
+	"Noto Color Emoji",
+})
 config.font_size = 8
 config.line_height = 1.1
 config.adjust_window_size_when_changing_font_size = false
