@@ -68,8 +68,19 @@
 #    So input needs STEAM_OVERLAY (not the external flag), and mode 2 sends the
 #    mouse to the overlay while leaving the keyboard with the game.
 #
+# 5. --no-gamescope
+#    gamescope exists here only to make EE2's overlay possible. It is not free:
+#    measured 2026-07-26, dropping it took the game from a 19ms/54FPS frame to
+#    no perceptible stutter over an hour, because the game vsyncs into gamescope
+#    which vsyncs into niri on a 60Hz panel. --no-gamescope trades EE2 away for
+#    those frames. It still forces the keymap (niri's layout never reaches the
+#    game either way) and still handles the GPU performance level.
+#
 # Environment overrides:
-#   POE2_XKB_LAYOUT / POE2_XKB_VARIANT   keymap forced on gamescope's display
+#   POE2_GAMESCOPE                       on | off  (--gamescope / --no-gamescope)
+#   POE2_XKB_LAYOUT / POE2_XKB_VARIANT   keymap forced on the game's X display
+#   POE2_HOST_DISPLAY                    X display to fix when gamescope is off
+#   POE2_GPU_PERF                        GPU perf level to force ("off" = leave)
 #   POE2_NIRI_LAYOUT                     niri layout name or index (""=skip)
 #   POE2_EE2_MODE                        mouse | full | external | off
 #   POE2_EE2_APPIMAGE                    path to the EE2 AppImage
@@ -77,6 +88,7 @@
 # ---------------------------------------------------------------------------
 set -uo pipefail
 
+GAMESCOPE="${POE2_GAMESCOPE:-on}"
 LAYOUT="${POE2_XKB_LAYOUT:-fr}"
 VARIANT="${POE2_XKB_VARIANT:-}"
 # Off by default, and it should stay that way: pinning niri buys nothing.
@@ -115,11 +127,19 @@ usage: poe2-gamescope [options] COMMAND...
                             game->host clipboard sync (default: off; noisy,
                             EE2 rewrites the game clipboard on every price check)
   --ee2 MODE                mouse | full | external | off (default: mouse)
-  --layout LAYOUT           xkb layout forced on gamescope's display (default: fr)
+  --layout LAYOUT           xkb layout forced on the game's X display (default: fr)
+  --gamescope / --no-gamescope
+                            run the game under gamescope (default: on).
+                            --no-gamescope is faster -- the game stops vsyncing
+                            into gamescope which vsyncs into niri -- but EE2
+                            cannot work without it, so EE2 and the clipboard
+                            bridge are skipped. The keymap is still forced and
+                            the GPU performance level is still handled.
   -h, --help                this message
 
-Every option also has an environment equivalent (POE2_CLIPBOARD_BRIDGE,
-POE2_CLIP_OUT, POE2_EE2_MODE, POE2_XKB_LAYOUT); the flag wins.
+Every option also has an environment equivalent (POE2_GAMESCOPE,
+POE2_CLIPBOARD_BRIDGE, POE2_CLIP_OUT, POE2_EE2_MODE, POE2_XKB_LAYOUT); the
+flag wins.
 EOF
 }
 
@@ -129,6 +149,8 @@ while [ $# -gt 0 ]; do
         --no-clip)     CLIPBOARD_BRIDGE=off; shift ;;
         --clip-out)    CLIP_OUT=on;          shift ;;
         --no-clip-out) CLIP_OUT=off;         shift ;;
+        --gamescope)    GAMESCOPE=on;  shift ;;
+        --no-gamescope) GAMESCOPE=off; shift ;;
         --ee2)         EE2_MODE="${2:-mouse}";  shift 2 ;;
         --layout)      LAYOUT="${2:-fr}";       shift 2 ;;
         -h|--help)     usage; exit 0 ;;
@@ -273,6 +295,30 @@ kill_ee2() {
     done
 }
 
+# Force the keymap on an X display we do not own -- the --no-gamescope path,
+# where the game is a client of xwayland-satellite rather than of a gamescope
+# Xwayland we created.
+#
+# niri's active layout never reaches the game (confirmed 2026-07-26, with and
+# without gamescope), so setxkbmap against the display the game actually uses is
+# the only lever there is. Applied once and read back rather than polled:
+# observed to stick on xwayland-satellite. If it ever stops sticking, measure
+# what is overwriting it before adding a watcher -- the watcher further down was
+# built around a story that was never tested, and that is exactly the mistake
+# not to repeat here.
+host_display_setup() {
+    local disp="${POE2_HOST_DISPLAY:-${DISPLAY:-:0}}" got
+    if ! DISPLAY="$disp" xdpyinfo >/dev/null 2>&1; then
+        note "WARNING: no X server on $disp; keyboard layout NOT forced"
+        return 0
+    fi
+    DISPLAY="$disp" setxkbmap -model pc105 -layout "$LAYOUT" \
+        ${VARIANT:+-variant "$VARIANT"} 2>/dev/null
+    got=$(xkbcomp -xkb "$disp" - 2>/dev/null |
+          rg -o -m1 --replace '$1' 'name\[[Gg]roup1\]\s*=\s*"([^"]*)"')
+    note "forced keymap on $disp to '$LAYOUT' (now reads '${got:-unknown}')"
+}
+
 existing_displays() {
     local d
     for d in /tmp/.X11-unix/X*; do
@@ -296,6 +342,10 @@ before=$(existing_displays | sort -u | tr '\n' ' ')
 # --- post-launch setup, once gamescope's Xwayland appears ------------------
 
 (
+    # Nothing in here applies without gamescope: there is no new X display to
+    # wait for, EE2 cannot attach, and the clipboard needs no bridge.
+    [ "$GAMESCOPE" = off ] && exit 0
+
     # Everything below inherits Steam's environment, which puts both the 32-bit
     # and 64-bit gameoverlayrenderer.so in LD_PRELOAD. None of the helpers here
     # are the game: the 32-bit object fails the ELF-class check and prints an
@@ -455,12 +505,26 @@ setup_pid=$!
 # ^ output goes to a file, not Steam's pipe. Everything still reaches the
 #   journal via note()/logger, so `journalctl -t poe2-gamescope` is unaffected.
 
-gamescope -w 3840 -h 2160 -W 3840 -H 2160 -f -- "$@"
-rc=$?
-
-# Tear down our helpers before returning, so Steam sees the process tree empty.
-kill_tree "$setup_pid"
-# Do not leave EE2 running: its singleton lock would block the next launch.
-kill_ee2
-note "game exited (rc=$rc), EE2 and helpers stopped"
+if [ "$GAMESCOPE" = off ]; then
+    # EE2 cannot work here: electron-overlay-window needs a real EWMH window
+    # manager, and niri + xwayland-satellite is not one -- that is the entire
+    # reason gamescope is in this script. The clipboard bridge is unnecessary
+    # too, since xwayland-satellite already shares the host clipboard with X
+    # clients; the bridge only exists because gamescope isolates its own.
+    note "running WITHOUT gamescope (EE2 and clipboard bridge unavailable)"
+    host_display_setup
+    force_gpu_perf
+    "$@"
+    rc=$?
+    note "game exited (rc=$rc)"
+else
+    force_gpu_perf
+    gamescope -w 3840 -h 2160 -W 3840 -H 2160 -f -- "$@"
+    rc=$?
+    # Tear down our helpers before returning, so Steam sees the process tree empty.
+    kill_tree "$setup_pid"
+    # Do not leave EE2 running: its singleton lock would block the next launch.
+    kill_ee2
+    note "game exited (rc=$rc), EE2 and helpers stopped"
+fi
 exit $rc
