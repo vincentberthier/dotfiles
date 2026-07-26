@@ -8,27 +8,54 @@
 # Why every piece of this exists
 #
 # 1. gamescope
-#    EE2's overlay uses electron-overlay-window, which is X11-only and needs a
-#    real EWMH window manager: it tracks the game through _NET_ACTIVE_WINDOW /
-#    _NET_WM_NAME on the root window. niri + xwayland-satellite manages nothing
-#    (no _NET_CLIENT_LIST, X geometry unrelated to screen position), so the
+#    EE2's overlay uses electron-overlay-window, which is X11-only and tracks
+#    the game through _NET_ACTIVE_WINDOW / _NET_WM_NAME on the root window.
+#    niri + xwayland-satellite manages nothing on the X side (no
+#    _NET_CLIENT_LIST, X geometry unrelated to on-screen position), so the
 #    overlay attaches to nothing and never draws. gamescope ships its own
-#    Xwayland plus steamcompmgr as WM, which satisfies it.
+#    Xwayland plus steamcompmgr as a real EWMH window manager, which satisfies
+#    it.
 #
-# 2. Keymap fixup
-#    gamescope snapshots the host keymap at startup and flattens it to the one
-#    group active at the time. niri here is layout "fr,fr" / variant ",bepo";
-#    launching while BEPO is active leaves the game stuck on BEPO with no
-#    second group to switch to. So force the plain French layout on gamescope's
-#    display once it appears.
+# 2. Keyboard layout — timing is everything, and it is a narrow window
+#    Three measured facts, each of which broke an earlier version of this
+#    script:
+#      a. gamescope's Xwayland is created with "English (US)", NOT with niri's
+#         active layout. So switching niri before launch buys nothing at
+#         creation time.
+#      b. A few seconds later gamescope pushes niri's *live* layout over it.
+#         niri here is layout "fr,fr" / variant ",bepo" and the desktop
+#         normally sits on BEPO, so the display becomes BEPO — even if niri was
+#         on French when the game was started, if it gets switched during the
+#         load.
+#      c. Wine reads the X keymap exactly once, during its own startup, which
+#         falls inside that window, and ignores every later change.
+#
+#    Hence: force $LAYOUT the instant the display appears and hold it with a
+#    tight poll through Wine's startup. Applying it after the game window
+#    exists is already too late. Observed on a working launch, with the push
+#    landing 6s in and Wine reading 3s after that:
+#      display :1 born with 'English (US)', forced to 'French'
+#      keymap drifted to 'French (BEPO)', reapplied fr
+#      game window present; keymap it read was 'French'
+#
+#    Do NOT use HKCU\Keyboard Layout\Preload in the prefix as a check. It reads
+#    00000409 (US) even on a launch where the keyboard is correct — it is the
+#    default entry Wine writes, not a record of what it detected.
+#
+#    Verify with: journalctl -t poe2-gamescope
+#      -> "game window present; keymap it read was '<layout>'"
 #
 # 3. EE2 on gamescope's display
-#    EE2 has to be an X11 client of *gamescope's* X server, not the desktop's.
-#    Electron otherwise picks the Wayland backend and creates no window at all.
-#    It also holds a singleton lock in ~/.config/exiled-exchange-2, so any
-#    stale instance must die first or the new one just hands off and exits.
+#    EE2 has to be an X11 client of *gamescope's* X server, launched with
+#    --ozone-platform=x11 or Electron picks the Wayland backend and creates no
+#    window at all. It also holds a singleton lock in
+#    ~/.config/exiled-exchange-2, so any stale instance must die first or the
+#    new one hands off and exits. And it must not inherit Steam's environment:
+#    Steam's LD_PRELOAD points at a 32-bit gameoverlayrenderer.so and
+#    Chromium's zygote dies on it with
+#      FATAL:zygote_host_impl_linux.cc:207] Check failed: . : Invalid argument (22)
 #
-# 4. Overlay atoms (steamcompmgr.cpp)
+# 4. Overlay atoms (gamescope's steamcompmgr.cpp)
 #      STEAM_OVERLAY              -> isOverlay          (painted, input-eligible)
 #      GAMESCOPE_EXTERNAL_OVERLAY -> isExternalOverlay  (painted, NEVER gets input)
 #      STEAM_INPUT_FOCUS          -> inputFocusMode
@@ -36,19 +63,99 @@
 #    line 3884: if ( inputFocusMode == 2 ) keyboardFocusWin = focusWindow;
 #    So input needs STEAM_OVERLAY (not the external flag), and mode 2 sends the
 #    mouse to the overlay while leaving the keyboard with the game.
+#
+# Environment overrides:
+#   POE2_XKB_LAYOUT / POE2_XKB_VARIANT   keymap forced on gamescope's display
+#   POE2_NIRI_LAYOUT                     niri layout name or index (""=skip)
+#   POE2_EE2_MODE                        mouse | full | external | off
+#   POE2_EE2_APPIMAGE                    path to the EE2 AppImage
+#   POE2_WINDOW_TITLE                    game window title to wait for
 # ---------------------------------------------------------------------------
 set -uo pipefail
 
 LAYOUT="${POE2_XKB_LAYOUT:-fr}"
 VARIANT="${POE2_XKB_VARIANT:-}"
+# Off by default: measured, gamescope's Xwayland is created with "English (US)"
+# regardless of niri's active layout, so pinning niri buys nothing at creation
+# time — the watcher below is what actually decides what Wine reads. Set
+# POE2_NIRI_LAYOUT=French to also pin niri, at the cost of the desktop.
+NIRI_LAYOUT="${POE2_NIRI_LAYOUT-}"
 EE2="${POE2_EE2_APPIMAGE:-/home/vincent/Téléchargements/Exiled-Exchange-2-0.15.8.AppImage}"
-EE2_MODE="${POE2_EE2_MODE:-mouse}"    # mouse | full | external | off
+EE2_MODE="${POE2_EE2_MODE:-mouse}"
+GAME_TITLE="${POE2_WINDOW_TITLE:-Path of Exile 2}"
+CLIPBOARD_BRIDGE="${POE2_CLIPBOARD_BRIDGE:-on}"
 LOGDIR="${XDG_STATE_HOME:-$HOME/.local/state}/poe2-gamescope"
 mkdir -p "$LOGDIR"
 
 EE2_PATTERN='/tmp/\.mount_Exiled.*/exiled-exchange-2'
+RESTORED_FLAG="$LOGDIR/.niri-restored.$$"
 
 note() { logger -t poe2-gamescope "$*"; echo "poe2-gamescope: $*" >&2; }
+
+# Kill a process and everything under it. Used so our background helpers can
+# never outlive the wrapper: Steam tracks the pid it launched and waits on the
+# stdout/stderr pipe, so a lingering descendant holding that pipe leaves the
+# game showing as "running" in the library with nothing actually alive.
+kill_tree() {
+    local p="$1" c
+    for c in $(pgrep -P "$p" 2>/dev/null); do kill_tree "$c"; done
+    kill "$p" 2>/dev/null
+}
+
+# --- niri layout -----------------------------------------------------------
+
+niri_layouts_json() { niri msg --json keyboard-layouts 2>/dev/null; }
+
+# With no argument: the current index. With one: resolve a name or index.
+niri_layout_index() {
+    niri_layouts_json | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(1)
+if len(sys.argv) < 2:
+    print(d.get("current_idx", "")); sys.exit(0)
+want = sys.argv[1]
+if want.lstrip("-").isdigit():
+    print(want); sys.exit(0)
+for i, n in enumerate(d.get("names", [])):
+    if n.lower() == want.lower():
+        print(i); sys.exit(0)
+sys.exit(1)' ${1:+"$1"}
+}
+
+niri_saved_idx=""
+restore_niri_layout() {
+    [ -n "$niri_saved_idx" ] || return 0
+    [ -e "$RESTORED_FLAG" ] && { niri_saved_idx=""; return 0; }
+    if niri msg action switch-layout "$niri_saved_idx" >/dev/null 2>&1; then
+        note "restored niri keyboard layout to $niri_saved_idx"
+    fi
+    : >"$RESTORED_FLAG"
+    niri_saved_idx=""
+}
+cleanup() { restore_niri_layout; rm -f "$RESTORED_FLAG"; }
+
+if [ -n "$NIRI_LAYOUT" ]; then
+    target=$(niri_layout_index "$NIRI_LAYOUT")
+    niri_saved_idx=$(niri_layout_index)
+    if [ -z "$target" ]; then
+        note "WARNING: niri layout '$NIRI_LAYOUT' not found; leaving layout alone"
+        niri_saved_idx=""
+    elif [ "$target" = "$niri_saved_idx" ]; then
+        niri_saved_idx=""          # already correct, nothing to restore
+        note "niri already on layout $target"
+    elif niri msg action switch-layout "$target" >/dev/null 2>&1; then
+        note "niri keyboard layout $niri_saved_idx -> $target (restored once the game has started)"
+    else
+        note "WARNING: could not switch niri layout to $target"
+        niri_saved_idx=""
+    fi
+fi
+trap cleanup EXIT INT TERM
+
+# --- helpers ---------------------------------------------------------------
 
 kill_ee2() {
     local pids
@@ -75,8 +182,8 @@ existing_displays() {
     done
 }
 
-# The EE2 overlay window, as opposed to the 10x10 helper window it also maps.
-# steamcompmgr only treats overlays wider than 1200px as the main overlay plane.
+# EE2 maps a 10x10 helper window as well as the overlay; steamcompmgr only
+# treats overlays wider than 1200px as the main overlay plane (line 3805).
 overlay_window() {
     local w
     for w in $(xdotool search --class 'exiled-exchange-2' 2>/dev/null); do
@@ -88,8 +195,8 @@ overlay_window() {
 
 before=$(existing_displays | sort -u | tr '\n' ' ')
 
-# Everything below runs once gamescope's Xwayland shows up, then exits.
-# gamescope itself stays in the foreground so Steam tracks the game's lifetime.
+# --- post-launch setup, once gamescope's Xwayland appears ------------------
+
 (
     newdisp=""
     for _ in $(seq 1 900); do
@@ -102,18 +209,83 @@ before=$(existing_displays | sort -u | tr '\n' ' ')
         [ -n "$newdisp" ] && break
         sleep 0.1
     done
-    [ -z "$newdisp" ] && { note "gamescope X display never appeared; skipping setup"; exit 0; }
+    if [ -z "$newdisp" ]; then
+        note "gamescope X display never appeared; skipping setup"
+        restore_niri_layout
+        exit 0
+    fi
 
     export DISPLAY=":$newdisp"
-    unset WAYLAND_DISPLAY          # keep Electron off the Wayland backend
+    # Remember the host compositor before dropping it: the clipboard bridge
+    # needs to talk to niri via wl-paste/wl-copy, while everything else here
+    # (EE2 especially) must NOT see WAYLAND_DISPLAY or Electron picks the
+    # Wayland backend and creates no window at all.
+    HOST_WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-}"
+    unset WAYLAND_DISPLAY
 
     for _ in $(seq 1 100); do
         xdpyinfo >/dev/null 2>&1 && break
         sleep 0.1
     done
 
-    setxkbmap -model pc105 -layout "$LAYOUT" ${VARIANT:+-variant "$VARIANT"} 2>/dev/null \
-        && note "xkb layout=$LAYOUT variant=${VARIANT:-none} on $DISPLAY"
+    # The real keymap, not _XKB_RULES_NAMES — that property lags and reported
+    # "us" while the live keymap was BEPO.
+    current_layout() {
+        xkbcomp -xkb "$DISPLAY" - 2>/dev/null | python3 -c '
+import re, sys
+m = re.search(r"name\[[Gg]roup1\]\s*=\s*\"([^\"]*)\"", sys.stdin.read())
+print(m.group(1) if m else "")'
+    }
+    apply_layout() {
+        setxkbmap -model pc105 -layout "$LAYOUT" ${VARIANT:+-variant "$VARIANT"} 2>/dev/null
+    }
+
+    # Force the layout the moment the display exists, and hold it from there.
+    #
+    # Measured sequence without this: the Xwayland is created with
+    # "English (US)", then gamescope pushes niri's live layout over it a few
+    # seconds later, and Wine — which reads the keymap once, during its own
+    # startup, in that same window — caches whatever happened to be there.
+    # Applying after the game window appears is far too late; that is what the
+    # earlier version of this script did, and the game stayed on BEPO.
+    #
+    # The poll is deliberately tight while Wine is starting up, because a
+    # single missed push in that window poisons the whole session, then backs
+    # off once the game is up and only EE2's uiohook keycode mapping cares.
+    born=$(current_layout)
+    apply_layout
+    want=$(current_layout)
+    note "display $DISPLAY born with '$born', forced to '$want'"
+
+    [ -z "$want" ] || ( interval=0.25
+      game_seen=0
+      while xdpyinfo >/dev/null 2>&1; do
+          got=$(current_layout)
+          if [ -n "$got" ] && [ "$got" != "$want" ]; then
+              apply_layout
+              note "keymap drifted to '$got', reapplied $LAYOUT"
+          fi
+          if [ "$game_seen" = 0 ] && xdotool search --name "$GAME_TITLE" 2>/dev/null | rg -q .; then
+              game_seen=1
+              note "game window present; keymap it read was '$(current_layout)'"
+              interval=2      # Wine has cached by now; stop hammering
+          fi
+          sleep "$interval"
+      done ) &
+
+    # Host clipboard -> gamescope, so desktop copies can be pasted into the
+    # game and into EE2. gamescope isolates its clipboard in both directions
+    # (gamescope#1440) and nothing upstream brings the host's clipboard in.
+    if [ "$CLIPBOARD_BRIDGE" != off ] && command -v poe2-clipboard-bridge >/dev/null 2>&1; then
+        if [ -z "$HOST_WAYLAND_DISPLAY" ]; then
+            note "clipboard bridge skipped: no host WAYLAND_DISPLAY to read from"
+        elif command -v xclip >/dev/null 2>&1; then
+            WAYLAND_DISPLAY="$HOST_WAYLAND_DISPLAY" poe2-clipboard-bridge "$DISPLAY" &
+            note "clipboard bridge started (host $HOST_WAYLAND_DISPLAY -> $DISPLAY)"
+        else
+            note "clipboard bridge skipped: xclip not installed"
+        fi
+    fi
 
     if [ "$EE2_MODE" = off ] || [ ! -x "$EE2" ]; then
         [ "$EE2_MODE" = off ] || note "EE2 not found at $EE2; skipping"
@@ -121,17 +293,25 @@ before=$(existing_displays | sort -u | tr '\n' ' ')
     fi
 
     kill_ee2
-    setsid "$EE2" --ozone-platform=x11 >"$LOGDIR/ee2.log" 2>&1 </dev/null &
+    setsid env -u LD_PRELOAD -u LD_LIBRARY_PATH -u STEAM_RUNTIME \
+        -u STEAM_COMPAT_DATA_PATH -u STEAM_COMPAT_CLIENT_INSTALL_PATH \
+        -u SteamAppId -u SteamGameId -u SteamOverlayGameId \
+        "$EE2" --ozone-platform=x11 >"$LOGDIR/ee2.log" 2>&1 </dev/null &
     disown
     note "launched EE2 on $DISPLAY"
 
     win=""
     for _ in $(seq 1 600); do
         win=$(overlay_window) && [ -n "$win" ] && break
+        pgrep -f "$EE2_PATTERN" >/dev/null || break     # it died; stop waiting
         sleep 0.1
     done
     if [ -z "$win" ]; then
-        note "EE2 overlay window never appeared"
+        if pgrep -f "$EE2_PATTERN" >/dev/null; then
+            note "EE2 is running but its overlay window never appeared"
+        else
+            note "EE2 exited during startup; see $LOGDIR/ee2.log"
+        fi
         exit 0
     fi
 
@@ -146,12 +326,17 @@ before=$(existing_displays | sort -u | tr '\n' ' ')
         external) xprop -id "$win" -f GAMESCOPE_EXTERNAL_OVERLAY 32c -set GAMESCOPE_EXTERNAL_OVERLAY 1 ;;
     esac
     note "EE2 overlay window $win set to mode=$EE2_MODE"
-) &
+) >>"$LOGDIR/setup.log" 2>&1 &
+setup_pid=$!
+# ^ output goes to a file, not Steam's pipe. Everything still reaches the
+#   journal via note()/logger, so `journalctl -t poe2-gamescope` is unaffected.
 
 gamescope -w 3840 -h 2160 -W 3840 -H 2160 -f -- "$@"
 rc=$?
 
+# Tear down our helpers before returning, so Steam sees the process tree empty.
+kill_tree "$setup_pid"
 # Do not leave EE2 running: its singleton lock would block the next launch.
 kill_ee2
-note "game exited (rc=$rc), EE2 stopped"
+note "game exited (rc=$rc), EE2 and helpers stopped"
 exit $rc
