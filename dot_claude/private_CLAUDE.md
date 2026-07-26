@@ -2,6 +2,21 @@
 
 This file contains global preferences that apply to all conversations and projects.
 
+## Attachments — OPEN THEM FIRST, ALWAYS
+
+**If the user includes ANY attachment — an image, screenshot, PDF, file, pasted
+graphic, anything — OPEN AND EXAMINE IT before addressing anything else in the
+message.** This is the first thing you do, every time, no exceptions.
+
+The user pastes images deliberately: they are load-bearing context, often the
+whole point of the message. Ignoring them, skipping past them, or answering the
+text while leaving the attachment unopened is a serious, trust-destroying
+failure. Read the image/file with the `Read` tool FIRST, describe what you see
+to confirm you actually looked, THEN proceed with the rest of the request.
+
+If an attachment appears not to have loaded on your side, say so explicitly and
+ask for it — never silently continue as if it wasn't there.
+
 ## Web Requests
 
 When fetching documents from the web, use a timeout of at most one minute to prevent hangups if a resource doesn't load.
