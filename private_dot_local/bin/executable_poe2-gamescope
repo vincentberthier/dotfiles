@@ -16,27 +16,31 @@
 #    Xwayland plus steamcompmgr as a real EWMH window manager, which satisfies
 #    it.
 #
-# 2. Keyboard layout — timing is everything, and it is a narrow window
-#    Three measured facts, each of which broke an earlier version of this
-#    script:
-#      a. gamescope's Xwayland is created with "English (US)", NOT with niri's
-#         active layout. So switching niri before launch buys nothing at
-#         creation time.
-#      b. A few seconds later gamescope pushes niri's *live* layout over it.
-#         niri here is layout "fr,fr" / variant ",bepo" and the desktop
-#         normally sits on BEPO, so the display becomes BEPO — even if niri was
-#         on French when the game was started, if it gets switched during the
-#         load.
-#      c. Wine reads the X keymap exactly once, during its own startup, which
-#         falls inside that window, and ignores every later change.
+# 2. Keyboard layout — setxkbmap on the X display is the ONLY thing that works
 #
-#    Hence: force $LAYOUT the instant the display appears and hold it with a
-#    tight poll through Wine's startup. Applying it after the game window
-#    exists is already too late. Observed on a working launch, with the push
-#    landing 6s in and Wine reading 3s after that:
-#      display :1 born with 'English (US)', forced to 'French'
-#      keymap drifted to 'French (BEPO)', reapplied fr
-#      game window present; keymap it read was 'French'
+#    OBSERVED (logged every launch, journalctl -t poe2-gamescope):
+#      a. gamescope's Xwayland is created with "English (US)".
+#           "display :1 born with 'English (US)', forced to 'French'"
+#      b. A few seconds later something pushes BEPO over it.
+#           "keymap drifted to 'French (BEPO)', reapplied fr"
+#
+#    OBSERVED (Vincent, 2026-07-26): niri's active layout NEVER reaches the
+#    game. Whatever layout niri is on at launch, PoE2 is always BEPO. Switching
+#    niri beforehand does nothing; `niri msg action switch-layout` mid-session
+#    does nothing. The only lever is setxkbmap against the X display the game
+#    is actually using — which is exactly what this script does for gamescope's
+#    display, and why it works. For a no-gamescope launch (xwayland-satellite):
+#      setxkbmap -display :0 -model pc105 -layout fr
+#    Verified to stick; xwayland-satellite does not stomp it back, and it
+#    affects X clients only, so the Wayland desktop keeps BEPO.
+#
+#    UNVERIFIED — DO NOT BUILD ON IT: an earlier version of this comment
+#    asserted, as one of "three measured facts", that Wine reads the X keymap
+#    exactly once during its own startup and ignores every later change. That
+#    was never tested, and Vincent reports behaviour inconsistent with it. The
+#    tight poll below was designed around that story, so it may be solving a
+#    differently-shaped problem than it claims. Test before trusting it, and do
+#    not repeat the claim as fact.
 #
 #    Do NOT use HKCU\Keyboard Layout\Preload in the prefix as a check. It reads
 #    00000409 (US) even on a launch where the keyboard is correct — it is the
@@ -75,10 +79,10 @@ set -uo pipefail
 
 LAYOUT="${POE2_XKB_LAYOUT:-fr}"
 VARIANT="${POE2_XKB_VARIANT:-}"
-# Off by default: measured, gamescope's Xwayland is created with "English (US)"
-# regardless of niri's active layout, so pinning niri buys nothing at creation
-# time — the watcher below is what actually decides what Wine reads. Set
-# POE2_NIRI_LAYOUT=French to also pin niri, at the cost of the desktop.
+# Off by default, and it should stay that way: pinning niri buys nothing.
+# Confirmed 2026-07-26 — niri's layout never reaches the game at all, with or
+# without gamescope. setxkbmap against the X display is the only lever. This
+# knob is kept only because it is harmless, not because it helps.
 NIRI_LAYOUT="${POE2_NIRI_LAYOUT-}"
 EE2="${POE2_EE2_APPIMAGE:-/home/vincent/Téléchargements/Exiled-Exchange-2-0.15.8.AppImage}"
 EE2_MODE="${POE2_EE2_MODE:-mouse}"
