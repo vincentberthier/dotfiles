@@ -101,9 +101,43 @@ if [ "$CLIP_IN" != off ]; then
     fi
 fi
 
-# Loop ends when the X server goes away, i.e. when the game exits. Never use
-# `kill 0` to stop this: it signals the whole process group, which under Steam's
-# launch chain reaches far outside this script and took down the niri session.
+# Inbound-only is the common case, and it has a real event available, so use it
+# rather than polling: `wl-paste --watch` blocks in the compositor until the
+# clipboard actually changes. That means no periodic process spawning at all
+# while the game runs, which matters because this shares a machine with a game
+# and the poll path was spawning wl-paste roughly every 0.4s.
+#
+# Never use `kill 0` to stop any of this: it signals the whole process group,
+# which under Steam's launch chain reaches far outside this script and took down
+# the niri session.
+if [ "$CLIP_OUT" = off ]; then
+    self=$$
+    ( while DISPLAY="$TARGET" xdpyinfo >/dev/null 2>&1; do sleep 5; done
+      note "display $TARGET gone, stopping"
+      kill "$self" 2>/dev/null ) &
+
+    export POE2_BRIDGE_TARGET="$TARGET"
+    # Remember what was last pushed, so a target that mirrors back to the host
+    # cannot ping-pong. gamescope does not mirror back (that isolation is the
+    # reason this script exists), but xwayland-satellite's :0 does, and a stray
+    # run against the wrong display otherwise loops indefinitely.
+    export POE2_BRIDGE_STATE
+    POE2_BRIDGE_STATE=$(mktemp -t poe2-clipboard-bridge.XXXXXX)
+    trap 'rm -f "$POE2_BRIDGE_STATE"' EXIT INT TERM
+
+    exec wl-paste --type text --watch bash -c '
+        text=$(cat)
+        [ -z "$text" ] && exit 0
+        [ "$text" = "$(cat "$POE2_BRIDGE_STATE" 2>/dev/null)" ] && exit 0
+        printf %s "$text" >"$POE2_BRIDGE_STATE"
+        printf %s "$text" | DISPLAY="$POE2_BRIDGE_TARGET" xclip -selection clipboard -i
+        printf %s "$text" | DISPLAY="$POE2_BRIDGE_TARGET" xclip -selection primary -i
+        logger -t poe2-clipboard-bridge "host -> game (${#text} bytes)"
+    '
+fi
+
+# Bidirectional: the X side has no change event without XFixes tooling, so this
+# path polls. Only reached when outbound sync is explicitly enabled.
 while DISPLAY="$TARGET" xdpyinfo >/dev/null 2>&1; do
     host=$(read_host)
     # Only read the X side when outbound sync is on. That read is the risky
