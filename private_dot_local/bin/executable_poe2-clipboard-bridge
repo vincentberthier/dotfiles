@@ -111,11 +111,6 @@ fi
 # which under Steam's launch chain reaches far outside this script and took down
 # the niri session.
 if [ "$CLIP_OUT" = off ]; then
-    self=$$
-    ( while DISPLAY="$TARGET" xdpyinfo >/dev/null 2>&1; do sleep 5; done
-      note "display $TARGET gone, stopping"
-      kill "$self" 2>/dev/null ) &
-
     export POE2_BRIDGE_TARGET="$TARGET"
     # Remember what was last pushed, so a target that mirrors back to the host
     # cannot ping-pong. gamescope does not mirror back (that isolation is the
@@ -123,9 +118,20 @@ if [ "$CLIP_OUT" = off ]; then
     # run against the wrong display otherwise loops indefinitely.
     export POE2_BRIDGE_STATE
     POE2_BRIDGE_STATE=$(mktemp -t poe2-clipboard-bridge.XXXXXX)
-    trap 'rm -f "$POE2_BRIDGE_STATE"' EXIT INT TERM
 
-    exec wl-paste --type text --watch bash -c '
+    watch_pid=""
+    cleanup() {
+        [ -n "$watch_pid" ] && kill "$watch_pid" 2>/dev/null
+        rm -f "$POE2_BRIDGE_STATE"
+    }
+    trap cleanup EXIT
+    trap 'cleanup; exit 0' INT TERM
+
+    # Deliberately NOT `exec`. exec replaces this shell, and a replaced shell
+    # takes its traps with it — so the state file was leaked on every single
+    # run (four stale ones found in /tmp). Keeping wl-paste as a child keeps the
+    # trap alive, and lets the loop below notice if the watcher dies.
+    wl-paste --type text --watch bash -c '
         text=$(cat)
         [ -z "$text" ] && exit 0
         [ "$text" = "$(cat "$POE2_BRIDGE_STATE" 2>/dev/null)" ] && exit 0
@@ -133,7 +139,23 @@ if [ "$CLIP_OUT" = off ]; then
         printf %s "$text" | DISPLAY="$POE2_BRIDGE_TARGET" xclip -selection clipboard -i
         printf %s "$text" | DISPLAY="$POE2_BRIDGE_TARGET" xclip -selection primary -i
         logger -t poe2-clipboard-bridge "host -> game (${#text} bytes)"
-    '
+    ' &
+    watch_pid=$!
+
+    # Stop when gamescope's display goes away, or when wl-paste itself dies —
+    # the separate watchdog subshell this replaces could only see the first of
+    # those, and it could not clean anything up because it signalled a process
+    # that had already exec'd its trap away. Each iteration tests the real
+    # condition, so the wait ends when the state changes rather than on a timer.
+    while kill -0 "$watch_pid" 2>/dev/null; do
+        if ! DISPLAY="$TARGET" xdpyinfo >/dev/null 2>&1; then
+            note "display $TARGET gone, stopping"
+            exit 0
+        fi
+        sleep 5
+    done
+    note "clipboard watcher exited, stopping"
+    exit 0
 fi
 
 # Bidirectional: the X side has no change event without XFixes tooling, so this

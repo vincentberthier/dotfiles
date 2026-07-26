@@ -88,6 +88,13 @@ CLIP_OUT="${POE2_CLIP_OUT:-off}"
 LOGDIR="${XDG_STATE_HOME:-$HOME/.local/state}/poe2-gamescope"
 mkdir -p "$LOGDIR"
 
+# setup.log is opened in append mode and is written by every helper the setup
+# subshell spawns, so it grows without bound across launches. Keep one previous
+# session around and start fresh past a megabyte.
+if [ -f "$LOGDIR/setup.log" ] && [ "$(stat -c %s "$LOGDIR/setup.log" 2>/dev/null || echo 0)" -gt 1048576 ]; then
+    mv -f "$LOGDIR/setup.log" "$LOGDIR/setup.log.1"
+fi
+
 EE2_PATTERN='/tmp/\.mount_Exiled.*/exiled-exchange-2'
 
 # --- argument parsing ------------------------------------------------------
@@ -242,6 +249,17 @@ before=$(existing_displays | sort -u | tr '\n' ' ')
 # --- post-launch setup, once gamescope's Xwayland appears ------------------
 
 (
+    # Everything below inherits Steam's environment, which puts both the 32-bit
+    # and 64-bit gameoverlayrenderer.so in LD_PRELOAD. None of the helpers here
+    # are the game: the 32-bit object fails the ELF-class check and prints an
+    # error on *every* spawn, and the 64-bit one gets mapped and initialised for
+    # nothing. Measured before this line existed: ~1.6 lines/s of ld.so noise
+    # into setup.log for the entire session, one pointless library load per
+    # xkbcomp / xdotool / rg / sleep. EE2 gets the same treatment explicitly
+    # further down; it needs it for a different reason (Chromium's zygote dies
+    # on the 32-bit object rather than just complaining).
+    unset LD_PRELOAD LD_LIBRARY_PATH
+
     newdisp=""
     for _ in $(seq 1 900); do
         for d in $(existing_displays); do
@@ -267,6 +285,17 @@ before=$(existing_displays | sort -u | tr '\n' ' ')
     HOST_WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-}"
     unset WAYLAND_DISPLAY
 
+    # Stay alive as long as the helpers we started are alive, instead of
+    # returning as soon as setup is done.
+    #
+    # This subshell is what `kill_tree "$setup_pid"` tears down at game exit.
+    # When it exited early, the keymap watcher and the clipboard bridge were
+    # reparented to init, kill_tree found no children left to walk, and they
+    # survived the game. Observed: a bridge from a 19:51:30 launch still running
+    # 57 minutes later next to the current one, both watching the same host
+    # clipboard and both claiming the selection on :1.
+    hold() { wait; exit 0; }
+
     for _ in $(seq 1 100); do
         xdpyinfo >/dev/null 2>&1 && break
         sleep 0.1
@@ -274,11 +303,13 @@ before=$(existing_displays | sort -u | tr '\n' ' ')
 
     # The real keymap, not _XKB_RULES_NAMES — that property lags and reported
     # "us" while the live keymap was BEPO.
+    # rg rather than python3: this runs on every tick of the watcher below for
+    # the whole session, and a Python interpreter startup per tick is by far the
+    # most expensive thing in the loop. Verified to return the same value as the
+    # regex it replaces against a live gamescope display.
     current_layout() {
-        xkbcomp -xkb "$DISPLAY" - 2>/dev/null | python3 -c '
-import re, sys
-m = re.search(r"name\[[Gg]roup1\]\s*=\s*\"([^\"]*)\"", sys.stdin.read())
-print(m.group(1) if m else "")'
+        xkbcomp -xkb "$DISPLAY" - 2>/dev/null |
+            rg -o -m1 -r '$1' 'name\[[Gg]roup1\]\s*=\s*"([^"]*)"'
     }
     apply_layout() {
         setxkbmap -model pc105 -layout "$LAYOUT" ${VARIANT:+-variant "$VARIANT"} 2>/dev/null
@@ -334,7 +365,7 @@ print(m.group(1) if m else "")'
 
     if [ "$EE2_MODE" = off ] || [ ! -x "$EE2" ]; then
         [ "$EE2_MODE" = off ] || note "EE2 not found at $EE2; skipping"
-        exit 0
+        hold
     fi
 
     kill_ee2
@@ -357,7 +388,7 @@ print(m.group(1) if m else "")'
         else
             note "EE2 exited during startup; see $LOGDIR/ee2.log"
         fi
-        exit 0
+        hold
     fi
 
     xprop -id "$win" -remove GAMESCOPE_EXTERNAL_OVERLAY 2>/dev/null
@@ -371,6 +402,7 @@ print(m.group(1) if m else "")'
         external) xprop -id "$win" -f GAMESCOPE_EXTERNAL_OVERLAY 32c -set GAMESCOPE_EXTERNAL_OVERLAY 1 ;;
     esac
     note "EE2 overlay window $win set to mode=$EE2_MODE"
+    hold
 ) >>"$LOGDIR/setup.log" 2>&1 &
 setup_pid=$!
 # ^ output goes to a file, not Steam's pipe. Everything still reaches the
