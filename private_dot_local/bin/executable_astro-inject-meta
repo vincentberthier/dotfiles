@@ -373,8 +373,8 @@ def build_description(meta: dict) -> str:
     frames = acq.get("frames_stacked")
     sub = acq.get("sub_exposure_s")
     total_s = acq.get("total_integration_s")
-    telescope = eq.get("telescope") or "?"
-    camera = eq.get("camera") or "?"
+    telescope = (eq.get("telescope") or "").strip()
+    camera = (eq.get("camera") or "").strip()
     date = (acq.get("date_obs_utc") or "")[:10]
 
     if total_s:
@@ -404,7 +404,14 @@ def build_description(meta: dict) -> str:
                      f"({approx}{frames} × {sub:g} s subs{suffix}).")
     elif total_s:
         lines.append(f"{approx}{total_str} total integration{suffix}.")
-    lines.append(f"{telescope} + {camera}.")
+    # Never publish a placeholder. M 10's sidecar was built from a
+    # post-stretch FITS with ten header cards and no equipment at all, and the
+    # export went out reading "M-10 — LRGB.? + ?." — a question mark tells a
+    # viewer nothing that the line's absence would not.
+    if telescope and camera:
+        lines.append(f"{telescope} + {camera}.")
+    elif telescope or camera:
+        lines.append(f"{telescope or camera}.")
     if date:
         # A stack spanning several nights must not read as a single-night one
         # — the whole point of shooting it twice. Nights, not calendar dates:
