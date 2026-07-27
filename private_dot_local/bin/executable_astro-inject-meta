@@ -399,9 +399,17 @@ def build_description(meta: dict) -> str:
     if frames and breakdown:
         lines.append(f"{approx}{total_str} total integration "
                      f"({approx}{frames} subs: {breakdown}{suffix}).")
-    elif frames and sub:
+    elif frames and sub and (total_s is None
+                             or abs(frames * sub - float(total_s)) <= 1):
         lines.append(f"{approx}{total_str} total integration "
                      f"({approx}{frames} × {sub:g} s subs{suffix}).")
+    elif frames:
+        # Same trap as the per-channel breakdown, one level up: an LRGB stack's
+        # header EXPTIME is an average across mixed sub lengths, so M 4 read
+        # "66 × 105 s" — a sub length never shot, and 6930 s against the 7140 s
+        # recorded beside it. Give the count without inventing the exposure.
+        lines.append(f"{approx}{total_str} total integration "
+                     f"({approx}{frames} subs{suffix}).")
     elif total_s:
         lines.append(f"{approx}{total_str} total integration{suffix}.")
     # Never publish a placeholder. M 10's sidecar was built from a
