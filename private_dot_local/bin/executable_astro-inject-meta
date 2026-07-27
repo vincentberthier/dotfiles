@@ -551,8 +551,8 @@ def nightscape_title(jpg: Path) -> str | None:
     return None
 
 
-def already_injected(jpg: Path) -> bool:
-    """Check the InjectedBy signature tag."""
+def injected_by(jpg: Path) -> str:
+    """The InjectedBy signature already on the file, or ""."""
     try:
         result = subprocess.run(
             ["exiftool", "-config", str(Path.home() / ".ExifTool_config"),
@@ -560,8 +560,20 @@ def already_injected(jpg: Path) -> bool:
             capture_output=True, text=True, timeout=30, check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
-        return False
-    return bool(result.stdout.strip())
+        return ""
+    return result.stdout.strip()
+
+
+def already_injected(jpg: Path) -> bool:
+    """Check the InjectedBy signature tag."""
+    return bool(injected_by(jpg))
+
+
+# The tool that writes metadata onto the Nikon star-trail stills. It shares the
+# XMP-astrohibou namespace and the export directory, but its files have no
+# sidecar and no FITS — sweeping the directory with --force used to report
+# twelve failures for frames that were already correctly stamped.
+FOREIGN_INJECTORS = ("inject_trail_meta",)
 
 
 def run_exiftool(jpg: Path, args: list[str], dry_run: bool, verbose: bool) -> bool:
@@ -621,8 +633,17 @@ def process_one(
     verbose: bool,
 ) -> bool:
     print(f"→ {jpg.name}")
-    if not force and already_injected(jpg):
+    signature = injected_by(jpg)
+    if signature and not force:
         print("  already injected (use --force to redo)")
+        return True
+    # Another tool owns this file's metadata. Never overwrite it on a sweep,
+    # --force included: forcing means "redo my own work", not "take someone
+    # else's". An explicit --sidecar is the deliberate override.
+    if (signature and explicit_sidecar is None
+            and any(signature.startswith(t) for t in FOREIGN_INJECTORS)):
+        print(f"  skipped: metadata owned by {signature} "
+              f"(pass --sidecar to override)")
         return True
 
     if explicit_sidecar:
