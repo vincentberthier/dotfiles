@@ -19,6 +19,11 @@ Host github.com github
 	User git
 	IdentityFile ~/.ssh/vincent
 
+Host astro-hibou
+	Hostname 193.70.35.12
+	User debian
+	IdentityFile ~/.ssh/vincent
+
 {{ if eq .chezmoi.hostname "gaia" -}}
 Host hephaistos
   HostName 192.168.1.12
