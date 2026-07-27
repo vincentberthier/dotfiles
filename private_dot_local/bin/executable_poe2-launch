@@ -1,0 +1,262 @@
+#!/usr/bin/env bash
+# Steam launch wrapper for Path of Exile 2 under niri. No gamescope, no EE2.
+#
+# Usage — Steam launch options for app 2694490:
+#   poe2-launch %command%
+#
+# Standalone:
+#   poe2-launch                  apply the game keymap and exit (no restore)
+#   poe2-launch --restore-keymap put the desktop keymap back on the X display
+#
+# ---------------------------------------------------------------------------
+# Why this exists
+#
+# 1. Keyboard layout — setxkbmap on the X display is the ONLY lever
+#
+#    niri's active layout does not reach the game. Whatever niri is on at
+#    launch, PoE2 comes up BEPO (Vincent, 2026-07-26); `niri msg action
+#    switch-layout` mid-session does nothing either. Wine/Proton takes its
+#    layout from the X server it is a client of, so the fix is to change that
+#    server's keymap:
+#
+#      setxkbmap -display :0 -model pc105 -layout fr
+#
+#    Verified again 2026-07-27 on the live display: <AD01> (the key right of
+#    Tab) went from `b` to `a`, i.e. BEPO -> azerty. It sticks —
+#    xwayland-satellite does not stomp it back — and it touches X clients only,
+#    so the Wayland desktop keeps BEPO.
+#
+#    Do NOT verify with `setxkbmap -query` or _XKB_RULES_NAMES: on this
+#    Xwayland the property read `us` while the live keymap was BEPO. Do NOT
+#    verify with HKCU\Keyboard Layout\Preload in the Wine prefix either — it
+#    reads 00000409 even when the keyboard is correct; it is the default entry
+#    Wine writes, not a record of what it detected. The check below reads the
+#    real keymap out of the server with xkbcomp and looks at what <AD01> types.
+#
+#    Unverified, do not build on it: whether Wine reads the keymap once at
+#    startup or follows it live. An earlier version of the gamescope wrapper
+#    asserted "reads it once" as a measured fact; it was never tested. Applying
+#    before launch works either way, which is why there is no watcher here. If
+#    the layout ever drifts mid-session, measure what overwrites it before
+#    adding one.
+#
+# 2. GPU performance level
+#
+#    Measured on the RX 9070 XT: with power_dpm_force_performance_level=auto
+#    the card sat pinned to DPM state 1 (1601MHz) even at 100% gpu_busy_percent
+#    — a vsync-limited bursty load never raises the governor's running average
+#    enough to reach state 2, and at half clocks each frame overruns the 60Hz
+#    deadline, which keeps utilisation low. Self-reinforcing. Forcing `high`
+#    moved GPU frame time 10ms -> 7ms and the frame rate 38 -> 54, with power
+#    still only 119W and the card at 50C. Held only while the game runs.
+#
+# 3. What is deliberately absent
+#
+#    gamescope and Exiled Exchange 2. gamescope only ever existed here to give
+#    EE2's electron-overlay-window a real EWMH window manager; it costs frames
+#    (the game vsyncs into gamescope which vsyncs into niri on a 60Hz panel).
+#    PoE2 has a native price check, so EE2 is gone and gamescope goes with it.
+#    `poe2-gamescope` is still on disk if that path is ever needed again.
+#
+# 4. mangohud
+#
+#    Off by default -- it is a diagnostic, not something to play with. `--mango`
+#    turns it on with the overlay Vincent actually wants (fps, frame time graph,
+#    GPU/CPU, VRAM/RAM, io). Keep `--no-mango` spelled out in the Steam launch
+#    options even though it is the default, so the knob stays visible.
+#
+# Verify a launch with: journalctl -t poe2-launch
+#
+# Environment overrides:
+#   POE2_XKB_LAYOUT / POE2_XKB_VARIANT       keymap forced for the game (fr)
+#   POE2_XKB_RESTORE_LAYOUT / ..._VARIANT    keymap restored after (fr/bepo)
+#   POE2_XKB_RESTORE                         on | off
+#   POE2_HOST_DISPLAY                        X display to fix (default $DISPLAY)
+#   POE2_GPU_PERF                            perf level, "off" to leave alone
+#   POE2_GPU_PERF_PATH                       sysfs knob (autodetected)
+#   POE2_MANGOHUD                            on | off (default off)
+#   POE2_MANGOHUD_CONFIG                     MANGOHUD_CONFIG when it is on
+# ---------------------------------------------------------------------------
+set -uo pipefail
+
+LAYOUT="${POE2_XKB_LAYOUT:-fr}"
+VARIANT="${POE2_XKB_VARIANT:-}"
+# Defaults match ~/.config/niri/config.kdl (layout "fr", variant "bepo").
+RESTORE_LAYOUT="${POE2_XKB_RESTORE_LAYOUT:-fr}"
+RESTORE_VARIANT="${POE2_XKB_RESTORE_VARIANT:-bepo}"
+RESTORE="${POE2_XKB_RESTORE:-on}"
+GPU_PERF="${POE2_GPU_PERF:-high}"
+DISP="${POE2_HOST_DISPLAY:-${DISPLAY:-:0}}"
+MANGO="${POE2_MANGOHUD:-off}"
+MANGO_CONFIG="${POE2_MANGOHUD_CONFIG:-fps,frametime,frame_timing=1,gpu_stats,cpu_stats,vram,ram,io_read}"
+
+note() { logger -t poe2-launch "$*"; echo "poe2-launch: $*" >&2; }
+
+usage() {
+    cat >&2 <<'EOF'
+usage: poe2-launch [options] [COMMAND...]
+
+  --layout LAYOUT     xkb layout forced on the game's X display (default: fr)
+  --variant VARIANT   xkb variant to go with it (default: none)
+  --no-restore        leave the game keymap in place after the game exits
+  --no-gpu            do not touch the GPU performance level
+  --mango             mangohud overlay: fps, frame time graph, GPU/CPU, VRAM,
+                      RAM, io  (default: --no-mango)
+  --no-mango          no overlay -- the default, worth spelling out anyway
+  --restore-keymap    restore the desktop keymap on the X display and exit
+  -h, --help          this message
+
+With no COMMAND, the keymap is applied and the script exits without restoring
+it -- useful when the game was started some other way.
+EOF
+}
+
+RESTORE_ONLY=0
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --layout)         LAYOUT="${2:-fr}";  shift 2 ;;
+        --variant)        VARIANT="${2:-}";   shift 2 ;;
+        --no-restore)     RESTORE=off;        shift ;;
+        --no-gpu)         GPU_PERF=off;       shift ;;
+        --mango)          MANGO=on;           shift ;;
+        --no-mango)       MANGO=off;          shift ;;
+        --restore-keymap) RESTORE_ONLY=1;     shift ;;
+        -h|--help)        usage; exit 0 ;;
+        --)               shift; break ;;
+        -*)               echo "poe2-launch: unknown option $1" >&2; usage; exit 2 ;;
+        *)                break ;;
+    esac
+done
+
+# --- keymap ----------------------------------------------------------------
+
+# What the key right of Tab actually types, read out of the server's live
+# keymap. azerty -> a, BEPO -> b, qwerty -> q. This is the only readback that
+# told the truth here; see the header.
+probe_key() {
+    xkbcomp -xkb "$DISP" - 2>/dev/null | awk '
+        /key <AD01>/ { seen = 1 }
+        seen && /symbols\[Group1\]/ { gsub(/[][,]/, " "); print $4; exit }'
+}
+
+x_alive() { DISPLAY="$DISP" xdpyinfo >/dev/null 2>&1; }
+
+# setxkbmap exits non-zero on a layout it cannot load (5, "Error loading new
+# keyboard description") and leaves the old keymap in place, so its status is
+# worth having. Its stderr always carries a "Running setxkbmap against an
+# Xwayland server" warning, which is expected and not interesting.
+set_keymap() {
+    local layout="$1" variant="$2" err rc
+    err=$(DISPLAY="$DISP" setxkbmap -model pc105 -layout "$layout" \
+              ${variant:+-variant "$variant"} 2>&1)
+    rc=$?
+    [ "$rc" -eq 0 ] || note "WARNING: setxkbmap $layout${variant:+($variant)} failed (rc=$rc): $(printf '%s' "$err" | tr '\n' '; ')"
+    return "$rc"
+}
+
+# The letter a layout is expected to put on <AD01>, so a silent failure is
+# caught instead of logged as success. Unknown layouts just report what they
+# got.
+expected_key() {
+    case "$1${2:+:$2}" in
+        fr)       echo a ;;
+        fr:bepo)  echo b ;;
+        us|gb)    echo q ;;
+        *)        echo "" ;;
+    esac
+}
+
+apply_game_keymap() {
+    local before after want
+    if ! x_alive; then
+        note "WARNING: no X server on $DISP; keyboard layout NOT forced"
+        return 1
+    fi
+    before=$(probe_key)
+    set_keymap "$LAYOUT" "$VARIANT"
+    after=$(probe_key)
+    want=$(expected_key "$LAYOUT" "$VARIANT")
+    if [ -z "$after" ]; then
+        note "WARNING: forced '$LAYOUT${VARIANT:+($VARIANT)}' on $DISP but could not read the keymap back"
+    elif [ -n "$want" ] && [ "$after" != "$want" ]; then
+        note "WARNING: forced '$LAYOUT${VARIANT:+($VARIANT)}' on $DISP but AD01 still types '$after' (expected '$want') -- the game will NOT be $LAYOUT"
+    else
+        note "keymap on $DISP: AD01 '$before' -> '$after' (layout $LAYOUT${VARIANT:+/$VARIANT})"
+    fi
+}
+
+restore_keymap() {
+    [ "$RESTORE" = off ] && return 0
+    x_alive || return 0
+    set_keymap "$RESTORE_LAYOUT" "$RESTORE_VARIANT"
+    note "keymap on $DISP restored to $RESTORE_LAYOUT${RESTORE_VARIANT:+/$RESTORE_VARIANT} (AD01 types '$(probe_key)')"
+    RESTORE=off        # the trap and the normal path both call this
+}
+
+if [ "$RESTORE_ONLY" = 1 ]; then
+    RESTORE=on
+    restore_keymap
+    exit 0
+fi
+
+# --- GPU performance level -------------------------------------------------
+
+GPU_PERF_PATH="${POE2_GPU_PERF_PATH:-}"
+if [ -z "$GPU_PERF_PATH" ] && [ "$GPU_PERF" != off ]; then
+    for _c in /sys/class/drm/card*/device/power_dpm_force_performance_level; do
+        [ -e "$_c" ] && { GPU_PERF_PATH="$_c"; break; }
+    done
+fi
+
+gpu_saved_perf=""
+force_gpu_perf() {
+    [ "$GPU_PERF" = off ] && return 0
+    [ -n "$GPU_PERF_PATH" ] && [ -r "$GPU_PERF_PATH" ] || return 0
+    gpu_saved_perf=$(cat "$GPU_PERF_PATH" 2>/dev/null)
+    [ "$gpu_saved_perf" = "$GPU_PERF" ] && { gpu_saved_perf=""; return 0; }
+    # doas -n so this can never prompt: Steam gives us no tty, and a wrapper
+    # blocked on an invisible password prompt hangs the whole launch.
+    if printf '%s\n' "$GPU_PERF" | doas -n tee "$GPU_PERF_PATH" >/dev/null 2>&1; then
+        note "GPU performance level $gpu_saved_perf -> $GPU_PERF"
+    else
+        note "WARNING: could not set GPU performance level (needs passwordless doas)"
+        gpu_saved_perf=""
+    fi
+}
+restore_gpu_perf() {
+    [ -n "$gpu_saved_perf" ] || return 0
+    if printf '%s\n' "$gpu_saved_perf" | doas -n tee "$GPU_PERF_PATH" >/dev/null 2>&1; then
+        note "GPU performance level restored to $gpu_saved_perf"
+    fi
+    gpu_saved_perf=""
+}
+
+# --- run -------------------------------------------------------------------
+
+if [ $# -eq 0 ]; then
+    # Keymap-only mode: apply and leave it applied, there is nothing to wait on.
+    apply_game_keymap
+    exit 0
+fi
+
+cleanup() { restore_keymap; restore_gpu_perf; }
+trap cleanup EXIT INT TERM
+
+apply_game_keymap
+force_gpu_perf
+
+# Exported rather than prefixed onto "$@": Steam's %command% expands to a whole
+# launch chain (reaper, SteamLaunch AppId=..., proton, ...) and an `env`
+# wrapper in front of it is one more thing to get wrong. Nothing but the game
+# is spawned from here on.
+if [ "$MANGO" != off ]; then
+    export MANGOHUD=1 MANGOHUD_CONFIG="$MANGO_CONFIG"
+    note "mangohud ON ($MANGO_CONFIG)"
+else
+    note "mangohud off (--mango to show it)"
+fi
+
+"$@"
+rc=$?
+note "game exited (rc=$rc)"
+exit $rc
