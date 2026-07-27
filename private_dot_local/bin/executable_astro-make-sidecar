@@ -209,19 +209,19 @@ def build_sidecar(header: dict, fits_path: Path, mode: str | None) -> OrderedDic
         "dec_dms": _str(header, "OBJCTDEC"),
     })
 
-    # Only accept the re-derived totals when they exceed the header's: this
-    # corrects a known under-count, and a channel map that comes out short is
-    # a bug in the map rather than a reason to under-report further.
+    # The header is wrong in both directions: LRGB drops the luminance, while
+    # HOO composes ha/oiii/oiii and so counts the same OIII subs twice. The
+    # per-filter masters carry each filter exactly once. Accept their sum only
+    # when every channel the mode uses has a master, so a half-cleaned process
+    # dir cannot be read as a short session.
     frames = _num(header, "STACKCNT")
     integration = _num(header, "LIVETIME")
     channels = channel_totals(fits_path.parent, mode)
-    if channels:
-        summed_f = sum(c["frames"] for c in channels.values())
-        summed_t = sum(c["integration_s"] for c in channels.values())
-        if integration is None or summed_t >= float(integration):
-            frames, integration = summed_f, summed_t
-        else:
-            channels = {}
+    if channels and len(channels) == len(MODE_CHANNELS.get((mode or "").upper(), [])):
+        frames = sum(c["frames"] for c in channels.values())
+        integration = sum(c["integration_s"] for c in channels.values())
+    else:
+        channels = {}
 
     last = last_night(channels) if channels else None
     if last and night_of(last) == night_of(_str(header, "DATE-OBS")):
