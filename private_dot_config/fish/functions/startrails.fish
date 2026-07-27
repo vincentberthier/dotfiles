@@ -13,5 +13,5 @@ function startrails --description 'Star-trail still + trails video + timelapse f
         echo "no _frames/ in $src -- cd into the timelapse date folder first." >&2
         return 1
     end
-    ~/Images/Photos/Timelapse/make_trails.sh "$src" $argv
+    ~/Projets/astro-pipeline/tools/make_trails.sh "$src" $argv
 end
