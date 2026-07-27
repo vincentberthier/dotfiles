@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+from datetime import datetime, timedelta
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Iterable
@@ -38,6 +39,80 @@ DSO_ROOT = Path("/run/media/vincent/Corrbolg/dso")
 # appear in a filename like "starless_halrgb_r_denoised.fit".
 KNOWN_MODES = ["HALRGB_R", "HALRGB_L", "HALRGB", "FORAXX", "FORAX",
                "LRGB", "RGB", "SHO", "HOO", "OHS", "HSO"]
+
+# Which per-filter masters actually feed each mode's delivered image.
+#
+# The recombined FITS records only what Siril's `rgbcomp` saw, and for every
+# L-bearing mode the pipeline deliberately withholds the luminance from the
+# linear composition (it greys the colour) and combines it after stretching.
+# So the header's STACKCNT/LIVETIME cover the colour layer alone — an LRGB
+# stack reports its RGB subs and silently drops the deepest channel it has.
+# Summing the masters listed here restores what the published image contains.
+MODE_CHANNELS = {
+    "LRGB": ["luminance", "red", "green", "blue"],
+    "RGB": ["red", "green", "blue"],
+    "HALRGB": ["luminance", "red", "green", "blue", "ha"],
+    "HALRGB_R": ["luminance", "red", "green", "blue", "ha"],
+    "HALRGB_L": ["luminance", "red", "green", "blue", "ha"],
+    "SHO": ["sii", "ha", "oiii"],
+    "OHS": ["sii", "ha", "oiii"],
+    "HSO": ["sii", "ha", "oiii"],
+    "FORAX": ["sii", "ha", "oiii"],
+    "FORAXX": ["sii", "ha", "oiii"],
+    "HOO": ["ha", "oiii"],
+}
+
+
+def channel_totals(process_dir: Path, mode: str | None) -> dict:
+    """Per-filter frames and integration for the channels `mode` uses."""
+    totals: dict[str, dict] = {}
+    for name in MODE_CHANNELS.get((mode or "").upper(), []):
+        master = process_dir / f"master_{name}.fit"
+        if not master.exists():
+            continue
+        try:
+            with fits.open(master) as hdul:
+                h = hdul[0].header
+                frames = int(h.get("STACKCNT", 0) or 0)
+                exptime = float(h.get("EXPTIME", 0.0) or 0.0)
+                livetime = h.get("LIVETIME")
+                livetime = (
+                    float(livetime) if livetime is not None else frames * exptime
+                )
+        except (OSError, ValueError, TypeError):
+            continue
+        if frames:
+            totals[name] = {
+                "frames": frames,
+                "sub_exposure_s": exptime,
+                "integration_s": livetime,
+                "date_obs_utc": h.get("DATE-OBS"),
+            }
+    return totals
+
+
+def last_night(channels: dict) -> str | None:
+    """Latest first-sub timestamp across channels — a lower bound on when the
+    stack stopped collecting, and enough to tell one night from several."""
+    dates = [c.get("date_obs_utc") for c in channels.values()]
+    dates = [d for d in dates if isinstance(d, str) and d]
+    return max(dates) if dates else None
+
+
+def night_of(iso: str | None) -> str | None:
+    """The observing night a UTC timestamp belongs to, as YYYY-MM-DD.
+
+    A night straddles midnight, so the calendar date does not identify it: a
+    session running 23:22 to 01:36 spans two dates and one night. Shifting
+    back 12 h puts the whole night on the date it started.
+    """
+    if not iso:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(iso).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return (dt - timedelta(hours=12)).strftime("%Y-%m-%d")
 
 # Site coordinates are deliberately coarsened to whole degrees, matching the
 # sidecars the pipeline writes (SITELAT 44.0727… -> 44). These files feed a
@@ -134,14 +209,40 @@ def build_sidecar(header: dict, fits_path: Path, mode: str | None) -> OrderedDic
         "dec_dms": _str(header, "OBJCTDEC"),
     })
 
+    # Only accept the re-derived totals when they exceed the header's: this
+    # corrects a known under-count, and a channel map that comes out short is
+    # a bug in the map rather than a reason to under-report further.
+    frames = _num(header, "STACKCNT")
+    integration = _num(header, "LIVETIME")
+    channels = channel_totals(fits_path.parent, mode)
+    if channels:
+        summed_f = sum(c["frames"] for c in channels.values())
+        summed_t = sum(c["integration_s"] for c in channels.values())
+        if integration is None or summed_t >= float(integration):
+            frames, integration = summed_f, summed_t
+        else:
+            channels = {}
+
+    last = last_night(channels) if channels else None
+    if last and night_of(last) == night_of(_str(header, "DATE-OBS")):
+        last = None  # one night: the single date already says it all
+    channels = {
+        n: {k: v for k, v in vals.items() if k != "date_obs_utc"}
+        for n, vals in channels.items()
+    }
+
     acquisition = _prune({
         "mode": mode,
         "date_obs_utc": _str(header, "DATE-OBS"),
+        "date_last_utc": last,
         "date_avg_utc": _str(header, "DATE-AVG"),
         "date_local": _str(header, "DATE-LOC"),
-        "frames_stacked": _num(header, "STACKCNT"),
+        "frames_stacked": frames,
         "sub_exposure_s": _num(header, "EXPTIME"),
-        "total_integration_s": _num(header, "LIVETIME"),
+        "total_integration_s": integration,
+        # L and RGB run different sub lengths, so one sub_exposure_s cannot
+        # describe an LRGB stack — this can.
+        "channels": {n: dict(v) for n, v in channels.items()} or None,
         "airmass": _num(header, "AIRMASS"),
         "altitude_deg": _num(header, "CENTALT"),
         "azimuth_deg": _num(header, "CENTAZ"),

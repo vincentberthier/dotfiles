@@ -28,7 +28,7 @@ import re
 import subprocess
 import sys
 import unicodedata
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterable
 
@@ -162,12 +162,40 @@ def _iter_sidecars() -> Iterable[tuple[Path, str]]:
             continue
         for sidecar in root.glob("*/**/*.meta.yaml"):
             rel = sidecar.relative_to(root)
+            # ARCHIVE_* holds superseded versions of a stack that was
+            # reprocessed (products/m-101/ARCHIVE_pre_parallax_v12/). They
+            # describe the same target, mode and night as the live sidecar, so
+            # they can only ever add a coin-flip to the date ranking.
+            if any(part.startswith("ARCHIVE") for part in rel.parts[:-1]):
+                continue
             yield sidecar, rel.parts[0]
 
     for pattern in ("*/process/*.meta.yaml", "*/*/process/*.meta.yaml"):
         for sidecar in RAWS_ROOT.glob(pattern):
             rel = sidecar.relative_to(RAWS_ROOT)
             yield sidecar, rel.parts[0]
+
+
+def find_sidecar_for_export(jpg: Path) -> Path | None:
+    """A sidecar named exactly after the export, if one exists.
+
+    The date ranking in find_sidecar is a tiebreak, not a match: an export's
+    filename date is its *processing* date, so two stacks of the same target
+    and mode can rank in the wrong order. NGC 7023 is the worked example — the
+    07-18 export is one night and the 07-19 export is two, but the two-night
+    stack's DATE-OBS falls on 07-18, so ranking hands each export the other's
+    sidecar. No date heuristic can separate them.
+
+    Naming a sidecar `<export-stem>.meta.yaml` beside the products settles it
+    once: an exact name beats every guess, and the pairing survives re-runs.
+    """
+    stem = jpg.stem[:-4] if jpg.stem.endswith("-web") else jpg.stem
+    for root in (PRODUCTS_ROOT, PROCESS_ROOT):
+        if not root.is_dir():
+            continue
+        for candidate in sorted(root.rglob(f"{stem}.meta.yaml")):
+            return candidate
+    return None
 
 
 def _date_distance(obs: str, near: str | None) -> int:
@@ -244,7 +272,23 @@ def find_sidecar(target_token: str, mode: str | None,
             # Several sessions match; take the one observed closest to the
             # export's own date. A candidate with no date sorts last, so a
             # dated stack always beats an undated one.
-            return min(pool, key=lambda pair: _date_distance(pair[0], near))[1]
+            winner = min(pool, key=lambda pair: _date_distance(pair[0], near))
+            if winner[0][:10] != (near or "")[:10]:
+                # The pick is a guess whenever the dates do not line up and
+                # more than one session was in the running. NGC 7023's 07-19
+                # two-night export resolved this way to the 07-17 single-night
+                # sidecar and was published with the wrong integration, in
+                # silence. Say so: a nearest-date tiebreak is not a match.
+                print(f"  ! ambiguous: {len(pool)} sidecars match this target "
+                      f"and mode; picked the one nearest {near or '(no date)'}",
+                      file=sys.stderr)
+                for obs, path in sorted(pool):
+                    mark = "->" if path == winner[1] else "  "
+                    print(f"    {mark} {obs or '(undated)'}  {path.name}",
+                          file=sys.stderr)
+                print("    Verify this is the right session; pass --sidecar "
+                      "to choose explicitly.", file=sys.stderr)
+            return winner[1]
     return None
 
 
@@ -266,6 +310,55 @@ def _common_label(target_block: dict) -> str:
     if fr and en:
         return f"{fr} / {en}"
     return fr or en
+
+
+# Display order and labels for the per-channel breakdown. Short filter codes
+# rather than "luminance"/"red" — they sit directly under the mode token
+# ("LRGB", "SHO"), which is the same vocabulary.
+CHANNEL_LABELS = [
+    ("luminance", "L"), ("red", "R"), ("green", "G"), ("blue", "B"),
+    ("sii", "SII"), ("ha", "Ha"), ("oiii", "OIII"),
+]
+
+
+def night_of(iso: str | None) -> str | None:
+    """The observing night a UTC timestamp belongs to, as YYYY-MM-DD.
+
+    A night straddles midnight, so the calendar date does not identify it:
+    NGC 7023's 07-17 session ran 23:22 to 01:36 — two dates, one night.
+    Shifting back 12 h puts the whole night on the date it started.
+    """
+    if not iso:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(iso).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return (dt - timedelta(hours=12)).strftime("%Y-%m-%d")
+
+
+def channel_breakdown(channels: dict | None) -> str:
+    """"L 150 × 60 s, R 43 × 120 s, …" from the sidecar's channels block."""
+    if not isinstance(channels, dict):
+        return ""
+    parts = []
+    for key, label in CHANNEL_LABELS:
+        ch = channels.get(key)
+        if not isinstance(ch, dict) or not ch.get("frames"):
+            continue
+        frames = ch["frames"]
+        sub = ch.get("sub_exposure_s") or 0
+        total = ch.get("integration_s")
+        # "N × X s" is only true when the channel ran one sub length. M 101's
+        # luminance mixes the retired 2026-07-08 120 s subs with 60 s ones, so
+        # its header EXPTIME describes neither — state the integration instead
+        # of multiplying out a number that was never shot.
+        if total is not None and abs(frames * sub - float(total)) > 1:
+            hrs, rem = divmod(int(float(total)), 3600)
+            parts.append(f"{label} {frames} ({hrs}h{rem // 60:02d}m)")
+        else:
+            parts.append(f"{label} {frames} × {sub:g} s")
+    return ", ".join(parts)
 
 
 def build_description(meta: dict) -> str:
@@ -299,14 +392,29 @@ def build_description(meta: dict) -> str:
     suffix = ", estimated" if acq.get("estimated") else ""
 
     lines = [f"{target_label} — {mode}"]
-    if frames and sub:
+    # The per-channel breakdown, when the sidecar carries one. An LRGB stack
+    # mixes 60 s luminance with 120 s colour subs, so "N × X s" cannot describe
+    # it honestly with a single exposure — spell the channels out instead.
+    breakdown = channel_breakdown(acq.get("channels"))
+    if frames and breakdown:
+        lines.append(f"{approx}{total_str} total integration "
+                     f"({approx}{frames} subs: {breakdown}{suffix}).")
+    elif frames and sub:
         lines.append(f"{approx}{total_str} total integration "
                      f"({approx}{frames} × {sub:g} s subs{suffix}).")
     elif total_s:
         lines.append(f"{approx}{total_str} total integration{suffix}.")
     lines.append(f"{telescope} + {camera}.")
     if date:
-        lines.append(f"Acquired {date} UTC.")
+        # A stack spanning several nights must not read as a single-night one
+        # — the whole point of shooting it twice. Nights, not calendar dates:
+        # a session running past midnight is one night on two dates.
+        first = night_of(acq.get("date_obs_utc")) or date
+        last = night_of(acq.get("date_last_utc"))
+        if last and last != first:
+            lines.append(f"Acquired on the nights of {first} and {last} UTC.")
+        else:
+            lines.append(f"Acquired on the night of {first} UTC.")
     return "\n".join(lines)
 
 
@@ -374,6 +482,7 @@ def build_exiftool_args(meta: dict, jpg: Path) -> list[str]:
     add("Frames", acq.get("frames_stacked"))
     add("SubExposure", acq.get("sub_exposure_s"))
     add("Integration", acq.get("total_integration_s"))
+    add("Channels", channel_breakdown(acq.get("channels")) or None)
     # Travels with the file so a consumer can tell a reconstructed frame count
     # from one read out of a stack header.
     add("Estimated", "true" if acq.get("estimated") else None)
@@ -526,6 +635,13 @@ def process_one(
             return run_exiftool(jpg, build_nightscape_args(jpg, title),
                                 dry_run=dry_run, verbose=verbose)
 
+        pinned = find_sidecar_for_export(jpg)
+        if pinned is not None:
+            if verbose:
+                print(f"  sidecar (pinned by name): {pinned}")
+            sidecar = pinned
+            return _inject(jpg, sidecar, dry_run=dry_run, verbose=verbose)
+
         parsed = parse_jpg_name(jpg)
         if parsed is None:
             print("  ! Cannot parse filename. Pass --sidecar to override.",
@@ -555,6 +671,11 @@ def process_one(
         if verbose:
             print(f"  sidecar: {sidecar}")
 
+    return _inject(jpg, sidecar, dry_run=dry_run, verbose=verbose)
+
+
+def _inject(jpg: Path, sidecar: Path, *, dry_run: bool, verbose: bool) -> bool:
+    """Load a resolved sidecar and stamp it into the JPG."""
     try:
         with open(sidecar) as f:
             meta = yaml.safe_load(f) or {}

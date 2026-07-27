@@ -34,6 +34,10 @@
     Frames         => { Writable => 'integer' },
     SubExposure    => { Writable => 'real' },     # seconds
     Integration    => { Writable => 'real' },     # seconds
+    # Per-filter breakdown, "L 150 x 60 s, R 43 x 120 s, ...". An LRGB stack
+    # mixes 60 s luminance with 120 s colour, so SubExposure alone cannot
+    # describe it and Frames alone hides which channel carries the depth.
+    Channels       => { Writable => 'string' },
     Airmass        => { Writable => 'real' },
     # Set only when Frames/Integration were reconstructed from surviving light
     # frames instead of read from a stack header (no stack survives for M 12
