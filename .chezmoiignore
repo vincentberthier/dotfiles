@@ -5,6 +5,10 @@ Paths are relative to the target directory (home), not the source tree.
 
 {{ if ne .chezmoi.hostname "hephaistos" }}
 .local/bin/op
+{{/* gaia mounts the vault from niri's spawn-at-startup; hephaistos is
+     headless and had nothing mounting it at all, which silently stopped its
+     backups on 2026-04-15. */}}
+.config/systemd/user/rclone-vault.service
 {{ end }}
 
 {{ if ne .chezmoi.hostname "gaia" }}

@@ -1,0 +1,18 @@
+[Unit]
+Description=rclone mount of pcloud:vault
+Documentation=https://rclone.org/commands/rclone_mount/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# rclone speaks sd_notify, so the unit is only considered started once the
+# mount is actually usable — which is what the duplicacy units' mountpoint
+# condition then observes.
+Type=notify
+ExecStart=/usr/bin/rclone mount --vfs-cache-mode full pcloud:vault %h/vault
+ExecStop=/usr/bin/fusermount -u %h/vault
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

@@ -10,6 +10,7 @@
 #   check-weekly.timer    {{ include "private_dot_config/systemd/user/duplicacy-check-weekly.timer" | sha256sum }}
 #   check-monthly.service {{ include "private_dot_config/systemd/user/duplicacy-check-monthly.service" | sha256sum }}
 #   check-monthly.timer   {{ include "private_dot_config/systemd/user/duplicacy-check-monthly.timer" | sha256sum }}
+#   rclone-vault.service  {{ include "private_dot_config/systemd/user/rclone-vault.service" | sha256sum }}
 
 set -euo pipefail
 
@@ -24,6 +25,14 @@ for unit in duplicacy-backup duplicacy-prune; do
 done
 
 systemctl --user daemon-reload
+
+# Only present on hosts with no other means of mounting the vault (see
+# .chezmoiignore). Enabled before the duplicacy timers so the mountpoint
+# condition on the backup units can actually be satisfied.
+if [[ -f "${HOME}/.config/systemd/user/rclone-vault.service" ]]; then
+	systemctl --user enable --now rclone-vault.service
+fi
+
 systemctl --user enable --now \
 	duplicacy-backup.timer \
 	duplicacy-prune.timer \
