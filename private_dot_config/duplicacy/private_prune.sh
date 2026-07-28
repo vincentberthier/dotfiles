@@ -14,6 +14,16 @@ exec >>"${LOG_PATH}/$(date +%F)-prune.log" 2>&1
 log "------------------------------------------------------------"
 log "Début du nettoyage"
 
+# prune -all rewrites storage-wide state through fossil collection, and
+# duplicacy requires that it run from a single machine: two clients pruning one
+# storage can collect chunks the other still references. The cloud storage is
+# shared, so the full-backup host owns pruning it. Elsewhere this is a no-op
+# rather than a disabled timer, so the units stay identical on every machine.
+if [[ "$(hostname)" != "$FULL_BACKUP_HOST" ]]; then
+	log "prune is owned by ${FULL_BACKUP_HOST}; nothing to do here"
+	exit 0
+fi
+
 load_storage_password || exit 1
 
 # Any repository works: -all prunes every snapshot id in the storage.
