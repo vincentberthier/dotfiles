@@ -77,12 +77,18 @@ load_storage_password() {
 	export DUPLICACY_AEGIS_PASSWORD="$password"
 }
 
-# ~/.ssh/duplicacy is currently an unencrypted PKCS#8 key, so this is a no-op in
-# practice. It is kept so that encrypting the key later needs no script change.
+# ~/.ssh/duplicacy is an unencrypted PKCS#8 key, so no passphrase is needed. Ask
+# 1Password only when the key actually is encrypted: otherwise the weekly 03:00
+# check pops an interactive unlock prompt, waits, times out and changes nothing.
+# Detected by opening the key with an empty passphrase, so encrypting the key
+# later needs no script change.
 load_rsa_passphrase() {
 	local passphrase
+	if openssl pkey -in "${HOME}/.ssh/duplicacy" -passin pass: -noout 2>/dev/null; then
+		return 0
+	fi
 	if ! passphrase=$(op_read "op://Personal/Duplicacy/backup_rsa_pwd"); then
-		log "WARNING: could not read the RSA passphrase from 1Password; continuing, the key is unencrypted."
+		log "WARNING: the RSA key is encrypted but 1Password is unreachable; decryption will fail."
 		return 0
 	fi
 	export DUPLICACY_RSA_PASSPHRASE="$passphrase"
