@@ -12,8 +12,24 @@ AEGIS_STORAGE="${AEGIS_MOUNT}/duplicacy"
 XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
 XDG_DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
 
+# The code/documents/images snapshot ids are deliberately NOT host-qualified:
+# the intent is that any machine can restore the common set and carry on. That
+# only works if exactly one machine ever writes them — otherwise revisions from
+# two machines interleave under one id and a restore of "the newest revision"
+# hands you the wrong host's data.
+#
+# gaia is that machine. Everywhere else backs up ~/.config alone, which is
+# host-qualified (config_<hostname>) and so cannot collide. Nothing is lost:
+# ~/code lives in VCS, and the other machines are used to drive gaia rather than
+# worked in directly.
+FULL_BACKUP_HOST="gaia"
+
 # shellcheck disable=SC2034  # consumed by the scripts that source this file
-FOLDERS=("${HOME}/code" "${HOME}/Documents" "${HOME}/Images" "${XDG_CONFIG_HOME}")
+if [[ "$(hostname)" == "$FULL_BACKUP_HOST" ]]; then
+	FOLDERS=("${HOME}/code" "${HOME}/Documents" "${HOME}/Images" "${XDG_CONFIG_HOME}")
+else
+	FOLDERS=("${XDG_CONFIG_HOME}")
+fi
 LOG_PATH="${XDG_DATA_HOME}/duplicacy"
 LOG_RETENTION_DAYS=30
 
