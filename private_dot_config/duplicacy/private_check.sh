@@ -16,9 +16,8 @@ set -uo pipefail
 
 MODE="${1:-weekly}"
 
+# shellcheck source=/dev/null
 source "${XDG_CONFIG_HOME:-${HOME}/.config}/duplicacy/lib.sh"
-
-RSA_KEY="${HOME}/.ssh/duplicacy"
 
 mkdir -p "$LOG_PATH"
 exec >>"${LOG_PATH}/$(date +%F)-check.log" 2>&1
@@ -47,7 +46,7 @@ run_check() {
 
 if cloud_available; then
 	run_check "default: chunk existence" \
-		duplicacy check -all -stats -tabular -threads 4 -storage default
+		duplicacy -background check -all -stats -tabular -threads 4 -storage default
 else
 	log "ERROR: ${CLOUD_MOUNT} is not mounted — cloud check skipped"
 	status=1
@@ -64,7 +63,8 @@ run_check "aegis: chunk existence" \
 
 # File-level verification needs the RSA private key to decrypt chunks.
 load_rsa_passphrase
-if [[ -f "$RSA_KEY" ]]; then
+if RSA_KEY=$(rsa_pkcs1_privkey); then
+	trap 'rm -f "$RSA_KEY"' EXIT
 	for folder in "${FOLDERS[@]}"; do
 		id=$(snapshot_id_for "$folder")
 		revision=$(latest_revision "$id" aegis)
@@ -74,16 +74,16 @@ if [[ -f "$RSA_KEY" ]]; then
 			continue
 		fi
 		run_check "aegis: file verification of ${id} revision ${revision}" \
-			duplicacy check -id "$id" -r "$revision" -files -threads 4 -storage aegis -key "$RSA_KEY"
+			duplicacy -background check -id "$id" -r "$revision" -files -threads 4 -storage aegis -key "$RSA_KEY"
 	done
 else
-	log "ERROR: file-level verification skipped, ${RSA_KEY} is missing"
+	log "ERROR: file-level verification skipped, the RSA key is unusable"
 	status=1
 fi
 
 if [[ "$MODE" == "monthly" ]]; then
 	run_check "aegis: full chunk verification" \
-		duplicacy check -all -chunks -threads 4 -storage aegis -key "$RSA_KEY"
+		duplicacy -background check -all -chunks -threads 4 -storage aegis -key "$RSA_KEY"
 fi
 
 log "Fin de la vérification (status ${status})"

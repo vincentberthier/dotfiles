@@ -54,6 +54,10 @@ e:(?i)(^|/)docs/doxyoutput/
 e:(?i)(^|/)docs/api/
 e:(?i)(^|/)docs/_build/
 
+# The duplicacy storage password itself — ~/.config is a backed-up repository,
+# so without this the secret would be written into every snapshot.
+e:(?i)^duplicacy/password$
+
 # Random stuff
 e:(?i)(^|/)Crashpad/
 e:(?i)(^|/)CacheStorage/

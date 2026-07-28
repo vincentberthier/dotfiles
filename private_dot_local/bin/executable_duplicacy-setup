@@ -12,6 +12,7 @@
 
 set -uo pipefail
 
+# shellcheck source=/dev/null
 source "${XDG_CONFIG_HOME:-${HOME}/.config}/duplicacy/lib.sh"
 
 FILTERS="${XDG_CONFIG_HOME}/duplicacy/filters.txt"
@@ -50,18 +51,11 @@ for folder in "${FOLDERS[@]}"; do
 
 	if [[ ! -f .duplicacy/preferences ]]; then
 		log "initialising against ${CLOUD_MOUNT}"
-		if duplicacy init -e -key "$RSA_PUBKEY" "$id" "$CLOUD_MOUNT"; then
-			sd '"filters": ""' "\"filters\": \"${FILTERS}\"" .duplicacy/preferences
-		else
+		if ! duplicacy -background init -e -key "$RSA_PUBKEY" "$id" "$CLOUD_MOUNT"; then
 			log "ERROR: init of ${folder} failed"
 			status=1
 			continue
 		fi
-	fi
-
-	if ! grep -q '"filters"[[:space:]]*:[[:space:]]*"[^"]' .duplicacy/preferences; then
-		log "restoring the filters path in preferences"
-		sd '"filters": ""' "\"filters\": \"${FILTERS}\"" .duplicacy/preferences
 	fi
 
 	# Second storage, only where the drive exists.
@@ -72,12 +66,22 @@ for folder in "${FOLDERS[@]}"; do
 			log "adding aegis storage at ${AEGIS_STORAGE}"
 			# -copy default keeps both storages copy-compatible (same chunking
 			# and keys), so snapshots can be moved between them later if needed.
-			duplicacy add -e -key "$RSA_PUBKEY" -copy default \
+			duplicacy -background add -e -key "$RSA_PUBKEY" -copy default \
 				aegis "$id" "$AEGIS_STORAGE" || {
 				log "ERROR: could not add the aegis storage for ${folder}"
 				status=1
 			}
 		fi
+	fi
+
+	# Both `init` and `add` write a preferences entry with an empty "filters",
+	# one entry per storage. Leaving the aegis entry empty means the local
+	# backup ignores filters.txt entirely and packs target/, .git/ and every
+	# cache — several times the size of the cloud copy. sd rewrites every
+	# occurrence, so this fixes all storages at once.
+	if grep -q '"filters": ""' .duplicacy/preferences; then
+		log "setting the filters path on every storage entry"
+		sd '"filters": ""' "\"filters\": \"${FILTERS}\"" .duplicacy/preferences
 	fi
 done
 

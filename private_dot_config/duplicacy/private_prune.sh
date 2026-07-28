@@ -5,6 +5,7 @@
 
 set -uo pipefail
 
+# shellcheck source=/dev/null
 source "${XDG_CONFIG_HOME:-${HOME}/.config}/duplicacy/lib.sh"
 
 mkdir -p "$LOG_PATH"
@@ -26,7 +27,7 @@ status=0
 prune_storage() {
 	local storage="$1"
 	log "----- pruning ${storage}"
-	duplicacy prune -threads 8 -keep 30:180 -keep 7:30 -keep 1:7 -all -exhaustive -storage "$storage" || {
+	duplicacy -background prune -threads 8 -keep 30:180 -keep 7:30 -keep 1:7 -all -exhaustive -storage "$storage" || {
 		log "ERROR: prune of ${storage} failed"
 		status=1
 	}

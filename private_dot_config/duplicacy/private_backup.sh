@@ -4,6 +4,7 @@
 
 set -uo pipefail
 
+# shellcheck source=/dev/null
 source "${XDG_CONFIG_HOME:-${HOME}/.config}/duplicacy/lib.sh"
 
 mkdir -p "$LOG_PATH"
@@ -25,7 +26,7 @@ backup_to() {
 			status=1
 			continue
 		}
-		duplicacy backup -threads 4 -storage "$storage" || {
+		duplicacy -background backup -threads 4 -storage "$storage" || {
 			log "ERROR: backup of ${dir} to ${storage} failed"
 			status=1
 		}

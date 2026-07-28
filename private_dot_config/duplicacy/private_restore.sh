@@ -10,9 +10,8 @@
 
 set -uo pipefail
 
+# shellcheck source=/dev/null
 source "${XDG_CONFIG_HOME:-${HOME}/.config}/duplicacy/lib.sh"
-
-RSA_KEY="${HOME}/.ssh/duplicacy"
 
 if [[ "${1:-}" != "--yes" ]]; then
 	cat >&2 <<-EOF
@@ -29,7 +28,8 @@ load_storage_password || exit 1
 load_rsa_passphrase
 
 RSA_PUBKEY=$(rsa_pem_pubkey) || exit 1
-trap 'rm -f "$RSA_PUBKEY"' EXIT
+RSA_KEY=$(rsa_pkcs1_privkey) || exit 1
+trap 'rm -f "$RSA_PUBKEY" "$RSA_KEY"' EXIT
 
 if aegis_available; then
 	storage_name="aegis"

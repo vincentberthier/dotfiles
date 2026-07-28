@@ -12,9 +12,14 @@ AEGIS_STORAGE="${AEGIS_MOUNT}/duplicacy"
 XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
 XDG_DATA_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}"
 
+# shellcheck disable=SC2034  # consumed by the scripts that source this file
 FOLDERS=("${HOME}/code" "${HOME}/Documents" "${HOME}/Images" "${XDG_CONFIG_HOME}")
 LOG_PATH="${XDG_DATA_HOME}/duplicacy"
 LOG_RETENTION_DAYS=30
+
+# Holds the storage password and nothing else. Rendered by chezmoi from
+# 1Password; excluded from the backups themselves via filters.txt.
+SECRET_FILE="${XDG_CONFIG_HOME}/duplicacy/password"
 
 log() {
 	printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -31,10 +36,23 @@ op_read() {
 # Only the storage password is needed to back up, prune or check. The RSA
 # passphrase is required for restore alone, so it is loaded separately and stays
 # out of the unattended path entirely.
+#
+# The password comes from a chezmoi-rendered file holding nothing but the secret
+# (mode 0600, inside a 0700 directory), because reading 1Password at run time
+# means no backups whenever the vault is locked — which it auto-does. 1Password
+# remains the source of truth: the chezmoi source is a template calling
+# onepasswordRead, so the secret never reaches git. The op path stays as a
+# fallback for a machine that has not run `chezmoi apply` yet.
 load_storage_password() {
 	local password
-	if ! password=$(op_read "op://Personal/Duplicacy/backup_pwd"); then
-		log "ERROR: could not read the storage password from 1Password (locked or unreachable)."
+	if [[ -r "$SECRET_FILE" ]]; then
+		password=$(<"$SECRET_FILE")
+	elif ! password=$(op_read "op://Personal/Duplicacy/backup_pwd"); then
+		log "ERROR: ${SECRET_FILE} is unreadable and 1Password is locked or unreachable."
+		return 1
+	fi
+	if [[ -z "$password" ]]; then
+		log "ERROR: the storage password resolved to an empty value."
 		return 1
 	fi
 	export DUPLICACY_PASSWORD="$password"
@@ -58,6 +76,25 @@ load_rsa_passphrase() {
 # which it rejects with "unrecognized public key". Derive the PEM form from the
 # private key instead of storing a third copy of the key material: it cannot
 # drift out of sync, and it is public data anyway.
+# duplicacy only accepts a PKCS#1 private key ("BEGIN RSA PRIVATE KEY").
+# ~/.ssh/duplicacy is PKCS#8 ("BEGIN PRIVATE KEY"), which it rejects outright
+# with "Unsupported private key type PRIVATE KEY" — so restore and -files
+# verification both failed silently until this was caught. Convert to a
+# temporary 0600 file rather than changing what 1Password stores: identical key
+# material, different PEM encoding. Callers must rm the returned path.
+rsa_pkcs1_privkey() {
+	local private_key="${HOME}/.ssh/duplicacy" pkcs1
+	pkcs1=$(mktemp --tmpdir duplicacy-key-XXXXXX.pem) || return 1
+	chmod 600 "$pkcs1"
+	if ! openssl rsa -in "$private_key" -passin "pass:${DUPLICACY_RSA_PASSPHRASE:-}" \
+		-traditional -out "$pkcs1" 2>/dev/null; then
+		rm -f "$pkcs1"
+		log "ERROR: could not convert ${private_key} to PKCS#1"
+		return 1
+	fi
+	printf '%s' "$pkcs1"
+}
+
 rsa_pem_pubkey() {
 	local private_key="${HOME}/.ssh/duplicacy" pem
 	pem=$(mktemp --tmpdir duplicacy-pubkey-XXXXXX.pem) || return 1
@@ -95,7 +132,7 @@ snapshot_id_for() {
 # Must be called from inside a repository.
 latest_revision() {
 	local id="$1" storage="$2" revision
-	revision=$(duplicacy list -id "$id" -storage "$storage" 2>/dev/null | tail -n 1 | awk '{print $4}')
+	revision=$(duplicacy -background list -id "$id" -storage "$storage" 2>/dev/null | tail -n 1 | awk '{print $4}')
 	[[ "$revision" =~ ^[0-9]+$ ]] && printf '%s' "$revision"
 }
 
