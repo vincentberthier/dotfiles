@@ -291,10 +291,12 @@ spawn-at-startup "/opt/teams-for-linux/teams-for-linux"
 spawn-sh-at-startup "noctalia run"
 spawn-sh-at-startup "TERM_STARTUP_MODE=initial wezterm"
 spawn-sh-at-startup "onedrivegui --minimize"
-spawn-sh-at-startup "/usr/bin/env fd . /home//home/vincent/.local/share/duplicacy -e log --changed-before 7d -X rm {}"
+// Duplicacy log rotation now happens inside backup.sh; the line that used to
+// live here pointed at /home//home/vincent/... and so never deleted anything.
 spawn-sh-at-startup "~/.config/niri/scripts/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:home  /home/vincent/pcloud/"
 spawn-sh-at-startup "~/.config/niri/scripts/wait_connection.sh; rclone mount --vfs-cache-mode full pcloud:vault /home/vincent/vault/"
-spawn-sh-at-startup "~/.config/niri/scripts/wait_connection.sh; sleep 5; /usr/bin/env bash /home//home/vincent/duplicacy/restore.sh"
+// restore.sh is NOT started here. It overwrites ~/code, ~/Documents, ~/Images
+// and ~/.config with the newest backup; it is a hand-run recovery tool only.
 spawn-sh-at-startup "~/.config/niri/scripts/setup_environment.sh"
 spawn-sh-at-startup "~/.local/bin/rpol-daemon"
 

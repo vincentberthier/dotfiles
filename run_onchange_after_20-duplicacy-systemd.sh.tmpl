@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Reload and re-enable the duplicacy units whenever any of them changes.
+#
+# unit hashes:
+#   backup.service        {{ include "private_dot_config/systemd/user/duplicacy-backup.service" | sha256sum }}
+#   backup.timer          {{ include "private_dot_config/systemd/user/duplicacy-backup.timer" | sha256sum }}
+#   prune.service         {{ include "private_dot_config/systemd/user/duplicacy-prune.service" | sha256sum }}
+#   prune.timer           {{ include "private_dot_config/systemd/user/duplicacy-prune.timer" | sha256sum }}
+#   check-weekly.service  {{ include "private_dot_config/systemd/user/duplicacy-check-weekly.service" | sha256sum }}
+#   check-weekly.timer    {{ include "private_dot_config/systemd/user/duplicacy-check-weekly.timer" | sha256sum }}
+#   check-monthly.service {{ include "private_dot_config/systemd/user/duplicacy-check-monthly.service" | sha256sum }}
+#   check-monthly.timer   {{ include "private_dot_config/systemd/user/duplicacy-check-monthly.timer" | sha256sum }}
+
+set -euo pipefail
+
+systemctl --user daemon-reload
+
+# The services used to be enabled into default.target, which started them at
+# session login — before the pcloud vault was mounted. Only the timers may be
+# enabled now; the services carry no [Install] section at all.
+for unit in duplicacy-backup duplicacy-prune; do
+	systemctl --user disable "${unit}.service" >/dev/null 2>&1 || true
+	rm -f "${HOME}/.config/systemd/user/default.target.wants/${unit}.service"
+done
+
+systemctl --user daemon-reload
+systemctl --user enable --now \
+	duplicacy-backup.timer \
+	duplicacy-prune.timer \
+	duplicacy-check-weekly.timer \
+	duplicacy-check-monthly.timer

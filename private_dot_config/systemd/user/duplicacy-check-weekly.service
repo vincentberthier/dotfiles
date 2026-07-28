@@ -1,0 +1,9 @@
+[Unit]
+Description=Duplicacy weekly integrity check
+ConditionPathIsMountPoint=%h/vault
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash %h/.config/duplicacy/check.sh weekly
+
+# No [Install]: started by duplicacy-check-weekly.timer only.

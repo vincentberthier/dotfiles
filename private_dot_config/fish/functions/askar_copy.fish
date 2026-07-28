@@ -7,8 +7,10 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
         echo
         echo "  Pulls the N.I.N.A images off the Gaius into Raws/, deleting the source"
         echo "  frames as they sync, prunes the cloud-check snapshots, normalises the"
-        echo "  target folder names to lowercase ASCII, and hardlinks the night's flats"
-        echo "  into every target that shot lights."
+        echo "  target folder names to lowercase ASCII, hardlinks the night's flats"
+        echo "  into every target that shot lights, and mirrors the Gaius's own config"
+        echo "  (N.I.N.A profiles/templates/targets + PHD2's registry key) into the"
+        echo "  astro-pipeline repo, committing and pushing it if it moved."
         echo
         echo "  --park / --no-park          park the mount first     (default: $askar_copy_park)"
         echo "  --shutdown / --no-shutdown  shut the Gaius down after (default: $askar_copy_shutdown)"
@@ -46,7 +48,7 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
 
     # The post-copy helpers live in the astro-pipeline repo, not on the data disk.
     set -l astro_pipeline $HOME/Projets/astro-pipeline
-    for helper in normalize_target_dirs.py collect_flats.py link_flats.py
+    for helper in normalize_target_dirs.py collect_flats.py link_flats.py pull_gaius_config.sh
         if not test -x $astro_pipeline/tools/$helper
             echo "askar_copy: missing $astro_pipeline/tools/$helper — aborting" >&2
             return 1
@@ -166,6 +168,25 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
     set -l linked $status
     if test $linked -ne 0
         echo "askar_copy: WARNING — flat linking failed (exit $linked); this night's targets have no FLATS" >&2
+    end
+
+    # Mirror the Gaius's own configuration while it is still up. This is the only
+    # backup those files have: the N.I.N.A profile is the documented source of
+    # truth for the filter offsets and the AF/plate-solve setup, and PHD2 keeps
+    # everything in the Windows registry, where nothing backs it up at all. The
+    # data disk has a backup plan; the Gaius's system disk does not.
+    #
+    # It reads files and exports a registry key — it never touches a device, so
+    # it is safe under rig safety rule 1. It commits and pushes only when the
+    # repo is otherwise clean; a dirty working copy leaves the files for a human
+    # rather than folding a config mirror into someone's in-progress change.
+    #
+    # A non-zero exit is worth a shout, never worth blocking the shutdown: the
+    # frames are already home by this point.
+    $astro_pipeline/tools/pull_gaius_config.sh
+    set -l gaius_cfg $status
+    if test $gaius_cfg -ne 0
+        echo "askar_copy: WARNING — Gaius config mirror failed (exit $gaius_cfg)" >&2
     end
 
     if test $shutdown = yes

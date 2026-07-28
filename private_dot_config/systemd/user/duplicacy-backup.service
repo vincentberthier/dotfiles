@@ -1,0 +1,17 @@
+[Unit]
+Description=Duplicacy backups
+Documentation=man:duplicacy(1)
+# The pcloud vault is an rclone fuse mount brought up during session startup.
+# Observing the mount is what gates the run: with no mount there is nothing to
+# back up to, and the unit is skipped rather than failed. The hourly timer
+# retries on its own.
+ConditionPathIsMountPoint=%h/vault
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash %h/.config/duplicacy/backup.sh
+
+# Deliberately no [Install] section: this unit must only ever be started by
+# duplicacy-backup.timer. It previously carried WantedBy=default.target, which
+# fired it at session start, before the vault was mounted — one guaranteed
+# failed run per boot.

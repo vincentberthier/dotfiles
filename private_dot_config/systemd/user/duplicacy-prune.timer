@@ -1,0 +1,14 @@
+[Unit]
+Description=Daily duplicacy prune
+
+[Timer]
+# Was OnBootSec=120m with no repeat, so a single missed boot-time run meant no
+# prune at all for that session. Persistent=true catches up after a machine has
+# been off.
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=30m
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

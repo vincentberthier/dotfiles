@@ -1,0 +1,9 @@
+[Unit]
+Description=Duplicacy prune of all snapshots
+ConditionPathIsMountPoint=%h/vault
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash %h/.config/duplicacy/prune.sh
+
+# No [Install]: started by duplicacy-prune.timer only.

@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly duplicacy backups
+
+[Timer]
+OnBootSec=15m
+OnUnitActiveSec=60m
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

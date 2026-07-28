@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# Idempotent duplicacy repository setup. Safe to re-run at any time, on any
+# machine — it only ever adds what is missing.
+#
+#   * initialises ~/code, ~/Documents, ~/Images and ~/.config against the
+#     pcloud vault (storage "default")
+#   * registers the local Aegis storage (storage "aegis") when that drive is
+#     connected, as a second, independent backup target
+#
+# Machines without an Aegis drive (athena, hephaistos) simply get the cloud
+# storage; the backup scripts skip the local target at run time.
+
+set -uo pipefail
+
+source "${XDG_CONFIG_HOME:-${HOME}/.config}/duplicacy/lib.sh"
+
+FILTERS="${XDG_CONFIG_HOME}/duplicacy/filters.txt"
+
+if [[ ! -f "${HOME}/.ssh/duplicacy" ]]; then
+	log "ERROR: ${HOME}/.ssh/duplicacy is missing — run 'chezmoi apply' first"
+	exit 1
+fi
+
+load_storage_password || exit 1
+load_rsa_passphrase
+
+RSA_PUBKEY=$(rsa_pem_pubkey) || exit 1
+trap 'rm -f "$RSA_PUBKEY"' EXIT
+
+if aegis_available; then
+	log "Aegis drive connected, local storage will be configured"
+elif mountpoint -q "$AEGIS_MOUNT"; then
+	log "Aegis drive connected but ${AEGIS_STORAGE} is not initialised yet — it will be created"
+else
+	log "Aegis drive not connected — cloud storage only"
+fi
+
+status=0
+
+for folder in "${FOLDERS[@]}"; do
+	id=$(snapshot_id_for "$folder")
+	log "=== ${folder} (snapshot id ${id})"
+
+	mkdir -p "$folder"
+	cd "$folder" || {
+		log "ERROR: cannot enter ${folder}"
+		status=1
+		continue
+	}
+
+	if [[ ! -f .duplicacy/preferences ]]; then
+		log "initialising against ${CLOUD_MOUNT}"
+		if duplicacy init -e -key "$RSA_PUBKEY" "$id" "$CLOUD_MOUNT"; then
+			sd '"filters": ""' "\"filters\": \"${FILTERS}\"" .duplicacy/preferences
+		else
+			log "ERROR: init of ${folder} failed"
+			status=1
+			continue
+		fi
+	fi
+
+	if ! grep -q '"filters"[[:space:]]*:[[:space:]]*"[^"]' .duplicacy/preferences; then
+		log "restoring the filters path in preferences"
+		sd '"filters": ""' "\"filters\": \"${FILTERS}\"" .duplicacy/preferences
+	fi
+
+	# Second storage, only where the drive exists.
+	if mountpoint -q "$AEGIS_MOUNT"; then
+		if grep -q '"name"[[:space:]]*:[[:space:]]*"aegis"' .duplicacy/preferences; then
+			log "aegis storage already registered"
+		else
+			log "adding aegis storage at ${AEGIS_STORAGE}"
+			# -copy default keeps both storages copy-compatible (same chunking
+			# and keys), so snapshots can be moved between them later if needed.
+			duplicacy add -e -key "$RSA_PUBKEY" -copy default \
+				aegis "$id" "$AEGIS_STORAGE" || {
+				log "ERROR: could not add the aegis storage for ${folder}"
+				status=1
+			}
+		fi
+	fi
+done
+
+log "duplicacy-setup finished (status ${status})"
+exit "$status"

@@ -1,0 +1,9 @@
+[Unit]
+Description=Duplicacy monthly deep integrity check
+ConditionPathIsMountPoint=%h/vault
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash %h/.config/duplicacy/check.sh monthly
+
+# No [Install]: started by duplicacy-check-monthly.timer only.
