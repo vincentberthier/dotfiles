@@ -72,7 +72,18 @@ GAP_PX = 8           # vertical gap between the two lines
 
 
 def _normalize(name: str) -> str:
-    return re.sub(r"\s+", "", name or "").lower()
+    """Fold a target designation to a comparable key.
+
+    Separators go too, not just whitespace. _find_sidecar() is called with the
+    target FOLDER name on the pipeline-filename path ('ngc-7635', as
+    normalize_target_dirs.py folds it), and compares it against the sidecar's
+    'NGC 7635'. Stripping only whitespace left those as 'ngc-7635' vs 'ngc7635',
+    so that comparison could never be true: every lookup fell through to the
+    ambiguous-fallback branch, which returns nothing when a target has more than
+    one sidecar for a mode. NGC 7635 hit exactly that -- SHO and HOO resolved to
+    None while OHS/HSO/Forax happened to have a single candidate each.
+    """
+    return re.sub(r"[\s_-]+", "", name or "").lower()
 
 
 def _french_date(year: str, month: str, day: str) -> str:
