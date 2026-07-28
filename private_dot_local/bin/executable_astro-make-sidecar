@@ -93,10 +93,60 @@ def channel_totals(process_dir: Path, mode: str | None) -> dict:
 
 def last_night(channels: dict) -> str | None:
     """Latest first-sub timestamp across channels — a lower bound on when the
-    stack stopped collecting, and enough to tell one night from several."""
+    stack stopped collecting, and enough to tell one night from several.
+
+    Only a fallback: `last_light_from_data` below is exact when the capture
+    tree is reachable. A master's DATE-OBS records its *first* sub, so a night
+    that only added frames to an already-open master is invisible here.
+    """
     dates = [c.get("date_obs_utc") for c in channels.values()]
     dates = [d for d in dates if isinstance(d, str) and d]
     return max(dates) if dates else None
+
+
+# N.I.N.A light filename:
+#   NGC 7023_Blue_120.00s_0000_-10.00C_S255_H2.38_R1.35_2026-07-18_22-54-16.fits
+# Group 2 is the filter, group 9 the capture time. Same expression as
+# astro_hibou_core.RE_LIGHTS; keep the two in step.
+RE_LIGHTS = re.compile(
+    r"^([\w -]+)_([\w]+)_([\d\.]+)s_(\d{4})_"
+    r"([\d\.-]+)C_S(\d+)_H([\d\.]+)_R([\d\.]+)_([\d_-]+)\.fits$"
+)
+
+
+def last_light_from_data(target: str | None, mode: str | None) -> str | None:
+    """The exact capture time of the last sub feeding `mode`, from the lights.
+
+    The published date is the night the acquisition FINISHED, so an approximate
+    answer here quietly backdates an export. The capture tree has the exact
+    one: every light's filename carries its timestamp, and a rejected frame has
+    been moved out of `LIGHTS/` into the night's `DISPOSED/`, so scanning
+    `LIGHTS/` counts precisely what contributed.
+
+    Returns None when the drive is not mounted or the target has no lights —
+    the caller then falls back to the masters' lower bound.
+    """
+    if not target:
+        return None
+    wanted = set(MODE_CHANNELS.get((mode or "").upper(), []))
+    root = DSO_ROOT / "data" / target
+    if not root.is_dir():
+        return None
+    latest: datetime | None = None
+    for lights in root.rglob("LIGHTS"):
+        if not lights.is_dir():
+            continue
+        for entry in lights.iterdir():
+            m = RE_LIGHTS.match(entry.name)
+            if not m or (wanted and m.group(2).lower() not in wanted):
+                continue
+            try:
+                stamp = datetime.strptime(m.group(9), "%Y-%m-%d_%H-%M-%S")
+            except ValueError:
+                continue
+            if latest is None or stamp > latest:
+                latest = stamp
+    return latest.isoformat() if latest is not None else None
 
 
 def night_of(iso: str | None) -> str | None:
@@ -223,7 +273,11 @@ def build_sidecar(header: dict, fits_path: Path, mode: str | None) -> OrderedDic
     else:
         channels = {}
 
-    last = last_night(channels) if channels else None
+    # Exact from the lights when the capture tree is reachable; the masters'
+    # lower bound only when it is not.
+    last = last_light_from_data(folder, mode) or (
+        last_night(channels) if channels else None
+    )
     if last and night_of(last) == night_of(_str(header, "DATE-OBS")):
         last = None  # one night: the single date already says it all
     channels = {

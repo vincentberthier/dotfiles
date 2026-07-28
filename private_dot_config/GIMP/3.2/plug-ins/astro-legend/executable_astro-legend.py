@@ -235,8 +235,13 @@ def _resolve_metadata(image_path: str | None) -> dict:
     if acq.get("mode"):
         out["mode"] = str(acq["mode"]).upper()
     if not date_from_filename:
+        # The LAST contributing night, matching what the export filename and
+        # the injected EXIF carry: a stack is dated by the sub that finished
+        # it, not by the one that opened it. `date_last_utc` is absent on a
+        # single-night stack, where every candidate below is the same night.
         ymd = _parse_ymd(
-            acq.get("date_local")
+            acq.get("date_last_utc")
+            or acq.get("date_local")
             or acq.get("date_obs_utc")
             or acq.get("date_avg_utc")
         )

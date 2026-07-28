@@ -456,8 +456,14 @@ def build_exiftool_args(meta: dict, jpg: Path) -> list[str]:
     proc = meta.get("processing") or {}
 
     description = build_description(meta)
-    date_utc = to_exif_datetime(acq.get("date_obs_utc"))
-    year = (acq.get("date_obs_utc") or "")[:4] or str(datetime.now().year)
+    # The published capture date is the LAST contributing night, not the first.
+    # A stack is finished when its last sub lands, and that is the date the
+    # export filename, the GIMP legend and this EXIF must all agree on —
+    # otherwise a target reopened in September publishes under its July date.
+    # `date_last_utc` is absent on a single-night stack, where the two coincide.
+    capture_iso = acq.get("date_last_utc") or acq.get("date_obs_utc")
+    date_utc = to_exif_datetime(capture_iso)
+    year = (capture_iso or "")[:4] or str(datetime.now().year)
     copyright_str = f"© {year} {author_name}".strip()
 
     args: list[str] = [
@@ -494,6 +500,9 @@ def build_exiftool_args(meta: dict, jpg: Path) -> list[str]:
     add("Dec", target.get("dec_deg"))
     add("Mode", acq.get("mode"))
     add("DateObsUTC", acq.get("date_obs_utc"))
+    # Both ends travel with the file: DateTimeOriginal above carries the last
+    # night, so the first would otherwise be lost from the published metadata.
+    add("DateLastUTC", acq.get("date_last_utc"))
     add("Frames", acq.get("frames_stacked"))
     add("SubExposure", acq.get("sub_exposure_s"))
     add("Integration", acq.get("total_integration_s"))

@@ -31,6 +31,10 @@
     # Acquisition
     Mode           => { Writable => 'string' },   # LRGB / SHO / HOO / Forax / ...
     DateObsUTC     => { Writable => 'string' },
+    # Last contributing sub. DateTimeOriginal carries this one — a stack is
+    # finished when its last sub lands — so DateObsUTC above is what preserves
+    # the start of the acquisition. Absent on a single-night stack.
+    DateLastUTC    => { Writable => 'string' },
     Frames         => { Writable => 'integer' },
     SubExposure    => { Writable => 'real' },     # seconds
     Integration    => { Writable => 'real' },     # seconds
