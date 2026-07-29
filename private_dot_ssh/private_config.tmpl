@@ -4,7 +4,12 @@ Host *
 	IdentityFile ~/.ssh/vincent
 	IdentitiesOnly yes
 	ServerAliveInterval 60
-	Compression yes
+	# ssh_config is FIRST-match-wins: this Host * block precedes every
+	# per-host block below, so a `Compression no` down there is dead.
+	# Off globally is right anyway — every link here carries already-
+	# compressed or incompressible data (git packs, JPEG/PNG uploads,
+	# FITS over askar_copy and the hephaistos fetch).
+	Compression no
 	ForwardAgent yes
 	StrictHostKeyChecking accept-new
 	Port 22
