@@ -28,6 +28,7 @@ Host astro-hibou
 Host hephaistos
   HostName 192.168.1.12
   User vincent
+  Compression no
   IdentityFile ~/.ssh/vincent
   ControlMaster auto
   ControlPath ~/.ssh/cm-%r@%h:%p
@@ -38,6 +39,7 @@ Host hephaistos
   HostName 192.168.1.12
   User vincent
   IdentityFile ~/.ssh/vincent
+  Compression no
 {{- end }}
 
 {{ if eq .chezmoi.hostname "hephaistos" -}}
@@ -48,4 +50,5 @@ Host gaia
   ControlMaster auto
   ControlPath ~/.ssh/cm-%r@%h:%p
   ControlPersist 10m
+  Compression no
 {{- end }}
