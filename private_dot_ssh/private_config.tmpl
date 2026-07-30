@@ -25,6 +25,12 @@ Host hephaistos
   ControlPath ~/.ssh/cm-%r@%h:%p
   ControlPersist 10m
   ProxyCommand ~/.local/bin/ssh-wake-proxy %h %p
+Host nyx
+  HostName u642555.your-storagebox.de
+  User u642555
+  Port 23
+  IdentityFile ~/.ssh/vincent
+  IdentitiesOnly yes
 {{- else -}}
 Host hephaistos
   HostName 192.168.1.12
