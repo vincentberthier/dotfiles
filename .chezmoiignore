@@ -11,6 +11,9 @@ Paths are relative to the target directory (home), not the source tree.
 .config/systemd/user/rclone-vault.service
 {{ end }}
 
+{{/* Hook runtime logs — machine-local churn, and allow-compound.log is tens of MB. */}}
+.claude/hooks/*.log
+
 {{ if ne .chezmoi.hostname "gaia" }}
 .local/bin/ssh-wake-proxy
 .local/bin/hephaistos-status
