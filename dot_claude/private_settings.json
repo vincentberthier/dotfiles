@@ -113,6 +113,15 @@
             "command": "/home/vincent/.claude/hooks/block-exit-plan-mode.sh"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/vincent/.claude/hooks/chezmoi-guard.py"
+          }
+        ]
       }
     ],
     "SessionEnd": [
