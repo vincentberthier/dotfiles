@@ -156,7 +156,11 @@
     "tyrex-agents@tyrex-plugins": true,
     "tyrex-gitlab@tyrex-plugins": true,
     "tyrex-assurance@tyrex-plugins": true,
-    "tyrex-jj@tyrex-plugins": true
+    "tyrex-jj@tyrex-plugins": true,
+    "tyrex-conformity@tyrex-plugins": true,
+    "tyrex-documents@tyrex-plugins": true,
+    "tyrex-lang-common@tyrex-plugins": true,
+    "tyrex-security@tyrex-plugins": true
   },
   "extraKnownMarketplaces": {
     "knowledge-work-plugins": {
