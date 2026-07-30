@@ -74,6 +74,15 @@ the actual file, run the actual command.
   already exists.
 - "Without [external tool] I can't tell" is almost always false.
 
+**Never hand back a check you could have run.** "Needs verifying", "should be confirmed",
+"worth testing", "open item: does X handle Y" — if the answer is a couple of read-only
+commands away, run them and report the _answer_, not the question. A check is not a
+change: the scope rule above bounds what you modify, never what you investigate, so
+"it's outside the task" is not a reason to leave a question open. Checks wait for me only
+when they are expensive (a long build, a paid call, real wall-clock) or destructive — and
+a destructive check isn't a check, it's a change. In those two cases, say what it would
+cost and ask.
+
 **Hardware is reachable until one command says otherwise.** Never write "pending bench",
 "needs hardware", "on-glass verification pending" or "not possible from here" without
 first running the check: `probe-rs list` for probes, `lsusb -t` for USB, `fd . /dev -d 1
