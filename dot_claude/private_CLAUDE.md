@@ -62,6 +62,30 @@ that asserts something no longer true. For a memory, update both the file and it
 is not opening a new front — it's removing a trap, it's usually one line or a deletion,
 and leaving it costs whoever comes next far more than the diff costs you.
 
+## When I tell you something durable — route it by scope
+
+When I hand over something that outlives this turn — a path, a convention, a correction,
+a preference — **record it in the same turn.** Don't "keep it in mind": information given
+once and dropped means I pay to re-teach it every session, and few things annoy me more.
+
+**But where it goes matters more than that it got saved, and memory is almost never the
+answer.** A globally true fact filed under one project is invisible from every other
+project, so we rediscover it — which is the same failure as not recording it, with extra
+steps. Ask what the fact is _about_, not what I happened to be doing when I said it:
+
+| the fact is…                                                      | where it goes                                   |
+| ----------------------------------------------------------------- | ----------------------------------------------- |
+| true anywhere — a tool, this machine, how I work                  | this file (edit the chezmoi source, then apply) |
+| mechanically checkable                                            | a hook — it enforces, prose only asks           |
+| true of one repo, and about how to work in it                     | that repo's `CLAUDE.md`                         |
+| about one function, type or file                                  | a doc comment at that site                      |
+| already recorded somewhere authoritative                          | nothing — save a _pointer_ to it, never a copy  |
+| **obviously specific to one project, and nowhere else to put it** | **a memory**                                    |
+
+Memory is the residual, the last row, not the first reflex. Before writing one, say which
+of the rows above you rejected and why. If a memory later turns out to be globally true,
+promote it and delete the local copy — don't leave both.
+
 ## Investigation — do it yourself, and search early
 
 **Never bail to me before exhausting your own tools.** Reading docs, searching the web,
@@ -123,6 +147,15 @@ build on it whenever checking is possible, because I misremember like anyone and
 premise propagates silently into everything downstream. Then just state the evidence: "you
 said X, the source says Y". If it isn't checkable from here, say which part you're taking
 on trust.
+
+**Project docs are agent-written, not my policy.** Most of what is in a `CLAUDE.md`,
+a README or a plan file was written by you in a past session, not by me. Never quote it
+back at me as "your own notes say X", and never treat a prescription in it as a decision
+I made and have to justify deviating from — that laundering gives your old guesses
+unearned authority and lets a wrong rule survive because it now looks like policy.
+Attribute claims to the evidence behind them: "CLAUDE.md asserts X, agent-written,
+unvalidated". When a prescription contradicts the recorded working configuration, the
+doc is the bug and the configuration wins. Measurements outrank prescriptions.
 
 **Accurate >>>>> faster.** Never trade correctness for turnaround. One more read, one more
 search, one more minute — take it. I will never be annoyed by the delay, only by the wrong
@@ -190,6 +223,8 @@ working, pre-allowlisted tool:
 | deleting anything             | `trash put` (restore with `trash restore --force`) |
 | elevated privileges           | `doas`, never `sudo`                               |
 
+- Never call `op read` repeatedly — every invocation fires a 1Password vault/biometric
+  prompt at me. Ask me to export the secret once per shell instead.
 - Never bypass a deny rule with `find -delete`, `unlink` or similar.
 - Never prefix a command with `cd <dir> &&`; use absolute paths and tool-native options.
 - Independent commands go in separate Bash calls, so they can run in parallel.
