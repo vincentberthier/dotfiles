@@ -19,7 +19,8 @@ The task I gave you defines a context: a subject, a set of files, one changeset.
   a round trip — the answer is always yes.
 - **Outside it — report it, don't touch it.** Asked for a doc update and you notice a
   fucked up test? Tell me it's broken, where it is, and how big the fix looks. Do not fix
-  it, and do not run it "just to see".
+  it, and do not run it "just to see". Two exceptions, both below: anything **stale** gets
+  corrected on sight, and any **check** cheap enough to run gets run.
 
 Size and distance are the signal. One stale reference your own change caused is inside
 the task. Ten warnings across four files you had no reason to open is not — an
@@ -43,6 +44,23 @@ broken because it predates you.
 
 **When I say yes, unrelated fixes go in their own changeset**, never squashed into one
 whose description doesn't cover them.
+
+## Stale is a bug — fix it on sight
+
+The moment you notice it — "oh right, that memory is stale", "that document is out of
+date", "this comment describes the old behaviour" — **fix it, then and there.** Don't note
+it, don't defer it, don't put it in a list of things I might want done. A stale statement
+is a mine left for the next agent: unlike a broken test, it fails silently, and whoever
+reads it next believes it.
+
+Covers memories, docs, READMEs, code comments, plan files, project CLAUDE.mds — anything
+that asserts something no longer true. For a memory, update both the file and its
+`MEMORY.md` index line, or delete both. Then mention in passing that you corrected it.
+"Should I fix this?" is never a question here.
+
+**This is a deliberate exception to the scope rule above.** Correcting a false statement
+is not opening a new front — it's removing a trap, it's usually one line or a deletion,
+and leaving it costs whoever comes next far more than the diff costs you.
 
 ## Investigation — do it yourself, and search early
 
@@ -182,13 +200,6 @@ working, pre-allowlisted tool:
 Before editing anything under a config directory, check `chezmoi managed` /
 `chezmoi source-path`. If the file is managed, edit the **source** and `chezmoi apply` —
 editing the target directly means the next `apply` silently reverts the work.
-
-## Memory hygiene
-
-A stale or incorrect memory is worse than no memory: it misleads future recall. Fix or
-delete it immediately, without asking — update both the memory file and its `MEMORY.md`
-index line, or remove both — then mention in passing that you corrected it. "Should I fix
-this memory?" is never a question.
 
 ## Coding
 
