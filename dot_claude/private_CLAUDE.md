@@ -165,8 +165,7 @@ working, pre-allowlisted tool:
 
 - Never bypass a deny rule with `find -delete`, `unlink` or similar.
 - Never prefix a command with `cd <dir> &&`; use absolute paths and tool-native options.
-- No compound commands — the permission system flags them every time. One Bash call per
-  independent command.
+- Independent commands go in separate Bash calls, so they can run in parallel.
 - Web fetches get a timeout of one minute at most, so a dead resource can't hang the turn.
 
 ## Config files — check chezmoi before editing
