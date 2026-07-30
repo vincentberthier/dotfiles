@@ -196,6 +196,26 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
         echo "askar_copy: WARNING — Gaius config mirror failed (exit $gaius_cfg)" >&2
     end
 
+    # Compress the night that just landed and push it offsite. This is the
+    # MECHANISM for the nyx archive — new data appears exactly once, and this is
+    # that moment; the daily systemd timer is only the net for when this does
+    # not fire. See docs/backup.md.
+    #
+    # The rsync above ran with --remove-source-files, so the Gaius no longer
+    # holds these frames. nyx_ingest.sh therefore does not delete an original
+    # until its .fz is on nyx: fpack keeping the original, then the upload, then
+    # gio trash. A failure anywhere leaves every original in place.
+    #
+    # Like the config mirror, a non-zero exit is worth a shout and never worth
+    # blocking the shutdown — the frames are already home.
+    if test -x $astro_pipeline/tools/nyx_ingest.sh
+        $astro_pipeline/tools/nyx_ingest.sh
+        set -l archived $status
+        if test $archived -ne 0
+            echo "askar_copy: WARNING — offsite archive failed (exit $archived); originals kept" >&2
+        end
+    end
+
     if test $shutdown = yes
         echo "askar_copy: shutting the Gaius down…"
         ssh gaius 'shutdown /s /t 0'
