@@ -7,7 +7,8 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
         echo
         echo "  Pulls the N.I.N.A images off the Gaius into Raws/, deleting the source"
         echo "  frames as they sync, prunes the cloud-check snapshots, normalises the"
-        echo "  target folder names to lowercase ASCII, hardlinks the night's flats"
+        echo "  target folder names to lowercase ASCII (a mosaic panel is filed under"
+        echo "  its object, as <object>/Panel <n>), hardlinks the night's flats"
         echo "  into every target that shot lights, and mirrors the Gaius's own config"
         echo "  (N.I.N.A profiles/templates/targets + PHD2's registry key) into the"
         echo "  astro-pipeline repo, committing and pushing it if it moved."
@@ -129,6 +130,12 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
     # already on disk. Fold them down before anything else touches the tree: exit 2
     # means "merged, but some paths collided and were left in place" — worth a shout,
     # not worth aborting the night's ingest over.
+    #
+    # A mosaic panel is filed one level down, as <object>/Panel <n>, because that
+    # is where the mosaic pipeline enumerates panels from. "Sh2 131 Panel 1" folds
+    # to sh2-131/Panel 1, not to a sh2-131-panel-1 sibling of the object — which
+    # is what it did until 2026-07-30, producing a target no mosaic run looks at.
+    # link_flats.py below descends into panels for the same reason.
     $astro_pipeline/tools/normalize_target_dirs.py
     set -l norm $status
     if test $norm -eq 2
