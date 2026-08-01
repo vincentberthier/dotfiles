@@ -44,6 +44,23 @@ CONNECTIONS = os.environ.get("ASTRO_RESTIC_CONNECTIONS", "8")
 DRIVE_PREFIX = "/run/media/vincent/Corrbolg"
 
 NIGHT_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# "Panel 3" as normalize_target_dirs.py files it under the object. A mosaic
+# panel is its own acquisition one level down, so a night belongs to a panel,
+# not to the object directly -- and an object can hold BOTH shapes: m-42 has
+# four panels alongside plain single-frame nights.
+PANEL_RE = re.compile(r"^panel\s*(\d+)$", re.IGNORECASE)
+
+
+def split_path(path: str) -> tuple[str | None, str | None]:
+    """(panel, night) for an archived file path; either may be None."""
+    panel = night = None
+    for part in Path(path).parts:
+        m = PANEL_RE.match(part)
+        if m:
+            panel = f"Panel {int(m.group(1))}"
+        elif NIGHT_RE.match(part):
+            night = part
+    return panel, night
 
 
 def die(msg: str, code: int = 1):
@@ -151,24 +168,60 @@ def cmd_ls(args) -> int:
     return 0
 
 
-def cmd_days(args) -> int:
-    snaps = latest_for(args.object)
-    nights: dict[str, tuple[int, int]] = {}
+def _panel_sort(name: str):
+    """'Panel 10' after 'Panel 9', and the object's own nights first."""
+    if name == "":
+        return (0, 0)
+    m = PANEL_RE.match(name)
+    return (1, int(m.group(1))) if m else (2, 0)
+
+
+def survey(snaps: list[dict]) -> dict[str, dict[str, tuple[int, int]]]:
+    """{panel or "": {night: (files, bytes)}} for a set of snapshots."""
+    out: dict[str, dict[str, tuple[int, int]]] = {}
     for snap in snaps:
         for node in files_in(snap["short_id"]):
-            parts = Path(node["path"]).parts
-            night = next((p for p in parts if NIGHT_RE.match(p)), None)
+            panel, night = split_path(node["path"])
             if night is None:
                 continue
-            count, size = nights.get(night, (0, 0))
-            nights[night] = (count + 1, size + int(node.get("size") or 0))
-    if not nights:
+            grp = out.setdefault(panel or "", {})
+            count, size = grp.get(night, (0, 0))
+            grp[night] = (count + 1, size + int(node.get("size") or 0))
+    return out
+
+
+def cmd_days(args) -> int:
+    groups = survey(latest_for(args.object))
+    if not groups:
         print(f"{args.object}: no dated nights (single-night or undated layout)")
         return 0
-    print(f"{args.object}: {len(nights)} night(s)\n")
-    for night in sorted(nights):
-        count, size = nights[night]
-        print(f"  {night}   {count:>5} files   {human(size):>10}")
+
+    panels = [g for g in groups if g]
+    nights_total = {n for g in groups.values() for n in g}
+    head = f"{args.object}: {len(nights_total)} night(s)"
+    if panels:
+        head += f" across {len(panels)} panel(s) — this is a MOSAIC"
+    print(head + "\n")
+
+    for group in sorted(groups, key=_panel_sort):
+        nights = groups[group]
+        if panels:
+            label = group or "(no panel — object-level nights)"
+            gsize = sum(s for _, s in nights.values())
+            gcount = sum(c for c, _ in nights.values())
+            print(f"  {label}   {len(nights)} night(s), {gcount} files, {human(gsize)}")
+            indent = "      "
+        else:
+            indent = "  "
+        for night in sorted(nights):
+            count, size = nights[night]
+            print(f"{indent}{night}   {count:>5} files   {human(size):>10}")
+        if panels:
+            print()
+
+    if panels:
+        print("pull one panel with:  nyx pull "
+              f"{args.object} --panel {panels[0].split()[-1]}")
     return 0
 
 
@@ -178,33 +231,39 @@ def cmd_pull(args) -> int:
     for d in wanted:
         if not NIGHT_RE.match(d):
             die(f"'{d}' is not a YYYY-MM-DD night")
+    panels = ([f"Panel {int(p.strip().lower().removeprefix('panel').strip() or 0)}"
+               for p in args.panel.split(",")] if args.panel else [])
 
     dest = Path(args.to).resolve()
     total_files = total_size = 0
     plan: list[tuple[str, list[str]]] = []
     for snap in snaps:
-        rows = files_in(snap["short_id"])
-        if wanted:
-            keep = [r for r in rows
-                    if any(w in Path(r["path"]).parts for w in wanted)]
-        else:
-            keep = rows
+        keep = []
+        for r in files_in(snap["short_id"]):
+            panel, night = split_path(r["path"])
+            if wanted and night not in wanted:
+                continue
+            if panels and panel not in panels:
+                continue
+            keep.append(r)
         if not keep:
             continue
         total_files += len(keep)
         total_size += sum(int(r.get("size") or 0) for r in keep)
         includes = []
-        if wanted:
-            roots = {str(Path(r["path"]).parent) for r in keep}
-            includes = sorted(roots)
+        if wanted or panels:
+            includes = sorted({str(Path(r["path"]).parent) for r in keep})
         plan.append((snap["short_id"], includes))
 
     if not total_files:
         die(f"nothing matches {args.object}"
             + (f" for {', '.join(wanted)}" if wanted else ""), 2)
 
-    print(f"{args.object}: {total_files} file(s), {human(total_size)}"
-          + (f", nights {', '.join(wanted)}" if wanted else ", all nights"))
+    scope = ", ".join([
+        ", ".join(panels) if panels else "all panels",
+        ", ".join(wanted) if wanted else "all nights",
+    ])
+    print(f"{args.object}: {total_files} file(s), {human(total_size)}, {scope}")
     print(f"  -> {dest}")
     if args.dry_run:
         print("\ndry run: nothing fetched")
@@ -254,6 +313,9 @@ def main() -> int:
     p.add_argument("object")
     p.add_argument("-d", "--days", metavar="YYYY-MM-DD[,...]",
                    help="only these nights (default: everything)")
+    p.add_argument("-p", "--panel", metavar="N[,...]",
+                   help="only these mosaic panels, e.g. --panel 1,3 "
+                        "(default: every panel). See: nyx days <object>")
     p.add_argument("--to", default="./nyx-restore", metavar="DIR")
     p.add_argument("--funpack", action="store_true",
                    help="decompress to plain .fits after restoring")
