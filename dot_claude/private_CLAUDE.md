@@ -81,14 +81,14 @@ answer.** A globally true fact filed under one project is invisible from every o
 project, so we rediscover it — which is the same failure as not recording it, with extra
 steps. Ask what the fact is _about_, not what I happened to be doing when I said it:
 
-| the fact is…                                                      | where it goes                                   |
-| ----------------------------------------------------------------- | ----------------------------------------------- |
+| the fact is…                                                      | where it goes                                    |
+| ----------------------------------------------------------------- | ------------------------------------------------ |
 | true anywhere — a tool, this machine, how I work                  | this file (edit in place, then `chezmoi re-add`) |
-| mechanically checkable                                            | a hook — it enforces, prose only asks           |
-| true of one repo, and about how to work in it                     | that repo's `CLAUDE.md`                         |
-| about one function, type or file                                  | a doc comment at that site                      |
-| already recorded somewhere authoritative                          | nothing — save a _pointer_ to it, never a copy  |
-| **obviously specific to one project, and nowhere else to put it** | **a memory**                                    |
+| mechanically checkable                                            | a hook — it enforces, prose only asks            |
+| true of one repo, and about how to work in it                     | that repo's `CLAUDE.md`                          |
+| about one function, type or file                                  | a doc comment at that site                       |
+| already recorded somewhere authoritative                          | nothing — save a _pointer_ to it, never a copy   |
+| **obviously specific to one project, and nowhere else to put it** | **a memory**                                     |
 
 Memory is the residual, the last row, not the first reflex. Before writing one, say which
 of the rows above you rejected and why. If a memory later turns out to be globally true,
@@ -332,6 +332,19 @@ breadth of verification around code you're already touching, not licence to add 
 
 Build, test, format, lint — everything passes before every push. No exceptions for "only
 test files changed" or "it's just a formatting fix". Run them.
+
+**If the project reproduces its CI environment locally, that counts as one of them.** A
+containerised replay (`just ci` in the Tyrex Rust crates) runs the same image the pipeline
+runs, so it answers the question the push would ask — on this machine, for free, instead of
+on a shared runner. Push first and you get the same answer at someone else's expense, and a
+red pipeline is a public artefact where a red local run is not. The environment was
+reproduced precisely so the answer could be had before the push; skipping it throws that
+away.
+
+**"The pipeline is the authoritative check" is the rationalisation to watch for.** It is
+true, and it is not a reason to skip the local replay — the two are the same image. Nor is
+"the change is only markdown", "the pipeline is already running", or "I'll cancel it if it
+goes red". Local replay, then push.
 
 ## Project CLAUDE.md — a briefing, not a notebook
 
