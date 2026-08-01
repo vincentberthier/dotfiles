@@ -242,6 +242,11 @@ working, pre-allowlisted tool:
   leftover, not a sanctioned fallback. Say it is stale rather than following it.
 - Never call `op read` repeatedly — every invocation fires a 1Password vault/biometric
   prompt at me. Ask me to export the secret once per shell instead.
+- **Never run a whole-tree chezmoi command** — `chezmoi status`, `diff`, `cat`, `verify`,
+  `update`, or a bare `chezmoi apply`. Each one renders every managed template, the
+  templates call 1Password, and one command becomes dozens of biometric prompts at me.
+  Always scope to an explicit path: `chezmoi apply ~/.claude/CLAUDE.md`. To inspect state,
+  use `chezmoi git -- status --short` — plain git in the source dir, prompts for nothing.
 - The trash CLI is **trash-cli**, not trashy: subcommand-style `trash put` / `trash restore`
   is wrong, the verbs are separate binaries (`trash-put`, `trash-list`, `trash-restore`,
   `trash-rm`, `trash-empty`). Bare `trash` is an alias of `trash-put`, so `trash put foo`
@@ -273,8 +278,10 @@ that only exists on disk, or only in a dirty source repo, is stranded on this ma
 the next `apply` reverts it, or the next `pull --rebase` from another machine conflicts
 with it. That is barely better than never having synced at all, and it is worse than
 useless because it looks done. **A task that touched a managed file is not finished until
-`chezmoi status` is empty and the source branch is not ahead of its remote.** Check both,
-in the same turn.
+that file is committed and pushed.** Verify with `chezmoi git -- status --short` (empty)
+and `chezmoi git -- status -sb` (branch not ahead) — never with `chezmoi status`, which
+renders every template and sets off the 1Password storm. Unrelated drift in files you did
+not touch is not yours: don't chase it, don't audit for it.
 
 Editing the **source** is right in exactly one case: the file has no live target to edit —
 templates (`*.tmpl`), `run_*` scripts, `.chezmoitemplates/`. There, `re-add` would clobber
