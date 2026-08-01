@@ -1,0 +1,8 @@
+[net]
+# Cargo's built-in libgit2 SSH transport cannot parse the login banner that
+# tyrex-gl01-dev.kub.local prints, so every `ssh://git@tyrex-gl01-dev.kub.local/...`
+# dependency either errors with `class=Ssh (23)` or hangs forever holding the
+# exclusive flock on ~/.cargo/.package-cache — which blocks every other cargo
+# process on this machine. Shelling out to the real `git` binary handles the
+# banner and fails fast when credentials are unavailable.
+git-fetch-with-cli = true

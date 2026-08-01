@@ -62,6 +62,14 @@ that asserts something no longer true. For a memory, update both the file and it
 is not opening a new front — it's removing a trap, it's usually one line or a deletion,
 and leaving it costs whoever comes next far more than the diff costs you.
 
+**It stops at the repo boundary.** The exception covers the checkout you are working in,
+and nothing else. A stale line in a _different_ repo is not yours to fix, however trivial
+the diff — you have not loaded that repo's rules, its working copy is in a state you cannot
+see, and your edit lands in someone else's changeset. Report it with exact coordinates
+(file, lines, the correction) and stop there. **Do not ask for permission either** — the
+answer is no, and asking spends a round trip to arrive at the same place. Write a work
+order if it deserves one.
+
 ## When I tell you something durable — route it by scope
 
 When I hand over something that outlives this turn — a path, a convention, a correction,
@@ -206,9 +214,11 @@ couldn't guess (three designs, not do-it/don't).
 
 ## Tools on this machine
 
-This is the **native** Claude Code build: `Glob`, `Grep` and `SendMessage` were removed
-permanently (v2.1.116/117 — only the npm build keeps them) and no setting brings them
-back; `ENABLE_TOOL_SEARCH` is unrelated, MCP-proxy only. Bash also hard-blocks
+This is the **native** Claude Code build: `Glob` and `Grep` were removed permanently
+(v2.1.116/117 — only the npm build keeps them) and no setting brings them back;
+`ENABLE_TOOL_SEARCH` is unrelated, MCP-proxy only. `SendMessage` is **not** gone — it is
+a deferred tool, so it does not appear in the initial tool list and has to be loaded with
+`ToolSearch("select:SendMessage")` before the first call. Bash also hard-blocks
 `ls`/`find`/`grep`/`cat`/`head`/`tail` and redirects to those deleted tools. Never
 hand-roll a python parser or an esoteric one-liner to dodge a block — reach for the
 working, pre-allowlisted tool:
@@ -219,7 +229,7 @@ working, pre-allowlisted tool:
 | file / name discovery         | `fd`                                       |
 | directory listing             | `eza`, or `Read` on the directory          |
 | reading a file                | `Read`                                     |
-| resuming a finished sub-agent | a fresh `Agent`                            |
+| resuming a finished sub-agent | `SendMessage` to its name or id            |
 | deleting anything             | `trash-put` (restore with `trash-restore`) |
 | elevated privileges           | `doas`, never `sudo`                       |
 | any GitLab operation          | `tyrex-gitlab` CLI, never `glab`           |
