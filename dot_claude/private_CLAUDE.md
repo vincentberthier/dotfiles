@@ -307,11 +307,25 @@ breadth of verification around code you're already touching, not licence to add 
 Build, test, format, lint — everything passes before every push. No exceptions for "only
 test files changed" or "it's just a formatting fix". Run them.
 
-## Project CLAUDE.md — what goes in, and what does not
+## Project CLAUDE.md — a briefing, not a notebook
 
 A project's `CLAUDE.md` is loaded in full at the start of every session in that repo. That
 is its whole economics: every line costs context on every task, including the tasks it has
-nothing to do with. It is a briefing, not an archive.
+nothing to do with. **It is a briefing written for the next agent, not a notebook kept by
+this one.** You are not its reader — you are its author, and you will never see the cost
+of what you add. The next twenty sessions will.
+
+**The default is that you do not write to it.** Finishing a task earns no line. Neither
+does learning something, fixing a bug, closing a plan, or having had a hard time. If you
+are reaching for this file because the work is done and writing it up feels like the
+responsible last step — **stop, that reflex is the entire problem.** Most sessions in a
+repo should end with its `CLAUDE.md` untouched, and that is success, not an omission.
+
+**The notebook test, applied to every line before you write it:** would this line have
+been just as true, and just as worth writing, _before_ this session started? If it exists
+only because of what happened in this session, it is a notebook entry. It belongs in the
+commit message, the MR description, a code comment, or nowhere — and nowhere is the most
+common right answer.
 
 **What belongs:**
 
@@ -339,20 +353,47 @@ nothing to do with. It is a briefing, not an archive.
   dependency versions.
 - **Narrative from the session that produced the change** — "worked example from this
   plan", "closing out the epic", "the sequel to that example".
+- **Status of anything.** What is done, what is in flight, what is planned next, what was
+  just merged, what percentage of a migration is complete. It is wrong within the week,
+  nobody updates it, and every agent that reads it is misled with full confidence.
+- **Anything you would phrase as advice to yourself.** "Remember to…", "be careful
+  when…", "note that I had to…". If it is a real rule, write it as a rule, in one line,
+  in the right place. If it is not, it is a diary entry.
+
+**Headings that mean you are writing a notebook.** "Recent changes", "Lessons learned",
+"Notes", "Implementation notes", "Session summary", "What we tried", "Known issues",
+"TODO", "Status", "Current state", "Progress", "Changelog", "History", "Background". If
+you are about to add one of these, you are not briefing anyone — put the content where it
+belongs and add nothing. Finding one already in a file is a finding: say so, and see
+_Cleaning_ below.
 
 **Organisation.** Order it so a fresh agent can read top-down and stop when it has enough:
 what the project is → how to run the gates → architecture → conventions → environment
 traps. Tables for anything enumerable. One fact per bullet. A section running past a
 screen of prose is almost always rationale that belongs at a code site.
 
-**Two tests before adding anything.** Would a doc comment at the site do the job? It
-usually will. And: does this line change what an agent _does_, or is it just something that
-happened? Only the first belongs.
+**Two more tests, on top of the notebook test.** Would a doc comment at the site do the
+job? It usually will. And: does this line change what an agent _does_, or is it just
+something that happened? Only the first belongs. A line that survives all three tests
+still goes into the section it is about — **never appended to the bottom of the file.**
+Appending is the notebook habit made visible; a file that grew a tail is one nobody
+edited, only added to.
+
+**Growth is the symptom.** In a mature `CLAUDE.md` the good edits are replacements and
+deletions. If yours makes the file longer, that is not forbidden — it is a reason to
+re-run the three tests before saving.
 
 **Never write "living document: reflect everything learned back into this file."** That
-instruction is precisely what turns a briefing into a dump. What to write instead is the
-_kind_ of knowledge that belongs here, and where the rest goes.
+instruction is precisely what turns a briefing into a dump, and every variant of it does
+the same: "keep this updated as you learn", "record findings here", "append notes below".
+What to write instead is the _kind_ of knowledge that belongs here, and where the rest
+goes. If you find one of those sentences in a project's `CLAUDE.md`, delete it — it is the
+instruction that produced everything else wrong with the file.
 
 **Cleaning is maintenance, not vandalism.** When a project `CLAUDE.md` has drifted into an
 archive, cut it — after checking, case by case, that what you remove exists at its proper
-site. Moving rationale to the code is a gain; deleting it outright is not.
+site. Moving rationale to the code is a gain; deleting it outright is not. But bloat is
+not staleness: a section that is true and merely useless does not get the fix-on-sight
+exception, so tell me it is there rather than silently rewriting the file inside a
+changeset about something else. Stale lines still go on sight; a cleanup goes in its own
+changeset.
