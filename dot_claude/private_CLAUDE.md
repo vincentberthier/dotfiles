@@ -83,7 +83,7 @@ steps. Ask what the fact is _about_, not what I happened to be doing when I said
 
 | the fact is…                                                      | where it goes                                   |
 | ----------------------------------------------------------------- | ----------------------------------------------- |
-| true anywhere — a tool, this machine, how I work                  | this file (edit the chezmoi source, then apply) |
+| true anywhere — a tool, this machine, how I work                  | this file (edit in place, then `chezmoi re-add`) |
 | mechanically checkable                                            | a hook — it enforces, prose only asks           |
 | true of one repo, and about how to work in it                     | that repo's `CLAUDE.md`                         |
 | about one function, type or file                                  | a doc comment at that site                      |
@@ -260,11 +260,30 @@ working, pre-allowlisted tool:
 - Independent commands go in separate Bash calls, so they can run in parallel.
 - Web fetches get a timeout of one minute at most, so a dead resource can't hang the turn.
 
-## Config files — check chezmoi before editing
+## Config files — chezmoi, and never leave the edit in limbo
 
 Before editing anything under a config directory, check `chezmoi managed` /
-`chezmoi source-path`. If the file is managed, edit the **source** and `chezmoi apply` —
-editing the target directly means the next `apply` silently reverts the work.
+`chezmoi source-path`. If it is managed, the process is **edit the live file in place,
+then `chezmoi re-add <target>`** — one command, and it is the one that matters:
+`autoCommit` and `autoPush` are both on, and they fire on source-state commands like
+`re-add`, not on `apply`.
+
+**The finished state is "committed and pushed", not "the bytes are in place".** An edit
+that only exists on disk, or only in a dirty source repo, is stranded on this machine —
+the next `apply` reverts it, or the next `pull --rebase` from another machine conflicts
+with it. That is barely better than never having synced at all, and it is worse than
+useless because it looks done. **A task that touched a managed file is not finished until
+`chezmoi status` is empty and the source branch is not ahead of its remote.** Check both,
+in the same turn.
+
+Editing the **source** is right in exactly one case: the file has no live target to edit —
+templates (`*.tmpl`), `run_*` scripts, `.chezmoitemplates/`. There, `re-add` would clobber
+the template with its own rendered output. Edit the source, `chezmoi apply`, and then
+commit and push it yourself — nothing fires automatically on that path.
+
+The `chezmoi-guard.py` hook enforces the split: it blocks source edits that have a target,
+and reminds you of the `re-add` after an in-place one. A reminder is not the landing —
+run the command.
 
 ## Coding
 

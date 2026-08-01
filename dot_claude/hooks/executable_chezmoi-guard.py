@@ -1,19 +1,30 @@
 #!/usr/bin/env python3
-"""Claude Code PreToolUse hook: block edits to chezmoi-managed files.
+"""Claude Code hook: keep chezmoi edits on the edit-in-place -> re-add path.
 
-Config files under ~/.claude, ~/.config and friends are managed by chezmoi.
-Editing the target directly looks like it worked — until the next
-`chezmoi apply` silently reverts it, because the source of truth is the file
-under the chezmoi source directory, not the one in place.
+The working process for chezmoi-managed config on this machine is:
+
+    1. edit the TARGET in place (~/.claude/CLAUDE.md, ~/.config/..., ...)
+    2. `chezmoi re-add <target>` to capture it back into the source
+
+Step 2 is not bookkeeping. `~/.config/chezmoi/chezmoi.toml` sets
+`autoCommit = true` and `autoPush = true`, and those fire on source-state
+commands like `re-add` -- so `re-add` is the step that actually commits and
+pushes. Hand-editing the source file and running `chezmoi apply` moves the
+bytes into place but commits nothing: the change sits dirty in the source
+repo, invisible, and diverges from what the other machines push. Edits left
+in that limbo are barely better than never having synced at all.
 
 Behaviour:
-- Fires on Edit / Write / NotebookEdit.
-- Resolves the target path through `chezmoi source-path`.
-- If the file is managed, blocks and names the source path to edit instead.
-- Never fires for paths already inside the chezmoi source directory — editing
-  the source is the correct action.
+- PreToolUse on Edit / Write / NotebookEdit: block edits to files inside the
+  chezmoi source directory when a real target exists to edit instead, and
+  name that target.
+- PostToolUse on the same tools: after a managed target is edited, hand back
+  the exact `chezmoi re-add` command needed to land it.
+- Never blocks where the source is the only editable copy: templates
+  (`*.tmpl`), scripts (`run_*`), `.chezmoitemplates/`, and anything whose
+  target does not exist on disk.
 - On any trouble (chezmoi missing, slow, unexpected payload) defers silently
-  with exit 0 — fail open, never wedge editing.
+  with exit 0 -- fail open, never wedge editing.
 """
 
 import json
@@ -27,6 +38,10 @@ _EDIT_TOOLS = {"Edit", "Write", "NotebookEdit", "MultiEdit"}
 # chezmoi is fast (tens of ms); this bound only exists so a hung binary cannot
 # block every edit in the session.
 _TIMEOUT_S = 5
+
+# Source entries with no target file to edit in place.
+_SOURCE_ONLY_PREFIXES = ("run_", ".chezmoi")
+_SOURCE_ONLY_SUFFIXES = (".tmpl",)
 
 
 def _run_chezmoi(args: list[str]) -> str | None:
@@ -51,16 +66,86 @@ def source_dir() -> Path | None:
     return Path(out) if out else None
 
 
-def source_path_for(target: Path) -> Path | None:
-    """Return the chezmoi source path for `target`, or None if unmanaged."""
-    out = _run_chezmoi(["source-path", str(target)])
-    return Path(out) if out else None
+def source_only(source: Path, src_dir: Path) -> bool:
+    """True if `source` has no in-place target: template, script, metadata."""
+    if source.name.endswith(_SOURCE_ONLY_SUFFIXES):
+        return True
+    try:
+        relative = source.relative_to(src_dir)
+    except ValueError:
+        return True
+    # A `run_` script anywhere in the tree, or chezmoi metadata at any level.
+    return any(part.startswith(_SOURCE_ONLY_PREFIXES) for part in relative.parts)
+
+
+def target_for(source: Path) -> Path | None:
+    """Return the live target for a source file, or None if there isn't one.
+
+    Round-trips through `target-path` and back through `source-path`: chezmoi
+    happily invents a target for any path under the source dir, so the only
+    proof that `source` really is the source of `target` is that the reverse
+    lookup lands back where it started.
+    """
+    out = _run_chezmoi(["target-path", str(source)])
+    if out is None:
+        return None
+    target = Path(out)
+    if not target.is_file():
+        return None
+    back = _run_chezmoi(["source-path", str(target)])
+    if back is None or Path(back) != source:
+        return None
+    return target
+
+
+def managed_target(path: Path, src_dir: Path) -> Path | None:
+    """Return `path` itself if it is a chezmoi-managed target, else None."""
+    if src_dir == path or src_dir in path.parents:
+        return None
+    return path if _run_chezmoi(["source-path", str(path)]) else None
+
+
+def block_source_edit(source: Path, target: Path) -> None:
+    reason = (
+        f"Blocked: `{source}` is a chezmoi SOURCE file.\n\n"
+        "The process on this machine is edit-in-place, then re-add. Editing "
+        "the source and applying leaves the change uncommitted and unpushed "
+        "in the source repo -- autoCommit/autoPush only fire on source-state "
+        "commands like `re-add`.\n\n"
+        "Edit the live file instead:\n"
+        f"  {target}\n\n"
+        "Then land it -- this commits and pushes:\n"
+        f"  chezmoi re-add {target}"
+    )
+    print(json.dumps({"decision": "block", "reason": reason}))
+
+
+def remind_re_add(target: Path) -> None:
+    context = (
+        f"`{target}` is chezmoi-managed. The edit is live but not yet in the "
+        "source repo. Before this task is done, land it with:\n"
+        f"  chezmoi re-add {target}\n"
+        "That is what commits and pushes it (autoCommit/autoPush). Leaving it "
+        "unlanded strands the change on this machine only."
+    )
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PostToolUse",
+                    "additionalContext": context,
+                }
+            }
+        )
+    )
 
 
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
+        return 0
+    if not isinstance(payload, dict):
         return 0
 
     if payload.get("tool_name") not in _EDIT_TOOLS:
@@ -71,37 +156,30 @@ def main() -> int:
         return 0
 
     try:
-        target = Path(os.path.expanduser(raw)).resolve()
+        path = Path(os.path.expanduser(raw)).resolve()
     except OSError:
         return 0
 
     src_dir = source_dir()
     if src_dir is None:
-        # chezmoi unavailable or not initialised — nothing to protect.
+        # chezmoi unavailable or not initialised -- nothing to protect.
         return 0
 
-    # Editing the source itself is exactly what this hook wants to happen.
-    if src_dir in target.parents or src_dir == target:
+    if payload.get("hook_event_name") == "PostToolUse":
+        target = managed_target(path, src_dir)
+        if target is not None:
+            remind_re_add(target)
         return 0
 
-    managed_source = source_path_for(target)
-    if managed_source is None:
+    # PreToolUse: steer source edits back to the target.
+    if src_dir != path and src_dir not in path.parents:
         return 0
-
-    reason = (
-        f"Blocked: `{target}` is managed by chezmoi.\n\n"
-        "Editing the target directly does not stick — the next "
-        "`chezmoi apply` overwrites it from the source, and the work is lost "
-        "silently.\n\n"
-        "Edit the source instead:\n"
-        f"  {managed_source}\n\n"
-        "Then apply it:\n"
-        f"  chezmoi apply {target}\n\n"
-        "If the target is deliberately ahead of the source (edits already made "
-        f"in place), capture them first with `chezmoi re-add {target}`, then "
-        "continue editing the source."
-    )
-    print(json.dumps({"decision": "block", "reason": reason}))
+    if source_only(path, src_dir):
+        return 0
+    target = target_for(path)
+    if target is None:
+        return 0
+    block_source_edit(path, target)
     return 0
 
 
