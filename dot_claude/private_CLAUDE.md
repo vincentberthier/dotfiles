@@ -333,18 +333,17 @@ breadth of verification around code you're already touching, not licence to add 
 Build, test, format, lint — everything passes before every push. No exceptions for "only
 test files changed" or "it's just a formatting fix". Run them.
 
-**If the project reproduces its CI environment locally, that counts as one of them.** A
-containerised replay (`just ci` in the Tyrex Rust crates) runs the same image the pipeline
-runs, so it answers the question the push would ask — on this machine, for free, instead of
-on a shared runner. Push first and you get the same answer at someone else's expense, and a
-red pipeline is a public artefact where a red local run is not. The environment was
-reproduced precisely so the answer could be had before the push; skipping it throws that
-away.
+**Before a push, you run `just ci`.** It is there to replicate the CI pipeline in full,
+locally, in the same container image the runner uses — so the answer the push would ask
+for is had on this machine, for free, without burning valuable runner time. Runner time is
+shared and finite; a local run costs nobody anything, and a red pipeline is a public
+artefact where a red local run is not. Where a repo has no `just ci` — no Justfile, or
+different recipe names — read its own docs and run its equivalent.
 
 **"The pipeline is the authoritative check" is the rationalisation to watch for.** It is
 true, and it is not a reason to skip the local replay — the two are the same image. Nor is
 "the change is only markdown", "the pipeline is already running", or "I'll cancel it if it
-goes red". Local replay, then push.
+goes red". `just ci`, then push.
 
 ## Project CLAUDE.md — a briefing, not a notebook
 
