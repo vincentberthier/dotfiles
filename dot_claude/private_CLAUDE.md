@@ -213,19 +213,39 @@ back; `ENABLE_TOOL_SEARCH` is unrelated, MCP-proxy only. Bash also hard-blocks
 hand-roll a python parser or an esoteric one-liner to dodge a block — reach for the
 working, pre-allowlisted tool:
 
-| need                          | use                                                |
-| ----------------------------- | -------------------------------------------------- |
-| content / regex search        | `rg`                                               |
-| file / name discovery         | `fd`                                               |
-| directory listing             | `eza`, or `Read` on the directory                  |
-| reading a file                | `Read`                                             |
-| resuming a finished sub-agent | a fresh `Agent`                                    |
-| deleting anything             | `trash put` (restore with `trash restore --force`) |
-| elevated privileges           | `doas`, never `sudo`                               |
+| need                          | use                                        |
+| ----------------------------- | ------------------------------------------ |
+| content / regex search        | `rg`                                       |
+| file / name discovery         | `fd`                                       |
+| directory listing             | `eza`, or `Read` on the directory          |
+| reading a file                | `Read`                                     |
+| resuming a finished sub-agent | a fresh `Agent`                            |
+| deleting anything             | `trash-put` (restore with `trash-restore`) |
+| elevated privileges           | `doas`, never `sudo`                       |
+| any GitLab operation          | `tyrex-gitlab` CLI, never `glab`           |
 
+- **`glab` is never correct on this machine.** Every GitLab here is the Tyrex GitLab, and
+  the `tyrex-gitlab` CLI owns it — issues, MRs, epics, wikis, pipelines, user lookups.
+  Run `tyrex-gitlab --schema` to see the commands. This holds no matter how plausible
+  `glab` looks: it is the well-known GitLab CLI, so it is exactly what general knowledge
+  reaches for, and any skill or reference file still showing `glab` commands is a
+  leftover, not a sanctioned fallback. Say it is stale rather than following it.
 - Never call `op read` repeatedly — every invocation fires a 1Password vault/biometric
   prompt at me. Ask me to export the secret once per shell instead.
+- The trash CLI is **trash-cli**, not trashy: subcommand-style `trash put` / `trash restore`
+  is wrong, the verbs are separate binaries (`trash-put`, `trash-list`, `trash-restore`,
+  `trash-rm`, `trash-empty`). Bare `trash` is an alias of `trash-put`, so `trash put foo`
+  deletes a file called `put`.
+- `trash-restore` prints a numbered list and blocks on "What file to restore" — a bare call
+  hangs the turn. Scope it and feed the index: `printf '0\n' | trash-restore <dir>`.
 - Never bypass a deny rule with `find -delete`, `unlink` or similar.
+- **`rm` is allowed in code, never at your prompt** — and "this path is obviously
+  scratch" does not unlock it. A script deletes a path it computed itself, reviewed
+  once and re-run identically; a command you type is aimed by judgement in the moment,
+  which is precisely what has already failed by the time it goes wrong. So a project's
+  scripts may well use `rm` — even where trashing would be the wrong primitive, as on a
+  scratch machine whose trash shares the disk it is meant to free — and you still delete
+  with `trash-put` yourself. Never read a script's `rm` as licence for your own.
 - Never prefix a command with `cd <dir> &&`; use absolute paths and tool-native options.
 - Independent commands go in separate Bash calls, so they can run in parallel.
 - Web fetches get a timeout of one minute at most, so a dead resource can't hang the turn.

@@ -54,6 +54,9 @@
       "Bash(tokei:*)",
       "Bash(touch:*)",
       "Bash(trash:*)",
+      "Bash(trash-list:*)",
+      "Bash(trash-put:*)",
+      "Bash(trash-restore:*)",
       "Bash(tsc:*)",
       "Bash(ty:*)",
       "Bash(typst:*)",
@@ -160,7 +163,8 @@
     "tyrex-conformity@tyrex-plugins": true,
     "tyrex-documents@tyrex-plugins": true,
     "tyrex-lang-common@tyrex-plugins": true,
-    "tyrex-security@tyrex-plugins": true
+    "tyrex-security@tyrex-plugins": true,
+    "tyrex-debugger@tyrex-plugins": true
   },
   "extraKnownMarketplaces": {
     "knowledge-work-plugins": {

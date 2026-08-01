@@ -1,0 +1,268 @@
+#!/usr/bin/env python3
+# debug-statement-audit: ignore — this is a reporting CLI; print() IS its output.
+"""Browse and pull from the astro offsite archive on nyx.
+
+    nyx ls                          what objects are in the archive
+    nyx ls --all                    ...including the non-DSO trees
+    nyx days m-42                   which nights that object has
+    nyx pull m-42                   fetch the whole object
+    nyx pull m-42 -d 2026-07-12     fetch one night
+    nyx pull m-42 -d 2026-07-12,2026-07-13 --to /tmp/x
+    nyx pull m-42 --dry-run         what would come down, and how big
+
+Restores land under `--to` (default ./nyx-restore) mirroring the drive's own
+layout, so a pulled night sits at
+`<to>/run/media/vincent/Corrbolg/dso/data/m-42/2026-07-12/`.
+
+Frames come back as `.fits.fz`, which is how they are stored. That is not a
+problem to work around: Siril reads them natively, and the pipeline's own
+tooling accepts either form. Pass --funpack to get plain `.fits` anyway.
+
+Reads the same repo and key file as tools/nyx-backup.sh, overridable with
+ASTRO_RESTIC_REPO and ASTRO_RESTIC_PASSWORD_FILE. Never writes to the archive:
+every operation here is a read.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+REPO = os.environ.get("ASTRO_RESTIC_REPO", "sftp:nyx:astro-archive")
+KEYFILE = os.environ.get(
+    "ASTRO_RESTIC_PASSWORD_FILE",
+    str(Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+        / "astro-hibou" / "restic-password"),
+)
+CONNECTIONS = os.environ.get("ASTRO_RESTIC_CONNECTIONS", "8")
+DRIVE_PREFIX = "/run/media/vincent/Corrbolg"
+
+NIGHT_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def die(msg: str, code: int = 1):
+    print(f"nyx: {msg}", file=sys.stderr)
+    raise SystemExit(code)
+
+
+def restic(*args: str, capture: bool = True) -> str:
+    if shutil.which("restic") is None:
+        die("restic is not on PATH")
+    if not Path(KEYFILE).is_file():
+        die(f"no key file at {KEYFILE}")
+    env = {**os.environ, "RESTIC_REPOSITORY": REPO, "RESTIC_PASSWORD_FILE": KEYFILE}
+    cmd = ["restic", "-o", f"sftp.connections={CONNECTIONS}",
+           "--retry-lock", "10m", *args]
+    if not capture:
+        return str(subprocess.run(cmd, env=env, check=False).returncode)
+    p = subprocess.run(cmd, env=env, capture_output=True, text=True, check=False)
+    if p.returncode != 0:
+        die(f"restic {args[0]} failed:\n{p.stderr.strip()}")
+    return p.stdout
+
+
+def snapshots() -> list[dict]:
+    return json.loads(restic("snapshots", "--json") or "[]")
+
+
+def objects(include_all: bool = False) -> dict[str, list[dict]]:
+    """{object name: [snapshots]} -- an object is a seeded target directory."""
+    out: dict[str, list[dict]] = {}
+    for snap in snapshots():
+        for tag in snap.get("tags") or []:
+            if tag.startswith("seed:"):
+                rel = tag[len("seed:"):].removesuffix(":floats")
+                name = rel.split("/")[-1] if rel.startswith("dso/data/") else rel
+                out.setdefault(name, []).append(snap)
+                break
+        else:
+            if include_all:
+                for p in snap.get("paths") or []:
+                    out.setdefault(Path(p).name + "  (bulk)", []).append(snap)
+    return out
+
+
+def latest_for(name: str, include_all: bool = False) -> list[dict]:
+    """The snapshots to read for `name` -- newest per tag, not all of them.
+
+    An object can carry several snapshots for the same tag: a re-run after an
+    interrupted upload leaves the first one behind, and ngc-6604 has exactly
+    that. Summing across all of them double-counts every file, which showed up
+    as 252 files / 2.8 GiB for a 122-frame, 1.38 GiB target. Newest per tag also
+    keeps the "<tag>" and "<tag>:floats" pair, which are genuinely different
+    content and must both be read.
+    """
+    objs = objects(include_all=True)
+    if name not in objs:
+        matches = [k for k in objs if name.lower() in k.lower()]
+        if len(matches) == 1:
+            name = matches[0]
+        elif matches:
+            die(f"'{name}' is ambiguous: {', '.join(sorted(matches))}")
+        else:
+            die(f"no object '{name}' in the archive -- try: nyx ls")
+
+    newest: dict[str, dict] = {}
+    for snap in objs[name]:
+        key = ",".join(sorted(snap.get("tags") or [])) or "(untagged)"
+        if key not in newest or snap["time"] > newest[key]["time"]:
+            newest[key] = snap
+    return sorted(newest.values(), key=lambda s: s["time"])
+
+
+def files_in(snap_id: str) -> list[dict]:
+    rows = []
+    for line in restic("ls", snap_id, "--json").splitlines():
+        try:
+            node = json.loads(line)
+        except ValueError:
+            continue
+        if node.get("type") == "file" and node.get("path"):
+            rows.append(node)
+    return rows
+
+
+def human(n: float) -> str:
+    for unit in ("B", "KiB", "MiB", "GiB", "TiB"):
+        if abs(n) < 1024 or unit == "TiB":
+            return f"{n:.1f} {unit}" if unit != "B" else f"{n:.0f} B"
+        n /= 1024
+
+
+# --------------------------------------------------------------------------
+
+
+def cmd_ls(args) -> int:
+    objs = objects(include_all=args.all)
+    if not objs:
+        die("the archive holds no seeded objects yet", 2)
+    print(f"{len(objs)} object(s) in {REPO}\n")
+    for name in sorted(objs):
+        snaps = objs[name]
+        newest = max(s["time"] for s in snaps)
+        print(f"  {name:<24} {len(snaps)} snapshot(s)   newest {newest[:10]}")
+    print("\nnyx days <object>   to see its nights")
+    return 0
+
+
+def cmd_days(args) -> int:
+    snaps = latest_for(args.object)
+    nights: dict[str, tuple[int, int]] = {}
+    for snap in snaps:
+        for node in files_in(snap["short_id"]):
+            parts = Path(node["path"]).parts
+            night = next((p for p in parts if NIGHT_RE.match(p)), None)
+            if night is None:
+                continue
+            count, size = nights.get(night, (0, 0))
+            nights[night] = (count + 1, size + int(node.get("size") or 0))
+    if not nights:
+        print(f"{args.object}: no dated nights (single-night or undated layout)")
+        return 0
+    print(f"{args.object}: {len(nights)} night(s)\n")
+    for night in sorted(nights):
+        count, size = nights[night]
+        print(f"  {night}   {count:>5} files   {human(size):>10}")
+    return 0
+
+
+def cmd_pull(args) -> int:
+    snaps = latest_for(args.object)
+    wanted = [d.strip() for d in args.days.split(",")] if args.days else []
+    for d in wanted:
+        if not NIGHT_RE.match(d):
+            die(f"'{d}' is not a YYYY-MM-DD night")
+
+    dest = Path(args.to).resolve()
+    total_files = total_size = 0
+    plan: list[tuple[str, list[str]]] = []
+    for snap in snaps:
+        rows = files_in(snap["short_id"])
+        if wanted:
+            keep = [r for r in rows
+                    if any(w in Path(r["path"]).parts for w in wanted)]
+        else:
+            keep = rows
+        if not keep:
+            continue
+        total_files += len(keep)
+        total_size += sum(int(r.get("size") or 0) for r in keep)
+        includes = []
+        if wanted:
+            roots = {str(Path(r["path"]).parent) for r in keep}
+            includes = sorted(roots)
+        plan.append((snap["short_id"], includes))
+
+    if not total_files:
+        die(f"nothing matches {args.object}"
+            + (f" for {', '.join(wanted)}" if wanted else ""), 2)
+
+    print(f"{args.object}: {total_files} file(s), {human(total_size)}"
+          + (f", nights {', '.join(wanted)}" if wanted else ", all nights"))
+    print(f"  -> {dest}")
+    if args.dry_run:
+        print("\ndry run: nothing fetched")
+        return 0
+
+    dest.mkdir(parents=True, exist_ok=True)
+    for snap_id, includes in plan:
+        cmd = ["restore", snap_id, "--target", str(dest)]
+        for inc in includes:
+            cmd += ["--include", inc]
+        print(f"\nrestoring {snap_id}" + (f" ({len(includes)} path(s))" if includes else ""))
+        restic(*cmd, capture=False)
+
+    if args.funpack:
+        if shutil.which("funpack") is None:
+            die("funpack is not on PATH (Arch: cfitsio) -- files left as .fz")
+        packed = sorted(dest.rglob("*.fz"))
+        print(f"\nfunpacking {len(packed)} frame(s)")
+        for p in packed:
+            r = subprocess.run(["funpack", "-D", str(p)],
+                               capture_output=True, text=True)
+            if r.returncode != 0:
+                die(f"funpack failed on {p}: {(r.stderr or r.stdout).strip()}")
+        print("done -- plain .fits")
+
+    landed = dest / DRIVE_PREFIX.lstrip("/")
+    print(f"\nrestored under {landed if landed.is_dir() else dest}")
+    return 0
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(
+        prog="nyx", description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    p = sub.add_parser("ls", help="list the objects in the archive")
+    p.add_argument("--all", action="store_true",
+                   help="include the bulk non-DSO trees (grand-champ, paysages...)")
+    p.set_defaults(func=cmd_ls)
+
+    p = sub.add_parser("days", help="list an object's nights")
+    p.add_argument("object")
+    p.set_defaults(func=cmd_days)
+
+    p = sub.add_parser("pull", help="fetch an object, or some of its nights")
+    p.add_argument("object")
+    p.add_argument("-d", "--days", metavar="YYYY-MM-DD[,...]",
+                   help="only these nights (default: everything)")
+    p.add_argument("--to", default="./nyx-restore", metavar="DIR")
+    p.add_argument("--funpack", action="store_true",
+                   help="decompress to plain .fits after restoring")
+    p.add_argument("--dry-run", action="store_true")
+    p.set_defaults(func=cmd_pull)
+
+    args = ap.parse_args()
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

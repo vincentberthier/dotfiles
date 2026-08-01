@@ -174,7 +174,13 @@ function askar_copy --description "Park the mount, pull N.I.N.A images off the G
     $astro_pipeline/tools/link_flats.py
     set -l linked $status
     if test $linked -ne 0
-        echo "askar_copy: WARNING — flat linking failed (exit $linked); this night's targets have no FLATS" >&2
+        # link_flats runs over EVERY night in the store, so a non-zero exit means
+        # "at least one target-night could not be linked" -- which is usually a
+        # historical night, not the one just transferred. Saying "this night's
+        # targets have no FLATS" claimed the transfer had failed when on
+        # 2026-07-31 the two new nights had linked perfectly and a 2026-07-28
+        # duplicate was the only casualty. Read the per-night lines above.
+        echo "askar_copy: WARNING — link_flats exited $linked; one or more target-nights above could not be linked (see the ! lines)" >&2
     end
 
     # Mirror the Gaius's own configuration while it is still up. This is the only
