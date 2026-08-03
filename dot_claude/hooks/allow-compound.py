@@ -8,17 +8,59 @@ If parsing fails or any command is unknown, defers to normal permissions.
 
 import json
 import logging
+import logging.handlers
+import os
 import re
 import sys
 from pathlib import Path
 
-_LOG_PATH = Path.home() / ".claude" / "hooks" / "allow-compound.log"
-logging.basicConfig(
-    filename=str(_LOG_PATH),
-    level=logging.DEBUG,
-    format="%(asctime)s %(message)s",
-)
+# Out of ~/.claude/hooks deliberately: that directory is chezmoi-managed
+# config, and a log has no business growing inside it.
+_LOG_PATH = Path.home() / ".cache" / "claude-code-hooks" / "allow-compound.log"
+_LOG_MAX_BYTES = 1 << 20
+_LOG_BACKUPS = 2
+_LOG_ENABLED = ("1", "true", "yes", "on")
+
 log = logging.getLogger(__name__)
+log.propagate = False
+
+
+def _configure_logging() -> None:
+    """Wire up debug logging, which is OFF unless explicitly asked for.
+
+    This hook runs on every single Bash call, so logging every decision at
+    DEBUG with no bound is not diagnostics -- it is a leak. It reached 60 MB
+    and 332k lines before being capped. The parser here is intricate enough
+    that keeping the trace available is worth it, so it stays available: set
+    ALLOW_COMPOUND_DEBUG=1 while working on it. Even then the handler rotates,
+    so a forgotten export cannot fill the disk.
+    """
+    def silence() -> None:
+        log.addHandler(logging.NullHandler())
+        # Above CRITICAL, so every log.debug() call short-circuits.
+        log.setLevel(logging.CRITICAL + 1)
+
+    if os.environ.get("ALLOW_COMPOUND_DEBUG", "").lower() not in _LOG_ENABLED:
+        silence()
+        return
+    try:
+        _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        handler = logging.handlers.RotatingFileHandler(
+            _LOG_PATH,
+            maxBytes=_LOG_MAX_BYTES,
+            backupCount=_LOG_BACKUPS,
+            encoding="utf-8",
+        )
+    except OSError:
+        # Never let a logging problem take the hook down with it.
+        silence()
+        return
+    handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+    log.addHandler(handler)
+    log.setLevel(logging.DEBUG)
+
+
+_configure_logging()
 
 SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
 BASH_PATTERN = re.compile(r"^Bash\((\S+?):\*\)$")
@@ -303,14 +345,25 @@ def emit_deny(reason: str) -> None:
 def main():
     try:
         data = json.load(sys.stdin)
-    except (json.JSONDecodeError, EOFError):
+    except (json.JSONDecodeError, EOFError, ValueError):
         log.debug("PARSE_FAIL: no valid JSON on stdin")
+        return
+
+    # Valid JSON that is not an object (a bare list, string, number) used to
+    # reach .get() and die with a traceback.
+    if not isinstance(data, dict):
+        log.debug("PARSE_FAIL: payload is %s, not an object", type(data).__name__)
         return
 
     if data.get("tool_name") != "Bash":
         return
 
-    command = data.get("tool_input", {}).get("command", "")
+    tool_input = data.get("tool_input")
+    if not isinstance(tool_input, dict):
+        return
+    command = tool_input.get("command", "")
+    if not isinstance(command, str):
+        return
     log.debug("INPUT command=%r  keys=%s", command, list(data.keys()))
     if not command:
         return
