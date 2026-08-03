@@ -45,6 +45,17 @@ broken because it predates you.
 **When I say yes, unrelated fixes go in their own changeset**, never squashed into one
 whose description doesn't cover them.
 
+**One session, one repo.** The first repository a session writes to is the only one it may
+ever write to — subagents included, since they share the pin. Reaching into a sibling
+checkout, a dependency, a vendored crate or a fork is not part of any task unless I named
+that repo: its rules were never loaded, its working copy is in a state nobody looked at,
+and the edit lands in a changeset described as something else. Report what the other repo
+needs — exact file, lines, correction — or write a `/tyrex-core:work-order` so a fresh
+agent does it there, in it. **Never ask to cross:** the answer is no, and working in
+another repo means a session started in that repo. Reads are unrestricted — go read
+whatever makes the report accurate. `repo-boundary-guard.py` enforces this, and nothing
+inside the session can lift it.
+
 ## Stale is a bug — fix it on sight
 
 The moment you notice it — "oh right, that memory is stale", "that document is out of
@@ -62,13 +73,9 @@ that asserts something no longer true. For a memory, update both the file and it
 is not opening a new front — it's removing a trap, it's usually one line or a deletion,
 and leaving it costs whoever comes next far more than the diff costs you.
 
-**It stops at the repo boundary.** The exception covers the checkout you are working in,
-and nothing else. A stale line in a _different_ repo is not yours to fix, however trivial
-the diff — you have not loaded that repo's rules, its working copy is in a state you cannot
-see, and your edit lands in someone else's changeset. Report it with exact coordinates
-(file, lines, the correction) and stop there. **Do not ask for permission either** — the
-answer is no, and asking spends a round trip to arrive at the same place. Write a work
-order if it deserves one.
+**It stops at the repo boundary**, like everything else — see _One session, one repo_
+above. However trivial the diff, a stale line in a _different_ repo gets reported with
+exact coordinates (file, lines, the correction). Never fixed, and never asked about.
 
 ## When I tell you something durable — route it by scope
 
