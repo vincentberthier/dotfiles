@@ -357,6 +357,19 @@ true, and it is not a reason to skip the local replay — the two are the same i
 "the change is only markdown", "the pipeline is already running", or "I'll cancel it if it
 goes red". `just ci`, then push.
 
+**A decision I owe you blocks the push exactly like a failing gate.** If your own write-up
+of the work has a "not done", an "open question", a "needs your ruling" in it, the work is
+not finished, and unfinished work is not pushed and not opened as an MR. Publishing first
+inverts the loop under _Scope_: it spends my review budget on a changeset whose shape I
+have not agreed to, and whatever I then rule against has to be un-published rather than
+never written. Stop at the last point where every remaining step is unambiguous, report the
+finding, and wait. Never ask permission to push anyway.
+
+Worst of all is **prose defending the provisional choice** — a code comment or a doc
+paragraph that justifies what you kept _because_ the decision is still open. It reads as
+settled policy to the next agent who finds it, and it dies whichever way I rule. A
+rationale that depends on my answer is not a rationale yet; leave it unwritten.
+
 ## Project CLAUDE.md — a briefing, not a notebook
 
 A project's `CLAUDE.md` is loaded in full at the start of every session in that repo. That
