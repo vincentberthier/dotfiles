@@ -9,13 +9,15 @@ recipe — one that runs the host-side `flash-guard.sh` preflight and never esca
 dead AP). Everything else is blocked. This hook enforces the runtime half so safety
 does not depend on the agent's recall.
 
-NOT CURRENTLY ACTIVE, ON PURPOSE. This file is deliberately not referenced from
-settings.json, so none of the policy below is being enforced right now — it describes
-how the hook behaves when wired, not how it is wired today. Confirmed intentional by
-Vincent on 2026-08-03, alongside the same call on `sigint-guard.sh`. Do not "fix" this
-by putting it back in the hooks block, and do not report it as broken. While it is
-dormant, the probe rules live only in the `imxrt-evk-flashing` skill and CLAUDE.md —
-i.e. they depend on recall again, which is the tradeoff being accepted.
+ACTIVATION IS PER-REPO, and no repo wires it today. Verified 2026-08-03: this file is
+referenced by no `~/.claude/settings.json`, no `~/.claude/remote-settings.json`, no
+`<repo>/.claude/settings.json` under ~/code/tyrex, and no plugin. The policy below
+therefore describes how the hook behaves WHEN a repo wires it — not what is being
+enforced right now, which is nothing. The repos doing EVK work are the ones meant to
+opt in (they already wire their own hooks via `$CLAUDE_PROJECT_DIR/.claude/hooks/`);
+until one does, the probe rules there rest on the `imxrt-evk-flashing` skill and
+CLAUDE.md alone, i.e. on recall. Note that several repo CLAUDE.mds call this "the
+GLOBAL block-probe-rs hook", which is agent-written and does not match the wiring.
 
 Policy — BLOCK when:
   1. `probe-rs` runs at a COMMAND POSITION — direct, after a shell operator
