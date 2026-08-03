@@ -160,6 +160,29 @@ disown` and stop them with **SIGINT only**; SIGKILL or `timeout` wedges the prob
 name the exact human-only part — "I confirmed over RTT that init+render runs without
 faulting; I can't SEE the panel" — never a blanket "pending bench".
 
+## Side effects — archive first, dry-run second
+
+Before running anything that could modify, delete or overwrite something outside scratch —
+a test, a script, a migration, a formatter, a sync, a batch rename, a CLI you have not run
+before — **two steps, in this order, every time**:
+
+1. **Archive the target.** `tar czf /var/tmp/<name>-<stamp>.tgz <target>` — `/var/tmp`,
+   never `/tmp`, which is RAM-backed here. Put the archive path in your reply, so undoing
+   costs me nothing but a `tar x`.
+2. **Dry-run it.** The tool's own `--dry-run` / `-n` / `--check`, or the read-only
+   equivalent that prints what it would touch. Show the output, then run for real.
+
+The order is not decorative: a dry-run that turns out not to be dry has already happened by
+the time you find out, and the archive is the only thing that makes that survivable.
+
+**No dry-run mode is a stop, not a shrug.** Say so, say what the real run would touch, and
+ask. _Before anything irreversible, verify the signal it keys on_ above applies on top of
+this, not instead of it — the archive protects the data, that rule protects the decision.
+
+The bar is "could", not "will". An archive costs seconds and some disk; skipping one costs
+work that no longer exists. The only exemption is genuinely disposable targets: the session
+scratchpad, or a file you created yourself this turn.
+
 ## Communication
 
 Challenging me is welcome; dismissing what I tell you is not, especially diagnostics,
