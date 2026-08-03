@@ -290,6 +290,17 @@ working, pre-allowlisted tool:
 | elevated privileges           | `doas`, never `sudo`                       |
 | any GitLab operation          | `tyrex-gitlab` CLI, never `glab`           |
 
+- **`rg` and `fd` both hide most of the filesystem by default, and you are surprised by
+  this every single time.** Both skip hidden paths — any dotfile, and everything under any
+  dotted directory, which is where all config and all agent state lives (`.claude/`,
+  `.config/`, `.local/`) — and both skip anything a `.gitignore`, `.ignore` or `.fdignore`
+  excludes. So a bare run returns an empty result for two different reasons, "absent" and
+  "filtered", and it does not tell you which. **An empty result is never evidence of
+  absence.** Pass `-u` — it means `--no-ignore --hidden` on both tools — any time the
+  target could be hidden, which for config, dotfiles and state is always. And report the
+  scope you actually searched: "no match under `~/.claude` with `-u`", never a bare "it
+  isn't there". Concluding a file, setting or backup does not exist off a filtered search
+  is a wrong answer, not a null one, and it sends me to fix a config that was never broken.
 - **`glab` is never correct on this machine.** Every GitLab here is the Tyrex GitLab, and
   the `tyrex-gitlab` CLI owns it — issues, MRs, epics, wikis, pipelines, user lookups.
   Run `tyrex-gitlab --schema` to see the commands. This holds no matter how plausible
