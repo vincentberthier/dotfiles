@@ -35,6 +35,10 @@ from pathlib import Path
 
 _EDIT_TOOLS = {"Edit", "Write", "NotebookEdit", "MultiEdit"}
 
+# NotebookEdit names its target `notebook_path`; everything else uses
+# `file_path`. Reading only the latter let notebook edits through unguarded.
+_PATH_KEYS = ("file_path", "notebook_path")
+
 # chezmoi is fast (tens of ms); this bound only exists so a hung binary cannot
 # block every edit in the session.
 _TIMEOUT_S = 5
@@ -117,7 +121,17 @@ def block_source_edit(source: Path, target: Path) -> None:
         "Then land it -- this commits and pushes:\n"
         f"  chezmoi re-add {target}"
     )
-    print(json.dumps({"decision": "block", "reason": reason}))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": reason,
+                }
+            }
+        )
+    )
 
 
 def remind_re_add(target: Path) -> None:
@@ -151,8 +165,11 @@ def main() -> int:
     if payload.get("tool_name") not in _EDIT_TOOLS:
         return 0
 
-    raw = payload.get("tool_input", {}).get("file_path", "")
-    if not raw:
+    tool_input = payload.get("tool_input")
+    if not isinstance(tool_input, dict):
+        return 0
+    raw = next((tool_input[k] for k in _PATH_KEYS if tool_input.get(k)), None)
+    if not isinstance(raw, str) or not raw:
         return 0
 
     try:
