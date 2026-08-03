@@ -201,6 +201,11 @@ Group by function, in this order:
 - **Never bury a question in prose.** It goes in the final list, one per line.
 - **One category per block.** Don't return to findings after starting warnings; if new
   evidence belongs earlier, move it there before sending.
+- **Arabic numerals are reserved for the final question list.** It is the only list in a
+  response numbered `1.`, `2.`, `3.` — every earlier enumeration uses letters (`a.`, `b.`)
+  or plain bullets. Never restart a count at 1 mid-response: two lists that both open with
+  "1." make "yes to 2, no to 3" ambiguous, and forcing me to name which list I mean is a
+  round trip the numbering should have prevented.
 - **Headings and bullets whenever there is more than one finding.** Length is fine; a
   homogeneous wall covering five topics is not.
 - **Scale down for small answers.** A one-line answer stays one line. The ordering rule —
