@@ -1,0 +1,26 @@
+[Unit]
+Description=Sync agent scratch (plans, brainstorm, debug) with hephaistos
+Documentation=file:%h/Documents/Perso/Notes/Permanentes/Intégration du code dans le Vault.md
+ConditionPathExists=%h/.unison/vault-code.prf
+After=network-online.target
+
+[Service]
+Type=simple
+
+# unison's own fsmonitor watches BOTH ends over the ssh channel, so a change on
+# hephaistos crosses in about a second. No polling, no timer, no sleep — the
+# wait ends on the filesystem event itself.
+ExecStart=/usr/bin/unison -repeat watch vault-code
+
+# The ssh channel is the fragile part: hephaistos sleeps, the network drops.
+# Restarting is the recovery path, and unison re-scans on start, so nothing is
+# lost by dying. RestartSec is a reconnect backoff, not a synchronisation delay.
+Restart=always
+RestartSec=30
+
+# Conflicts are left unresolved by the profile and reported here.
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

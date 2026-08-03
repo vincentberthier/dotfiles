@@ -140,6 +140,16 @@ when they are expensive (a long build, a paid call, real wall-clock) or destruct
 a destructive check isn't a check, it's a change. In those two cases, say what it would
 cost and ask.
 
+**Before anything irreversible, verify the signal it keys on — separately, first.** Not the
+command: the _input to the decision_. A rule like "keep the newest" is only as good as the
+timestamps behind it, and "sync these" only as good as which replica is which. When the
+tool offers no dry run, that check is mandatory, not optional — the alternative is using
+your live data as the test. Cheapest form is almost always one read-only comparison across
+both sides, printed before acting. The trap is a signal I _already proved bogus earlier in
+the same session_ and then reused because the instruction was phrased in its terms:
+re-read what I established before, and if the measurement can't support the rule, say so
+and propose one that can, rather than executing it literally on a broken input.
+
 **Hardware is reachable until one command says otherwise.** Never write "pending bench",
 "needs hardware", "on-glass verification pending" or "not possible from here" without
 first running the check: `probe-rs list` for probes, `lsusb -t` for USB, `fd . /dev -d 1

@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Reload and re-enable the vault-code units whenever any of them changes.
+#
+# unit hashes:
+#   vault-code.service      {{ include "private_dot_config/systemd/user/vault-code.service" | sha256sum }}
+#   vault-code.path         {{ include "private_dot_config/systemd/user/vault-code.path" | sha256sum }}
+#   vault-code-heph.service {{ include "private_dot_config/systemd/user/vault-code-heph.service" | sha256sum }}
+#   manifest                {{ include "private_dot_config/vault-code/projects.conf" | sha256sum }}
+
+set -euo pipefail
+
+# Nothing to do on hosts where .chezmoiignore filtered the units out — notably
+# hephaistos, which is a source of documentation, never a projection of it.
+[[ -f "${HOME}/.config/systemd/user/vault-code.service" ]] || exit 0
+
+systemctl --user daemon-reload
+
+systemctl --user enable --now vault-code.path
+systemctl --user enable vault-code.service
+
+# Only gaia reaches hephaistos; athena has no ssh route to it yet.
+#
+# The unison profile is generated from the manifest rather than hand-written, so
+# the two cannot drift: this script re-runs whenever the manifest hash changes.
+if [[ -f "${HOME}/.config/systemd/user/vault-code-heph.service" ]]; then
+	mkdir -p "${HOME}/.unison"
+	"${HOME}/.local/bin/vault-code" unison-profile >"${HOME}/.unison/vault-code.prf"
+	systemctl --user enable vault-code-heph.service
+	systemctl --user restart vault-code-heph.service
+fi
+
+# Project immediately rather than waiting for the next login or repo change.
+systemctl --user start vault-code.service

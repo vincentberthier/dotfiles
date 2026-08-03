@@ -1,0 +1,394 @@
+#!/usr/bin/env bash
+# Project documentation living in code repositories into the Obsidian vault.
+#
+# `Code` folders in the vault are DERIVED content: a projection of the repos this
+# machine already has. They are never synced between machines — every host that
+# has code runs this and projects its own. Design and rationale:
+#   ~/Documents/Perso/Notes/Permanentes/Intégration du code dans le Vault.md
+#
+# Directory symlinks are the mechanism. They survive `git checkout`, agent tools
+# that write via rename(), and `sed -i`, all of which silently break hard links;
+# and new files inside a linked directory appear with no watcher at all.
+#
+# SAFETY INVARIANT: this script only ever creates and removes SYMLINKS, and only
+# inside directories carrying its own marker file. It never deletes a regular
+# file or a real directory in the vault. Deleting a linked note destroys the
+# real file in the repo, so the blast radius is kept to links it owns itself.
+
+set -euo pipefail
+
+readonly VAULT="${VAULT_CODE_VAULT:-$HOME/Documents/Perso}"
+readonly MANIFEST="${VAULT_CODE_MANIFEST:-$HOME/.config/vault-code/projects.conf}"
+readonly MARKER=".vault-code"
+
+DRY_RUN=0
+
+# ---------------------------------------------------------------- diagnostics
+
+info()  { printf '\033[0;34m[INFO]\033[0m %s\n' "$*"; }
+ok()    { printf '\033[0;32m[ OK ]\033[0m %s\n' "$*"; }
+warn()  { printf '\033[0;33m[WARN]\033[0m %s\n' "$*" >&2; }
+die()   { printf '\033[0;31m[FAIL]\033[0m %s\n' "$*" >&2; exit 1; }
+
+act() {
+    if (( DRY_RUN )); then
+        printf '\033[0;35m[DRY ]\033[0m %s\n' "$*"
+        return 0
+    fi
+    "$@"
+}
+
+# ------------------------------------------------------------------- helpers
+
+# Expand a leading ~ and strip a trailing slash. Deliberately not `eval`.
+expand_path() {
+    local p="$1"
+    [[ "$p" == "~"* ]] && p="${HOME}${p#\~}"
+    printf '%s' "${p%/}"
+}
+
+# A source must live outside the vault. Obsidian refuses symlinks whose target
+# overlaps the vault or another link's target, and would silently drop them.
+outside_vault() {
+    local real
+    real="$(realpath -m "$1")"
+    [[ "$real" != "$VAULT" && "$real" != "$VAULT"/* ]]
+}
+
+# ------------------------------------------------------------------ manifest
+
+# Emits `mount<TAB>source<TAB>specs` for each usable manifest entry.
+parse_manifest() {
+    [[ -f "$MANIFEST" ]] || die "no manifest at $MANIFEST"
+
+    local line mount source specs
+    local -i lineno=0
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        lineno+=1
+        line="${line%%#*}"
+        [[ -z "${line// /}" ]] && continue
+
+        IFS='|' read -r mount source specs <<<"$line"
+        mount="$(printf '%s' "$mount" | xargs)"
+        source="$(printf '%s' "$source" | xargs)"
+        specs="$(printf '%s' "$specs" | xargs)"
+
+        if [[ -z "$mount" || -z "$source" || -z "$specs" ]]; then
+            warn "$MANIFEST:$lineno: malformed entry, skipped"
+            continue
+        fi
+        if [[ "$mount" == /* || "$mount" == *..* ]]; then
+            warn "$MANIFEST:$lineno: mount must be relative to the vault, skipped"
+            continue
+        fi
+
+        printf '%s\t%s\t%s\n' "$mount" "$(expand_path "$source")" "$specs"
+    done <"$MANIFEST"
+}
+
+# ----------------------------------------------------------------- reconcile
+
+# Ensure a single symlink at $1 pointing to $2.
+link_to() {
+    local link="$1" target="$2"
+
+    if [[ -L "$link" ]]; then
+        [[ "$(readlink "$link")" == "$target" ]] && return 0
+        act rm -f "$link"
+    elif [[ -e "$link" ]]; then
+        warn "not a symlink, refusing to touch: $link"
+        return 0
+    fi
+
+    act ln -s "$target" "$link"
+    (( DRY_RUN )) || ok "linked ${link#"$VAULT"/} -> $target"
+}
+
+# Remove symlinks under a managed mount that the manifest no longer names, and
+# any that have gone dangling. Regular files and real directories are left alone.
+prune_mount() {
+    local mount_dir="$1"; shift
+    local -a wanted=("$@")
+    local entry name w found
+
+    [[ -f "$mount_dir/$MARKER" ]] || return 0
+
+    for entry in "$mount_dir"/*; do
+        [[ -L "$entry" ]] || continue
+        name="$(basename "$entry")"
+
+        found=0
+        for w in "${wanted[@]}"; do
+            [[ "$name" == "$w" ]] && { found=1; break; }
+        done
+
+        if (( ! found )); then
+            act rm -f "$entry"
+            info "removed link no longer in manifest: ${entry#"$VAULT"/}"
+        elif [[ ! -e "$entry" ]]; then
+            act rm -f "$entry"
+            info "removed dangling link: ${entry#"$VAULT"/}"
+        fi
+    done
+}
+
+reconcile() {
+    local mount source specs mount_dir spec subdir name
+    local -a wanted
+    local -i mounts=0 skipped=0
+
+    while IFS=$'\t' read -r mount source specs; do
+        mount_dir="$VAULT/$mount"
+
+        if [[ ! -d "$source" ]]; then
+            # Normal on a host that doesn't have this repo: drop the projection
+            # rather than leaving stale links behind.
+            if [[ -f "$mount_dir/$MARKER" ]]; then
+                prune_mount "$mount_dir"
+                act rmdir --ignore-fail-on-non-empty "$mount_dir" 2>/dev/null || true
+            fi
+            skipped+=1
+            continue
+        fi
+
+        if ! outside_vault "$source"; then
+            warn "source is inside the vault, skipped: $source"
+            skipped+=1
+            continue
+        fi
+
+        act mkdir -p "$mount_dir"
+        act touch "$mount_dir/$MARKER"
+
+        wanted=()
+        IFS=',' read -ra specs_arr <<<"$specs"
+        for spec in "${specs_arr[@]}"; do
+            spec="$(printf '%s' "$spec" | xargs)"
+            [[ -z "$spec" ]] && continue
+
+            subdir="${spec%%=*}"
+            name="${spec#*=}"
+            [[ "$name" == "$spec" ]] && name="$(basename "$subdir")"
+
+            # A link whose name starts with a dot is invisible in Obsidian, which
+            # is precisely the content most worth surfacing (.claude/plans …).
+            if [[ "$name" == .* ]]; then
+                warn "link name would be hidden in Obsidian, skipped: $name"
+                continue
+            fi
+
+            if [[ ! -d "$source/$subdir" ]]; then
+                continue
+            fi
+
+            wanted+=("$name")
+            link_to "$mount_dir/$name" "$source/$subdir"
+        done
+
+        wanted+=("$MARKER")
+        prune_mount "$mount_dir" "${wanted[@]}"
+        mounts+=1
+    done < <(parse_manifest)
+
+    info "reconciled $mounts mount(s), skipped $skipped"
+}
+
+# -------------------------------------------------------------------- status
+
+status() {
+    local mount source specs mount_dir entry
+    local -i live=0 dead=0 absent=0
+
+    while IFS=$'\t' read -r mount source specs; do
+        mount_dir="$VAULT/$mount"
+
+        if [[ ! -d "$source" ]]; then
+            printf '  \033[0;33m%-44s\033[0m (source absent on this host)\n' "$mount"
+            absent+=1
+            continue
+        fi
+
+        [[ -d "$mount_dir" ]] || continue
+        for entry in "$mount_dir"/*; do
+            [[ -L "$entry" ]] || continue
+            if [[ -e "$entry" ]]; then
+                printf '  \033[0;32m%-44s\033[0m -> %s\n' "${entry#"$VAULT"/}" "$(readlink "$entry")"
+                live+=1
+            else
+                printf '  \033[0;31m%-44s\033[0m -> %s (DANGLING)\n' "${entry#"$VAULT"/}" "$(readlink "$entry")"
+                dead+=1
+            fi
+        done
+    done < <(parse_manifest)
+
+    printf '\n%d live link(s), %d dangling, %d project(s) absent from this host\n' \
+        "$live" "$dead" "$absent"
+}
+
+# -------------------------------------------------------------------- detect
+
+# Emit candidate manifest lines for repositories under ~/code.
+#
+# The rule PROPOSES, it does not decide — ownership is not always derivable from
+# a remote. `keysas` is mine while its remote still points at the upstream org,
+# and becoming a maintainer never changes the URL. Review the output by hand.
+#
+# A repository is `.git` OR `.jj`: several of mine are jj-only, and testing for
+# `.git` alone silently discards them.
+detect() {
+    local root="${1:-$HOME/code}"
+    local dir name remote owner vcs
+
+    printf '# candidates generated from %s on %s\n' "$root" "$(date +%F)"
+    printf '# review by hand: a third-party remote is a hint, never a verdict\n\n'
+
+    for dir in "$root"/*/; do
+        dir="${dir%/}"
+        name="$(basename "$dir")"
+
+        vcs=""
+        [[ -e "$dir/.git" ]] && vcs="git"
+        [[ -e "$dir/.jj" ]] && vcs="${vcs:+$vcs+}jj"
+        [[ -z "$vcs" ]] && continue
+
+        remote="$(git -C "$dir" remote get-url origin 2>/dev/null || true)"
+        if [[ -z "$remote" ]]; then
+            remote="$(jj -R "$dir" git remote list 2>/dev/null | awk '$1=="origin"{print $2; exit}' || true)"
+        fi
+
+        owner="mine"
+        if [[ -n "$remote" ]] \
+            && ! grep -qiE '(github\.com[:/]|gitlab[^/]*[:/])(vincentberthier|bangk-org|tyrex-vberthier)' <<<"$remote"; then
+            owner="third-party?"
+        fi
+
+        printf '# %-26s vcs=%-7s owner=%-13s %s\n' "$name" "$vcs" "$owner" "${remote:-(no remote)}"
+    done
+}
+
+# ------------------------------------------------------------ unison profile
+
+# Does the VCS already carry this directory across machines?
+#
+# The test is "has tracked files", not "is gitignored". A directory that is
+# neither tracked nor ignored still travels by no other means, so unison must
+# take it; keying on the ignore rule alone would strand it. Conventions differ
+# per repository — t-scanner gitignores .claude/plans, t-gate tracks it.
+#
+# Tracked content (docs/, working/, reference/, and t-gate's plans) already
+# moves through git/jj. Syncing it here as well would put two writers on the
+# same files.
+vcs_carries() {
+    local repo="$1" rel="$2"
+    [[ -n "$(git -C "$repo" ls-files "$rel" 2>/dev/null | head -1)" ]]
+}
+
+# Emit a unison profile syncing only the scratch directories of repositories
+# that exist on both this host and hephaistos.
+unison_profile() {
+    local local_root="${VAULT_CODE_HEPH_LOCAL:-$HOME/code/tyrex}"
+    local remote_root="${VAULT_CODE_HEPH_REMOTE:-ssh://hephaistos//home/vincent/code/tyrex}"
+    local mount source specs spec subdir rel
+    local -i paths=0
+
+    cat <<EOF
+# Generated by \`vault-code unison-profile\` on $(date +%F). Do not edit:
+# regenerate instead, or the manifest and this file will drift apart.
+#
+# Bidirectional, event-driven via unison-fsmonitor on both ends. Conflicts are
+# deliberately left UNRESOLVED rather than settled by mtime — these files land
+# in git repositories, so a silent overwrite is worse than a stalled file.
+
+root = $local_root
+root = $remote_root
+
+auto = true
+batch = true
+maxthreads = 4
+
+# \`times\` and \`prefer = newer\` are a package deal — enabling one without the
+# other is a trap. Without \`times\`, unison stamps each copied file with the
+# local write time, so "newest" degenerates into "whichever side unison touched
+# last": circular, and it silently favours the wrong replica. With \`times\`,
+# mtimes cross the wire and the comparison reflects real edits.
+#
+# \`times\` alone would flag every identical file with a differing timestamp as a
+# properties conflict (58 of them on the first run here, byte-identical on both
+# hosts). \`prefer = newer\` settles those too, which is what makes the pair work.
+times = true
+prefer = newer
+sshargs = -o BatchMode=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=3
+
+EOF
+
+    while IFS=$'\t' read -r mount source specs; do
+        [[ "$source" == "$local_root"/* ]] || continue
+        [[ -d "$source" ]] || continue
+        rel="${source#"$local_root"/}"
+
+        IFS=',' read -ra specs_arr <<<"$specs"
+        for spec in "${specs_arr[@]}"; do
+            spec="$(printf '%s' "$spec" | xargs)"
+            subdir="${spec%%=*}"
+            vcs_carries "$source" "$subdir" && continue
+
+            # `unison -repeat watch` refuses to start if any path is missing on
+            # this side — fsmonitor has to watch it — so a project whose plans
+            # have only ever been written on hephaistos would crash-loop the
+            # service instead of syncing. Creating the empty directory here is
+            # what breaks that chicken-and-egg; unison then fills it. Empty
+            # directories are invisible to git and jj, so this touches nothing.
+            [[ -d "$source/$subdir" ]] || mkdir -p "$source/$subdir"
+
+            printf 'path = %s\n' "$rel/$subdir"
+            paths+=1
+        done
+    done < <(parse_manifest)
+
+    printf '\n# %d scratch director%s synchronised\n' \
+        "$paths" "$([[ $paths -eq 1 ]] && echo y || echo ies)"
+}
+
+# ---------------------------------------------------------------------- main
+
+usage() {
+    cat <<EOF
+usage: vault-code [--dry-run] <command>
+
+  reconcile        create/refresh the symlinks named by the manifest (default)
+  status           show every managed link and whether it resolves
+  detect           print candidate manifest lines for repositories under ~/code
+  unison-profile   emit the unison profile for the hephaistos scratch sync
+                   (creates any missing scratch directory it names, so that
+                   \`unison -repeat watch\` can start)
+
+  manifest: $MANIFEST
+  vault:    $VAULT
+EOF
+}
+
+main() {
+    local cmd="reconcile"
+
+    while (( $# )); do
+        case "$1" in
+            --dry-run|-n) DRY_RUN=1 ;;
+            -h|--help)    usage; exit 0 ;;
+            reconcile|status|detect|unison-profile) cmd="$1" ;;
+            *) die "unknown argument: $1" ;;
+        esac
+        shift
+    done
+
+    [[ -d "$VAULT" ]] || die "vault not found: $VAULT"
+
+    case "$cmd" in
+        reconcile)      reconcile ;;
+        status)         status ;;
+        detect)         detect ;;
+        unison-profile) unison_profile ;;
+    esac
+}
+
+main "$@"

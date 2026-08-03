@@ -1,0 +1,17 @@
+[Unit]
+Description=Project code documentation into the Obsidian vault
+Documentation=file:%h/Documents/Perso/Notes/Permanentes/Intégration du code dans le Vault.md
+ConditionPathIsDirectory=%h/Documents/Perso
+ConditionPathExists=%h/.config/vault-code/projects.conf
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/vault-code reconcile
+
+# No ordering against Obsidian is needed. A dangling symlink makes Obsidian's
+# reconcileSymbolicLinkCreation take an early return: realpath() throws and the
+# entry is dropped silently, with no error and no crash. Verified both in the
+# shipped obsidian.asar and empirically on a throwaway vault.
+
+[Install]
+WantedBy=default.target

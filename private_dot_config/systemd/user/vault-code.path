@@ -1,0 +1,16 @@
+[Unit]
+Description=Re-project code documentation when repositories or the manifest change
+ConditionPathIsDirectory=%h/Documents/Perso
+
+[Path]
+# The real signal, not a clock: a repository appearing or disappearing changes
+# the mtime of the directory holding it. Nested roots are listed explicitly
+# because inotify on a directory does not recurse.
+PathChanged=%h/code
+PathChanged=%h/code/tyrex
+PathChanged=%h/Projets
+PathChanged=%h/.config/vault-code/projects.conf
+Unit=vault-code.service
+
+[Install]
+WantedBy=default.target

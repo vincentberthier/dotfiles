@@ -22,4 +22,17 @@ Paths are relative to the target directory (home), not the source tree.
 .local/bin/stream-hephaistos
 .local/bin/mount-hephaistos
 .local/bin/umount-hephaistos
+{{/* Only gaia has an ssh route to hephaistos; athena will get one with the
+     DynDNS, and this line is what to delete when it does. */}}
+.config/systemd/user/vault-code-heph.service
+{{ end }}
+
+{{/* Projecting code into the vault is for the machines that read notes, not for
+     the one that produces them. hephaistos is a source, never a projection. */}}
+{{ if eq .chezmoi.hostname "hephaistos" }}
+.local/bin/vault-code
+.config/vault-code
+.config/systemd/user/vault-code.service
+.config/systemd/user/vault-code.path
+.config/systemd/user/vault-code-heph.service
 {{ end }}
