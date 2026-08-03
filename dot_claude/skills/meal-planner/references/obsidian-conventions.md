@@ -12,6 +12,7 @@ Projets/Meal-Plan/
 ├── Recettes/                    # Fiches recettes complètes (technique, sources)
 ├── Assemblages/                 # Fiches d'assemblage légères (ingrédients + 3-4 étapes)
 ├── Fonds-de-placard.md          # Inventaire des ingrédients de base
+├── Liste de courses.md          # Boîte de réception : notes d'achat libres de l'utilisateur
 ├── Semaine-YYYY-WNN.md          # Plan hebdomadaire (ex: Semaine-2026-W06.md)
 ├── Courses-YYYY-WNN.md          # Liste de courses pour cette période
 └── Archive/                     # Plans précédents déplacés ici
@@ -75,6 +76,12 @@ Notes :
 ```
 
 - Section **Notes** : optionnelle, pour astuces de conservation, variantes, ou accompagnements alternatifs.
+- **Niveaux de cuisson** : toute étape à la poêle indique le niveau **fryingSensor** (1 à 5) plutôt
+  qu'un « feu moyen-vif » vague — le niveau de la table aliment → niveau du matériel fait foi. Les
+  étapes sans correspondance (cuisson à l'eau, four, cuisson à couvert, sauce montée sous 120 °C) le
+  disent explicitement : « pas de fryingSensor ». Voir la note `Matériel` du projet pour la table et
+  les contraintes (poêle vide au départ, aliment au bip, pas de couvercle, beurre et huile d'olive
+  vierge extra plafonnés au niveau 2).
 - Section **Sources** : obligatoire. Lien(s) vers la ou les recettes en ligne ayant servi de référence ou correspondance proche. Permet à l'utilisateur de consulter l'original et d'adapter.
 
 ## Format des Fiches d'Assemblage (dans `Assemblages/`)
@@ -102,6 +109,8 @@ Règles :
 - Limité à **2 sections** : `# Ingrédients` et `# Préparation`.
 - Ingrédients : liste sans quantités précises (ou très approximatives), pas de kcal par ligne.
 - Préparation : **3-4 étapes** maximum, courtes (max ~15 mots).
+- Niveau de cuisson en forme courte : `**fryingSensor 3**` inséré dans l'étape, sans citer la
+  température ni la ligne de la notice — les explications restent dans les fiches recette complètes.
 - **Pas** de section Notes, Sources, ni validation Ciqual détaillée.
 - `calories-approx` dans le frontmatter reste indicatif (estimation globale, pas validée Ciqual).
 
@@ -142,7 +151,9 @@ Le cycle va du **mercredi au mardi suivant**. `NN` est la semaine ISO du mercred
 
 Le mercredi est à la fois jour de course, jour de sport et premier jour du cycle → son dîner doit être rapide.
 
-Les produits très périssables (poisson frais, salade, herbes fraîches) se placent sur **mercredi–vendredi**. Lundi et mardi reposent sur des ingrédients robustes : conserves, surgelés, œufs, féculents, légumes racines, fromage.
+**Le déjeuner du mercredi se prend avant la course** (faite l'après-midi) : il ne peut donc utiliser aucun ingrédient de la liste de courses du cycle. Il repose sur le congélateur, les conserves ou le fonds de placard. Ses ingrédients ont été achetés la semaine précédente, marqués `(déj. mercredi prochain)` dans la liste de courses du cycle précédent.
+
+Les produits très périssables (poisson frais, salade, herbes fraîches) se placent sur **mercredi–vendredi**. La fin de cycle repose sur des ingrédients robustes (conserves, surgelés, œufs, féculents, légumes racines, fromage) — sauf si `CLAUDE.md` documente un second point d'appro confirmé en cours de semaine, auquel cas la seconde moitié du cycle peut s'appuyer sur du frais racheté.
 
 Notes sur le format du plan :
 
@@ -169,6 +180,11 @@ Le fichier courses couvre **un seul cycle de 7 jours** et **une seule course**, 
 Structure : les articles sont regroupés **par rayon**, dans l'ordre d'un parcours de supermarché, pour une course en une passe.
 
 Pas de section « fonds de placard à vérifier ». Croiser directement avec `Fonds-de-placard.md` pendant la génération et ajouter à la liste ce qui manque réellement, dans le rayon correspondant.
+
+Deux catégories d'articles s'ajoutent aux ingrédients des repas du cycle, toutes deux placées **dans leur rayon normal**, jamais dans une rubrique à part :
+
+- Les lignes reprises de `Liste de courses.md`, telles quelles, sans marqueur de vérification.
+- Ce qui couvre le **déjeuner du mercredi suivant** (pris avant la course de la semaine d'après), suffixé `(déj. mercredi prochain)`.
 
 ```markdown
 # Courses — Semaine NN (mercredi DD/MM)
@@ -202,6 +218,7 @@ Pas de section « fonds de placard à vérifier ». Croiser directement avec `Fo
 ## Surgelés
 
 - [ ] 1 sachet de haricots verts 750 g
+- [ ] 1 sachet de poisson pané (déj. mercredi prochain)
 - [ ] ...
 
 ## Boulangerie
@@ -210,6 +227,21 @@ Pas de section « fonds de placard à vérifier ». Croiser directement avec `Fo
 ```
 
 Omettre les rayons vides. Ne pas créer de rubrique pour un rayon sans article.
+
+## Format de `Liste de courses.md`
+
+Fichier libre, tenu par l'utilisateur entre deux cycles. Pas de frontmatter imposé, pas de rayons, pas de quantités : une idée d'achat par ligne, écrite au fil de l'eau.
+
+```markdown
+Thym
+Huile d'olive
+Moutarde à l'ancienne
+Farines
+```
+
+- **Lecture obligatoire** à chaque génération. Chaque ligne part dans le rayon correspondant de `Courses-YYYY-WNN.md`, sans marqueur `(placard ?)` : la demande est explicite, donc confirmée.
+- **Vider le fichier** une fois les lignes reportées (conserver le frontmatter s'il y en a un). C'est une boîte de réception, pas un historique.
+- Ne jamais y écrire soi-même : c'est le canal de l'utilisateur vers le planificateur, pas l'inverse.
 
 ## Format du Fonds de Placard (Fonds-de-placard.md)
 

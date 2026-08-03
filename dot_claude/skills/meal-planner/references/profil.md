@@ -37,21 +37,23 @@
 
 # Contraintes Pratiques
 
-| Contrainte                 | Valeur                                                                                                      |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Temps de préparation moyen | 15-20 min                                                                                                   |
-| Temps de préparation max   | 30 min (exceptionnel)                                                                                       |
-| Batch cooking / meal prep  | Non                                                                                                         |
-| Capacité congélation       | Faible (quelques portions max)                                                                              |
-| Courses                    | Une seule par semaine, le mercredi, en supermarché. Tout y est acheté : frais, secs, conserves, surgelés    |
-| Transport des courses      | Pas de contrainte de volume ni de poids                                                                     |
-| Marchés locaux             | Éventuellement vendredi après-midi (à confirmer). Samedi matin improbable. Ne rien planifier qui en dépende |
-| Lieu des repas             | Domicile                                                                                                    |
+| Contrainte                 | Valeur                                                                                                                                                                                  |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Temps de préparation moyen | 15-20 min                                                                                                                                                                               |
+| Temps de préparation max   | 30 min (exceptionnel)                                                                                                                                                                   |
+| Batch cooking / meal prep  | Non                                                                                                                                                                                     |
+| Capacité congélation       | Faible (quelques portions max)                                                                                                                                                          |
+| Courses                    | Une seule par semaine, le mercredi **après-midi**, en supermarché. Tout y est acheté : frais, secs, conserves, surgelés                                                                 |
+| Transport des courses      | Pas de contrainte de volume ni de poids                                                                                                                                                 |
+| Marchés locaux             | Voir `CLAUDE.md` du projet. Si un second point d'appro y est documenté comme confirmé et fiable, on peut planifier des repas qui en dépendent ; sinon, ne rien planifier qui en dépende |
+| Lieu des repas             | Domicile                                                                                                                                                                                |
 
 - Cycle de planification : **mercredi → mardi suivant**.
 - Prévoir des quantités facilement partitionnables, consommées entièrement sur le cycle de 7 jours.
 - Exception : épices, bouillon, huile, moutarde, etc. (fonds de placard).
-- Une seule course en début de cycle → placer les produits très périssables (poisson frais, salade, herbes) sur mercredi–vendredi, et réserver lundi/mardi aux ingrédients robustes.
+- Une seule course en début de cycle → placer les produits très périssables (poisson frais, salade, herbes) sur mercredi–vendredi, et réserver la fin de cycle aux ingrédients robustes (sauf second point d'appro confirmé dans `CLAUDE.md`).
+- La course se fait le mercredi **après-midi** : le déjeuner du mercredi est pris avant, et ne peut donc rien utiliser de la liste de courses du cycle. Il se compose de stock (surgelés, conserves, placard) acheté la semaine précédente.
+- Notes d'achat : `Liste de courses.md` à la racine du projet recense ce que Vincent veut acheter. À lire à chaque génération, à reporter intégralement dans la liste de courses, puis à vider.
 
 # Équipement de Cuisson
 

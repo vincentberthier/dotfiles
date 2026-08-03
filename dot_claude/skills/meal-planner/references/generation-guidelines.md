@@ -70,6 +70,16 @@ S'il faut une vraie procédure ou des proportions précises → **recette**.
 - Target: **600-800 kcal** per dinner.
 - Typical prep time: **15-25 min**, 30 min maximum.
 
+### Wednesday Lunch — Eaten Before the Shopping Trip
+
+The weekly shop happens **Wednesday afternoon**. Wednesday lunch is eaten **before** it.
+
+- Wednesday lunch may use **nothing** from the current cycle's grocery list. Nothing on that list exists in the kitchen yet.
+- Build it from **frozen goods, canned goods, pantry staples**, or an item bought during the previous week's shop.
+- Every grocery list therefore also covers the **following** Wednesday's lunch. Mark those lines `(déj. mercredi prochain)` in their aisle, and pick items robust enough to still be good after 7 days — or frozen.
+- This is also the natural slot to use up whatever remains from the cycle that just ended, but never _plan_ it on leftovers: the menu must be writable a week ahead.
+- Keep it simple. Wednesday already stacks sport, the shopping trip and the start of the cycle.
+
 ### Sport Day (Wednesday by Default)
 
 - Add an **extra whole-grain starch** or increase starch portion size.
@@ -136,11 +146,25 @@ There is **one shopping trip per cycle**, on Wednesday, at a regular supermarket
 
 Omit empty aisles. Do **not** add a "pantry staples to verify" section — cross-check `Fonds-de-placard.md` during generation and put what is genuinely missing straight into its aisle.
 
-**Freshness rule**: with a single Wednesday trip, everything must survive up to 7 days. Schedule the most perishable items (fresh fish, salad greens, soft herbs, fresh mushrooms) on **Wednesday–Friday**. Reserve Monday and Tuesday for robust ingredients: canned goods, frozen items, eggs, dry starches, root vegetables, hard cheese, cured items.
+**Wednesday lunch**: the trip happens Wednesday afternoon, so the list must also carry the ingredients for the **following** Wednesday's lunch. Put them in their normal aisle with the suffix `(déj. mercredi prochain)`. See § _Wednesday Lunch — Eaten Before the Shopping Trip_.
+
+**Freshness rule**: with a single Wednesday trip, everything must survive up to 7 days. Schedule the most perishable items (fresh fish, salad greens, soft herbs, fresh mushrooms) on **Wednesday–Friday**. Reserve the tail of the cycle for robust ingredients: canned goods, frozen items, eggs, dry starches, root vegetables, hard cheese, cured items.
 
 **No car constraint**: volume and weight are unrestricted, so the full week can be bought in one go without arbitrating what fits in a backpack.
 
-**Local markets**: possibly Friday afternoon (unconfirmed), Saturday morning unlikely. Never plan a meal that depends on a market purchase.
+**Local markets**: check the project's `CLAUDE.md` for a confirmed second supply point (market, local producer) and its day and hours. If one is documented as tested and reliable, the second half of the cycle may lean on it and meals **may** depend on it, within the categories it actually carries. If none is documented, or the market is unconfirmed, never plan a meal that depends on a market purchase.
+
+### Notes d'achat de l'utilisateur (`Liste de courses.md`)
+
+`Liste de courses.md` sits at the root of the project folder. It is a free-form inbox where the user jots down, during the week, whatever they want to buy — one item per line, no quantities, no aisle, sometimes plural and vague ("Farines").
+
+Rules:
+
+1. **Read it at every generation** and fold **every** line into `Courses-YYYY-WNN.md`, in the matching aisle. Nothing gets dropped, even if the item serves no planned meal — the user wants it regardless.
+2. **Never mark those lines `(placard ?)`** or any other verify-first marker. The user wrote them down: the need is confirmed. The marker exists for items _inferred_ by the planner, not for items requested by name.
+3. **Quantity**: if the line gives none, buy the obvious standard unit (one bottle, one jar, one bunch). For a vague plural ("Farines"), keep the plural in the list (`Farines — blé T55 + sarrasin`) and pick the two or three types the cycle's recipes actually need, or the household staples if no recipe uses them.
+4. **Reuse them in the menus** whenever it makes sense: an item on that list is a hint about what the user feels like eating. Do not force it, though — no artificial meal built just to use up a requested item.
+5. **Empty the file** once every line has been transferred, and list in the final summary what was taken and where it landed. The file is an inbox, not an archive.
 
 ### Grocery Aggregation
 
@@ -195,13 +219,15 @@ This is a sanity check, not a precise audit. The goal is to catch major errors (
 When generating a new plan, follow these steps in order:
 
 1. **Read** `Fonds-de-placard.md` to know current pantry stock.
-2. **Read** existing recipes and their ratings (if present):
+2. **Read** `Liste de courses.md` — the user's shopping notes for this cycle.
+3. **Read** existing recipes and their ratings (if present):
    - **Exclude** poorly rated recipes (rating ≤ 2).
    - **Favor** well-rated recipes (rating ≥ 4).
-3. **Archive** previous plans and grocery lists into `Archive/`.
-4. **Generate** the new plan, reusing existing recipes when possible and creating new ones only as needed.
-5. **Generate** the new grocery list, accounting for current pantry stock.
-6. **Update** `Fonds-de-placard.md` if any pantry staples need to be purchased.
+4. **Archive** previous plans and grocery lists into `Archive/`.
+5. **Generate** the new plan, reusing existing recipes when possible and creating new ones only as needed. Wednesday's lunch comes from stock, never from this cycle's list.
+6. **Generate** the new grocery list, accounting for current pantry stock, folding in every line of `Liste de courses.md`, and covering next Wednesday's lunch.
+7. **Empty** `Liste de courses.md` once its lines are transferred.
+8. **Update** `Fonds-de-placard.md` if any pantry staples need to be purchased.
 
 ---
 

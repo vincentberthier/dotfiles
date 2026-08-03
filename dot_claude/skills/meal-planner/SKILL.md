@@ -34,6 +34,7 @@ Lire les 4 fichiers de référence avant toute génération.
 ├── Assemblages/             # Fiches d'assemblage légères (ingrédients + 3-4 étapes)
 ├── Archive/
 ├── Fonds-de-placard.md
+├── Liste de courses.md      # Boîte de réception : notes d'achat libres de l'utilisateur
 ├── Semaine-YYYY-WNN.md
 └── Courses-YYYY-WNN.md
 ```
@@ -45,10 +46,11 @@ Lire les 4 fichiers de référence avant toute génération.
 1. Lire les 4 fichiers de référence
 2. Lire `CLAUDE.md` dans le dossier du projet pour le contexte spécifique (logistique courses, données caloriques vérifiées, leçons des cycles précédents)
 3. Lire `Fonds-de-placard.md` pour connaître le stock actuel
-4. Lire `Matériel.md` — **aucune recette ne doit exiger un ustensile ou un appareil absent de cette liste**. Vérifier avant d'écrire une fiche, pas après. Un blender, un robot, une râpe, un fouet électrique, un mixeur plongeant ne sont acquis que s'ils y figurent
-5. Lire les recettes existantes dans `Recettes/` et les assemblages dans `Assemblages/` — noter les `note:` pour favoriser les bien notés (≥ 4) et exclure les mal notés (≤ 2)
-6. Identifier la saison courante (date du jour)
-7. Identifier le mercredi de départ du cycle et le numéro de semaine ISO correspondant
+4. Lire `Liste de courses.md` — boîte de réception où l'utilisateur note au fil de l'eau ce qu'il veut acheter. Chaque ligne doit se retrouver dans la liste de courses du cycle (voir § _Notes d'achat de l'utilisateur_ dans `generation-guidelines.md`)
+5. Lire `Matériel.md` — **aucune recette ne doit exiger un ustensile ou un appareil absent de cette liste**. Vérifier avant d'écrire une fiche, pas après. Un blender, un robot, une râpe, un fouet électrique, un mixeur plongeant ne sont acquis que s'ils y figurent
+6. Lire les recettes existantes dans `Recettes/` et les assemblages dans `Assemblages/` — noter les `note:` pour favoriser les bien notés (≥ 4) et exclure les mal notés (≤ 2)
+7. Identifier la saison courante (date du jour)
+8. Identifier le mercredi de départ du cycle et le numéro de semaine ISO correspondant
 
 ### Étape 2 : Concevoir les menus
 
@@ -70,8 +72,9 @@ Dans cet ordre :
    - **Assemblage** (procédure simple, aide-mémoire) → fichier dans `Assemblages/`, format réduit (voir `obsidian-conventions.md` § Format des Fiches d'Assemblage).
    - **Repas trivial** (composition évidente) → pas de fichier, juste lister les composants dans le plan hebdomadaire.
 3. **Créer le fichier de plan hebdomadaire** (`Semaine-YYYY-WNN.md`, `NN` = semaine ISO du mercredi de départ)
-4. **Créer le fichier de courses** (`Courses-YYYY-WNN.md`) couvrant le cycle — une seule course, le mercredi
-5. **Mettre à jour `Fonds-de-placard.md`** si des articles du fonds de placard manquent
+4. **Créer le fichier de courses** (`Courses-YYYY-WNN.md`) couvrant le cycle — une seule course, le mercredi. Y reporter les lignes de `Liste de courses.md` et le déjeuner du mercredi suivant
+5. **Vider `Liste de courses.md`** — une fois chaque ligne reportée dans son rayon, remettre le fichier à vide (frontmatter conservé s'il en a un). C'est une boîte de réception : elle repart blanche pour le cycle suivant
+6. **Mettre à jour `Fonds-de-placard.md`** si des articles du fonds de placard manquent
 
 Respecter scrupuleusement les formats définis dans `obsidian-conventions.md`.
 
@@ -87,6 +90,7 @@ Présenter à l'utilisateur :
 - Les points nutritionnels clés (calories approximatives, répartition protéines)
 - Le nombre de recettes créées / réutilisées
 - Les articles à acheter / vérifier
+- Les lignes reprises de `Liste de courses.md` et le rayon où chacune a atterri (le fichier ayant été vidé, c'est la seule trace de ce qui a été repris)
 - **Rapport de validation Ciqual** : tableau des recettes vérifiées avec estimation initiale, valeur Ciqual de référence, écart, et ajustement éventuel
 
 ## Workflow secondaire — Modifier le plan
@@ -117,7 +121,8 @@ Si l'utilisateur signale des changements de stock :
 - **Pas de batch cooking** : chaque repas se prépare indépendamment
 - **Congélation** : limitée à quelques portions maximum
 - **Jour de sport** : mercredi par défaut, marqué ⚡ dans le plan. Le mercredi cumule course + sport + début de cycle → prévoir un dîner rapide ce jour-là
-- **Fraîcheur en fin de cycle** : une seule course le mercredi, donc les produits les plus périssables (poisson frais, salade, herbes) se placent en début de cycle (mer–ven). Lundi et mardi reposent sur des ingrédients robustes (conserves, surgelés, œufs, féculents, légumes racines, fromage)
+- **Déjeuner du mercredi : avant la course.** La course se fait le mercredi après-midi ; le déjeuner du mercredi est donc pris **avant**. Il ne peut utiliser **aucun** ingrédient de la liste de courses du cycle en cours. Il se compose de surgelés, conserves, fonds de placard, ou d'un article robuste acheté la semaine précédente. En contrepartie, chaque liste de courses inclut de quoi couvrir le déjeuner du mercredi **suivant**, marqué `(déj. mercredi prochain)`
+- **Fraîcheur** : deux points d'appro possibles selon le contexte projet (voir `CLAUDE.md`). Par défaut, avec la seule course du mercredi, les produits les plus périssables (poisson frais, salade, herbes) se placent en début de cycle (mer–ven) et la fin de cycle repose sur des ingrédients robustes (conserves, surgelés, œufs, féculents, légumes racines, fromage). Si `CLAUDE.md` documente un second point d'appro confirmé en cours de semaine (marché, producteur), la seconde moitié du cycle peut s'appuyer dessus et des repas peuvent en dépendre
 - **Induction avec fryingSensor** : la plaque régule la température de la poêle. Les cuissons à la poêle exigeantes (saisie, réduction, sauce montée) sont réalistes — ne pas les éviter par prudence
 - **Petit-déjeuner** : pris en compte dans le budget calorique (~400-500 kcal) mais non planifié
 - **Collations** : fruits (raisin, clémentines, poires) ou oléagineux si mentionnés, non planifiés
