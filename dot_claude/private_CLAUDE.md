@@ -363,7 +363,10 @@ not finished, and unfinished work is not pushed and not opened as an MR. Publish
 inverts the loop under _Scope_: it spends my review budget on a changeset whose shape I
 have not agreed to, and whatever I then rule against has to be un-published rather than
 never written. Stop at the last point where every remaining step is unambiguous, report the
-finding, and wait. Never ask permission to push anyway.
+finding, and wait. Never ask permission to push anyway — and when a push question is
+legitimate because nothing else is open, it is the LAST item in the list, never the first:
+asked above an open decision it reads as "shall I publish this before you have ruled?", which
+is the one thing this paragraph forbids.
 
 Worst of all is **prose defending the provisional choice** — a code comment or a doc
 paragraph that justifies what you kept _because_ the decision is still open. It reads as
