@@ -9,15 +9,22 @@ recipe — one that runs the host-side `flash-guard.sh` preflight and never esca
 dead AP). Everything else is blocked. This hook enforces the runtime half so safety
 does not depend on the agent's recall.
 
-ACTIVATION IS PER-REPO, and no repo wires it today. Verified 2026-08-03: this file is
-referenced by no `~/.claude/settings.json`, no `~/.claude/remote-settings.json`, no
-`<repo>/.claude/settings.json` under ~/code/tyrex, and no plugin. The policy below
-therefore describes how the hook behaves WHEN a repo wires it — not what is being
-enforced right now, which is nothing. The repos doing EVK work are the ones meant to
-opt in (they already wire their own hooks via `$CLAUDE_PROJECT_DIR/.claude/hooks/`);
-until one does, the probe rules there rest on the `imxrt-evk-flashing` skill and
-CLAUDE.md alone, i.e. on recall. Note that several repo CLAUDE.mds call this "the
-GLOBAL block-probe-rs hook", which is agent-written and does not match the wiring.
+DORMANT, AND SWITCHED OFF FOR CAUSE. Proven 2026-08-03: nothing references this file —
+not `~/.claude/settings.json` (and no commit in its chezmoi history ever did), not
+`remote-settings.json`, not any `<repo>/.claude/settings.json` under ~/code/tyrex, not
+any plugin. So the policy below is aspirational: it says what the hook WOULD do, not
+what is enforced, which is nothing.
+
+Vincent's recollection (2026-08-03) is that this and `sigint-guard.sh` were both turned
+off for being too annoying and for not actually catching what they were meant to catch.
+He was explicitly unsure, and since no tracked config ever wired them the reason is
+recollection, not record. Either way: DO NOT re-enable this reflexively. It was
+disabled because it misfired, and a false-positive-heavy probe guard is worse than
+none — it trains the agent to route around the guard. If probe safety needs enforcing
+again, fixing the misfires is the prerequisite, not the follow-up.
+
+Several repo CLAUDE.mds and `flash-guard.sh` headers still assert that a "global
+block-probe-rs hook" is active. That is agent-written and contradicted by the wiring.
 
 Policy — BLOCK when:
   1. `probe-rs` runs at a COMMAND POSITION — direct, after a shell operator
