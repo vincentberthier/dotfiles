@@ -9,6 +9,14 @@ recipe — one that runs the host-side `flash-guard.sh` preflight and never esca
 dead AP). Everything else is blocked. This hook enforces the runtime half so safety
 does not depend on the agent's recall.
 
+NOT CURRENTLY ACTIVE, ON PURPOSE. This file is deliberately not referenced from
+settings.json, so none of the policy below is being enforced right now — it describes
+how the hook behaves when wired, not how it is wired today. Confirmed intentional by
+Vincent on 2026-08-03, alongside the same call on `sigint-guard.sh`. Do not "fix" this
+by putting it back in the hooks block, and do not report it as broken. While it is
+dormant, the probe rules live only in the `imxrt-evk-flashing` skill and CLAUDE.md —
+i.e. they depend on recall again, which is the tradeoff being accepted.
+
 Policy — BLOCK when:
   1. `probe-rs` runs at a COMMAND POSITION — direct, after a shell operator
      (`|`/`&&`/`;`/`$(...)`), behind a transparent prefix (`env`/`doas`/`sudo`/
