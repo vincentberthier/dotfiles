@@ -131,6 +131,17 @@ the actual file, run the actual command.
   already exists.
 - "Without [external tool] I can't tell" is almost always false.
 
+**A tool you have not already run gets `--help` before its first call.** Not the exotic
+ones — all of them, and the familiar ones most of all, because familiarity is what
+suppresses the check. What you remember of a CLI's interface is a lossy average over
+releases years apart: flags get renamed, subcommands get restructured, defaults get
+inverted, and the confidence survives the change intact. So recall is a guess wearing
+knowledge's clothes, and one `--help` settles it. Read `<tool> --help`, then `<tool>
+<subcommand> --help` for the one you actually want; `--schema`, `-h` or `man` when the
+help is thin. Never invent a flag because the sentence needed one — if it is not in the
+help, it does not exist. This costs a single read-only call and it is never the wrong
+call.
+
 **Never hand back a check you could have run.** "Needs verifying", "should be confirmed",
 "worth testing", "open item: does X handle Y" — if the answer is a couple of read-only
 commands away, run them and report the _answer_, not the question. A check is not a
