@@ -82,8 +82,14 @@ def _normalize(name: str) -> str:
     ambiguous-fallback branch, which returns nothing when a target has more than
     one sidecar for a mode. NGC 7635 hit exactly that -- SHO and HOO resolved to
     None while OHS/HSO/Forax happened to have a single candidate each.
+
+    Every separator goes, not a hand-listed set. A comet designation carries a
+    slash ('10P/Tempel'), normalize_target_dirs.py folds it to a hyphen
+    ('10p-tempel'), and a rule that stripped only whitespace, '_' and '-' left
+    those as '10p/tempel' vs '10ptempel' -- the same never-true comparison, and
+    the same silent fall-through to the fallback branch.
     """
-    return re.sub(r"[\s_-]+", "", name or "").lower()
+    return re.sub(r"[^a-z0-9]+", "", (name or "").lower())
 
 
 def _french_date(year: str, month: str, day: str) -> str:
