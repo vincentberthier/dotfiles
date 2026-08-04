@@ -187,6 +187,56 @@ Each recipe is a **separate Obsidian file** in `Recettes/`. Follow the format de
 - Include **cooking times within the steps**.
 - If a side is implied (e.g., green salad), **list it explicitly in the ingredients**.
 
+### Langue des recettes — zéro jargon
+
+Vincent a signalé **plusieurs fois** que le vocabulaire de métier le fait abandonner une recette. Ce
+n'est pas une préférence de style : une fiche qui dit « nacrer le riz » est une fiche qu'il ne fera
+pas. La règle est donc dure, et elle prime sur la concision.
+
+**Le principe.** Une étape décrit **le geste** (ce que la main fait) et **le repère visuel** (ce
+qu'on doit voir, entendre ou sentir pour savoir que c'est bon). Jamais le nom de la technique à la
+place du geste. Le terme de métier est autorisé **entre parenthèses après** la description, jamais
+avant, et jamais seul.
+
+❌ « Nacrer le riz 2 min. »
+✅ « Verser le riz et le remuer 2 min dans l'huile chaude, jusqu'à ce que les grains deviennent
+brillants et un peu transparents sur les bords. »
+
+**Table de traduction.** À appliquer systématiquement à la rédaction, pas en relecture.
+
+| Ne pas écrire                     | Écrire à la place                                                                                                         |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Nacrer le riz                     | remuer le riz dans l'huile jusqu'à ce que les grains deviennent brillants et translucides sur les bords                   |
+| Mantecatura / lier / monter       | ajouter le beurre froid et le fromage et remuer énergiquement jusqu'à ce que ce soit crémeux                              |
+| Monter une sauce au beurre        | ajouter le beurre morceau par morceau en fouettant sans arrêt, jusqu'à ce que la sauce épaississe                         |
+| Faire suer                        | cuire doucement sans laisser colorer, jusqu'à ce que ce soit mou et transparent                                           |
+| Faire revenir / saisir            | cuire dans la poêle chaude jusqu'à ce que ça prenne une couleur dorée                                                     |
+| Déglacer                          | verser le vin (ou l'eau) dans la poêle chaude et gratter le fond avec une cuillère en bois pour décoller ce qui a attaché |
+| Faire réduire / réduire de moitié | laisser bouillir jusqu'à ce qu'il ne reste plus que la moitié du liquide                                                  |
+| Blanchir                          | plonger X min dans l'eau bouillante salée, puis égoutter                                                                  |
+| Réserver                          | mettre de côté dans une assiette                                                                                          |
+| Napper                            | verser la sauce dessus / mélanger jusqu'à ce que tout soit enrobé                                                         |
+| Sauce nappante                    | la sauce doit coller à la cuillère : on passe le doigt dessus et la trace reste                                           |
+| Émincer / ciseler                 | couper en tranches fines / hacher finement                                                                                |
+| Émulsionner                       | verser l'huile en tout petit filet en mélangeant sans arrêt, pour que ça devienne crémeux                                 |
+| Faire dégorger                    | saler et laisser 5 min, le temps que l'eau sorte, puis presser                                                            |
+| Cuire à blanc (viande)            | cuire sans laisser colorer                                                                                                |
+| À frémissement                    | juste en dessous de l'ébullition, de toutes petites bulles                                                                |
+| Al dente                          | encore un peu ferme sous la dent (1 min de moins que le paquet)                                                           |
+| Rectifier l'assaisonnement        | goûter, resaler ou repoivrer si besoin                                                                                    |
+| Dresser                           | servir dans l'assiette                                                                                                    |
+| Zester                            | râper la peau colorée du citron (pas la partie blanche, elle est amère)                                                   |
+| Nacré (viande)                    | plus transparent au centre mais encore moelleux                                                                           |
+| Tailler en brunoise/julienne      | couper en tout petits dés / en fines lanières                                                                             |
+
+**Pas de mot italien, anglais ou latin** dans une étape : `mantecatura`, `all'onda`, `Maillard`,
+`snacké`, `saisir à cru`. Si le concept compte, il s'explique en une phrase de français courant dans
+les Notes.
+
+**`Lexique cuisine.md` n'est pas un permis.** Ce fichier existe comme aide-mémoire, pas comme
+autorisation d'employer un terme dans une étape sous prétexte qu'il y figure. Une étape doit être
+compréhensible **sans ouvrir le lexique**.
+
 ### Naming
 
 - Use **clear, descriptive French names**: "Poulet grillé aux courgettes", "Salade de lentilles au chèvre".

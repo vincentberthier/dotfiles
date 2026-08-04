@@ -75,6 +75,9 @@ Notes :
 - [Nom de la recette de référence - NomDuSite](https://url-de-la-recette)
 ```
 
+- **Langue des étapes** : français courant, zéro terme de métier employé seul. Voir
+  `generation-guidelines.md` § _Langue des recettes — zéro jargon_ et sa table de traduction. Une
+  étape se lit et s'exécute sans ouvrir `Lexique cuisine.md`.
 - Section **Notes** : optionnelle, pour astuces de conservation, variantes, ou accompagnements alternatifs.
 - **Niveaux de cuisson** : toute étape à la poêle indique le niveau **fryingSensor** (1 à 5) plutôt
   qu'un « feu moyen-vif » vague — le niveau de la table aliment → niveau du matériel fait foi. Les
