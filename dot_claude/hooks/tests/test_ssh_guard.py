@@ -101,6 +101,8 @@ bash_case("rg over ~", "rg -n password ~", "deny")
 bash_case("rg over $HOME", "rg -n password $HOME", "deny")
 bash_case("rg over the absolute home", f"rg -n password {HOME}", "deny")
 bash_case("grep -r over ~", "grep -r password ~", "deny")
+bash_case("fd -x over ~", "fd -x wc -l . ~", "deny")
+bash_case("find -exec over ~", "find ~ -type f -exec wc -l {} +", "deny")
 
 print("\nbash -- normal work is untouched")
 bash_case("ssh to a host", "ssh tyrex-gl01-dev.kub.local uptime", "defer")

@@ -59,6 +59,11 @@ _SSH_SOURCE = re.compile(r"dot_ssh(?![\w-])")
 # `~/.ssh` without the command ever naming it.
 _CONTENT_SEARCH = re.compile(r"(?<![\w.-])(?:rg|ripgrep|grep|egrep|fgrep|ag|ack)(?![\w-])")
 
+# `fd` and `find` only list names -- harmless -- until an exec flag turns them
+# into a way to run something over every file they walked.
+_WALKER = re.compile(r"(?<![\w.-])(?:fd|fdfind|find)(?![\w-])")
+_EXEC_FLAG = re.compile(r"(?<![\w-])-(?:x|X|exec|execdir|exec-batch|-exec|-exec-batch)(?![\w-])")
+
 # Argument forms that mean "all of $HOME".
 _HOME_ROOTS = {"~", "~/", "$HOME", "${HOME}", "$HOME/", "${HOME}/"}
 
@@ -108,13 +113,17 @@ def _path_is_ssh(raw: str) -> bool:
 
 
 def _searches_all_of_home(command: str) -> bool:
-    """True if `command` is a content search rooted at `$HOME`.
+    """True if `command` reads file content across the whole of `$HOME`.
 
-    `rg secret ~` never names `~/.ssh` and reads all of it anyway. Searching
-    the whole of home is essentially never what was meant, so the false-positive
-    cost is a retry with a real path.
+    `rg secret ~` never names `~/.ssh` and reads all of it anyway, and so does
+    `fd -x cat . ~`. Walking the whole of home is essentially never what was
+    meant, so the false-positive cost is a retry with a real path. A walker
+    WITHOUT an exec flag only prints names and is left alone.
     """
-    if not _CONTENT_SEARCH.search(command):
+    reads_content = _CONTENT_SEARCH.search(command) or (
+        _WALKER.search(command) and _EXEC_FLAG.search(command)
+    )
+    if not reads_content:
         return False
     try:
         tokens = shlex.split(command, posix=True)
