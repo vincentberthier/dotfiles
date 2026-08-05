@@ -17,7 +17,12 @@ Blocks, in order of how the mistake actually gets made:
   of the same files (`private_dot_ssh/`), where the same secrets live under a
   name that does not contain `.ssh`.
 - `Bash` content searches rooted at `$HOME` (`rg pattern ~`), which read the
-  directory without ever naming it. This is the hole the other rules leave.
+  directory without ever naming it.
+- `Bash` interpreter one-liners that DERIVE a path from `$HOME` and read it.
+  `python -c "open('~/'+'.'+'ssh'+'/config')"` and `Path.home().rglob('*')`
+  defeat every text rule above by never spelling the directory, so runtime path
+  construction plus a file read is refused on principle -- whatever it was
+  aimed at. Use `Read`, or a literal absolute path that can be checked.
 - `Agent` / `Task` prompts that point a subagent at it. Subagents are hooked
   too, so this is belt-and-braces -- it just fails at dispatch instead of
   burning a turn.
@@ -64,6 +69,34 @@ _CONTENT_SEARCH = re.compile(r"(?<![\w.-])(?:rg|ripgrep|grep|egrep|fgrep|ag|ack)
 _WALKER = re.compile(r"(?<![\w.-])(?:fd|fdfind|find)(?![\w-])")
 _EXEC_FLAG = re.compile(r"(?<![\w-])-(?:x|X|exec|execdir|exec-batch|-exec|-exec-batch)(?![\w-])")
 
+# An interpreter running inline code. Inside one, the path is no longer text
+# this hook can read: `'~/' + '.' + 'ssh'`, `chr(46)+'ssh'` and
+# `Path.home().rglob('*')` all reach the directory without ever spelling it.
+_INTERPRETER = re.compile(
+    r"(?<![\w.-])(?:python[\d.]*|perl|ruby|node|deno|bun|php|lua|sh|bash|zsh|fish)(?![\w-])"
+)
+_INLINE_FLAG = re.compile(r"(?<![\w-])-(?:c|e|E|-eval|-command)(?![\w-])")
+
+# Deriving $HOME at RUNTIME. A literal `/home/vincent/.ssh` needs none of these
+# and is already caught as text, so only the dynamic forms matter here.
+_DYNAMIC_HOME = re.compile(
+    r"expanduser|Path\.home|Dir\.home|homedir|getpwuid|"
+    r"environ\s*(?:\[|\.get)\s*[\"']HOME|process\.env\.HOME|"
+    r"ENV\s*\[\s*[\"']HOME|\$ENV\{\s*[\"']?HOME|getenv\s*\(\s*[\"']HOME|"
+    r"\$HOME|\$\{HOME\}|~/"
+)
+
+# Reading file content, or walking a tree to find something to read.
+_FILE_READ = re.compile(
+    r"read_text|read_bytes|readFileSync|readFile|file_get_contents|"
+    r"\bopen\s*\(|File\.(?:read|open)|IO\.read|slurp|"
+    r"rglob|iglob|\bglob\b|listdir|scandir|iterdir|readdir|walk\s*\(|"
+    r"(?<![\w.-])(?:cat|less|more|head|tail|od|xxd|strings|base64|cp|rsync|tar|awk|sed|tr)(?![\w-])"
+)
+
+# Shell tokens that end one simple command and begin another.
+_OPERATORS = {"&&", "||", ";", "|", "&", "\n", "|&"}
+
 # Argument forms that mean "all of $HOME".
 _HOME_ROOTS = {"~", "~/", "$HOME", "${HOME}", "$HOME/", "${HOME}/"}
 
@@ -79,36 +112,54 @@ def _mentions_ssh(text: str) -> bool:
     return False
 
 
-def _path_is_ssh(raw: str) -> bool:
-    """True if `raw` names, or lives under, any `.ssh` directory.
+def _forbidden_roots() -> set[Path]:
+    """`~/.ssh`, and the chezmoi source that renders it, canonicalized.
 
-    Checked three ways because each catches what the others miss: the literal
-    text (a `.ssh` component the agent typed), the expanded path (`~` resolved),
-    and the fully resolved path (a symlink pointing into the directory).
+    The source directory has to be named explicitly: `private_dot_ssh/` holds
+    the same secrets but canonicalizes somewhere else entirely, so no amount of
+    resolving `~/.ssh` will ever reach it.
     """
-    if _mentions_ssh(raw):
-        return True
+    roots = {Path.home() / ".ssh"}
 
-    home_ssh = Path.home() / ".ssh"
-    targets = {home_ssh}
-    try:
-        targets.add(home_ssh.resolve())
-    except (OSError, RuntimeError):
-        pass
+    source = os.environ.get("CHEZMOI_SOURCE_DIR") or "~/.local/share/chezmoi"
+    roots.add(Path(os.path.expanduser(source)) / "private_dot_ssh")
 
+    canonical = set()
+    for root in roots:
+        canonical.add(root)
+        try:
+            canonical.add(root.resolve())
+        except (OSError, RuntimeError):
+            pass
+    return canonical
+
+
+def _path_is_ssh(raw: str) -> bool:
+    """True if `raw` names, or lives under, a forbidden directory.
+
+    Structural, not textual: expand and canonicalize, then compare. That is
+    what makes `~/.ssh`, `$HOME/.ssh`, `/home/vincent/.ssh` and a symlink
+    pointing into it one single case instead of four patterns.
+
+    The component checks are the part canonicalization cannot do: `/root/.ssh`
+    is a real, different directory that no resolution of THIS user's `~/.ssh`
+    will ever equal, and `dot_ssh` names the same secrets in whatever chezmoi
+    source tree they happen to sit in.
+    """
     expanded = Path(os.path.expanduser(os.path.expandvars(raw)))
-    candidates = [expanded]
+    candidates = {expanded}
     try:
-        candidates.append(expanded.resolve())
+        candidates.add(expanded.resolve())
     except (OSError, RuntimeError, ValueError):
         pass
 
+    roots = _forbidden_roots()
     for candidate in candidates:
-        if ".ssh" in candidate.parts:
+        parts = candidate.parts
+        if ".ssh" in parts or any(part.endswith("dot_ssh") for part in parts):
             return True
-        for target in targets:
-            if candidate == target or target in candidate.parents:
-                return True
+        if any(candidate == root or root in candidate.parents for root in roots):
+            return True
     return False
 
 
@@ -134,6 +185,48 @@ def _searches_all_of_home(command: str) -> bool:
     home = str(Path.home())
     roots = _HOME_ROOTS | {home, home + "/"}
     return any(token in roots for token in tokens)
+
+
+def _segments(command: str) -> list[str]:
+    """Split into simple commands, so one part cannot taint another.
+
+    Without this, `python3 -c 'print(1)' && cat ~/notes` looks like a single
+    interpreter reading from `$HOME`. shlex keeps quoted one-liners intact, so
+    a `;` inside `-c '...'` does not split the code it belongs to. If the
+    command will not tokenize, evaluate it whole -- a coarser check is the
+    right failure here.
+    """
+    try:
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
+        lexer.whitespace_split = True
+        tokens = list(lexer)
+    except ValueError:
+        return [command]
+
+    segments: list[list[str]] = [[]]
+    for token in tokens:
+        if token in _OPERATORS:
+            segments.append([])
+        else:
+            segments[-1].append(token)
+    return [" ".join(segment) for segment in segments if segment]
+
+
+def _builds_a_path_at_runtime(command: str) -> bool:
+    """True if inline interpreter code derives `$HOME` and reads files.
+
+    This is the only rule here that does not look for `.ssh`, because by
+    construction the string is not there to look for. An interpreter one-liner
+    that computes a path under `$HOME` and reads it could be reading anything,
+    and this hook cannot tell which -- so it is refused, and the read goes
+    through `Read` or a literal absolute path instead.
+    """
+    for segment in _segments(command):
+        if not (_INTERPRETER.search(segment) and _INLINE_FLAG.search(segment)):
+            continue
+        if _DYNAMIC_HOME.search(segment) and _FILE_READ.search(segment):
+            return True
+    return False
 
 
 def deny(reason: str) -> None:
@@ -205,6 +298,18 @@ def main() -> int:
                 "Blocked: a content search rooted at `$HOME` reads `~/.ssh` "
                 f"without naming it.\n\n  {command}\n\n"
                 "Point the search at the directory you actually mean.\n\n" + _WHY
+            )
+        elif _builds_a_path_at_runtime(command):
+            deny(
+                "Blocked: this one-liner derives a path from `$HOME` and reads "
+                f"it, so nothing here says where it points.\n\n  {command}\n\n"
+                "`'~/' + '.' + 'ssh'`, `chr(46)+'ssh'` and `Path.home()."
+                "rglob('*')` all land in the directory without spelling it, so "
+                "runtime path construction plus a file read is refused whatever "
+                "it was aimed at.\n\n"
+                "Read the file with the `Read` tool, or write the path as a "
+                "literal absolute one (`/home/vincent/.config/...`) so it can "
+                "be checked.\n\n" + _WHY
             )
         return 0
 

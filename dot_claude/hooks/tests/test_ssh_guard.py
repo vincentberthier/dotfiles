@@ -104,6 +104,61 @@ bash_case("grep -r over ~", "grep -r password ~", "deny")
 bash_case("fd -x over ~", "fd -x wc -l . ~", "deny")
 bash_case("find -exec over ~", "find ~ -type f -exec wc -l {} +", "deny")
 
+print("\nbash -- interpreters that build the path instead of naming it")
+bash_case(
+    "pathlib, path written whole",
+    "python -c \"from pathlib import Path; print(Path('~/.ssh/config.d/tyrex').read_text())\"",
+    "deny",
+)
+bash_case(
+    "expanduser",
+    "python -c \"import os;print(open(os.path.expanduser('~/.ssh/config.d/tyrex')).read())\"",
+    "deny",
+)
+bash_case(
+    "split across concatenation",
+    "python -c \"import os;print(open(os.path.expanduser('~/'+'.'+'ssh'+'/config.d/tyrex')).read())\"",
+    "deny",
+)
+bash_case(
+    "assembled from chr()",
+    "python -c \"import os;print(open(os.environ['HOME']+chr(47)+chr(46)+'ssh'+chr(47)+'config.d').read())\"",
+    "deny",
+)
+bash_case(
+    "rglob over home, never named",
+    "python -c \"from pathlib import Path;[print(p.read_text()) for p in Path.home().rglob('config*')]\"",
+    "deny",
+)
+bash_case(
+    "node readFileSync from process.env.HOME",
+    "node -e \"console.log(require('fs').readFileSync(process.env.HOME+'/.ssh/config','utf8'))\"",
+    "deny",
+)
+bash_case(
+    "node, home derived but path built",
+    "node -e \"const h=process.env.HOME;console.log(require('fs').readFileSync(h+'/.s'+'sh/config'))\"",
+    "deny",
+)
+bash_case("perl slurp under $HOME", "perl -e 'open(F,\"$HOME/.ssh/config\");print <F>'", "deny")
+bash_case("shell -c with derived home", "bash -c 'head -n5 $HOME/.ssh/config'", "deny")
+
+print("\nbash -- the interpreter rule does not swallow ordinary one-liners")
+bash_case(
+    "reads an absolute literal path",
+    "python3 -c \"import json;print(json.load(open('/tmp/out2.txt')))\"",
+    "defer",
+)
+bash_case("prints without reading", "python3 -c \"print(1 + 1)\"", "defer")
+bash_case("echoes $HOME, reads nothing", "bash -c 'echo $HOME'", "defer")
+bash_case("lists under home, no content read", "fish -c 'eza $HOME/code'", "defer")
+bash_case(
+    "separate commands do not taint each other",
+    'python3 -c "print(1)" && head -n1 ~/notes.md',
+    "defer",
+)
+bash_case("semicolon inside the one-liner is not a split", "python3 -c \"import sys; print(sys.version)\"", "defer")
+
 print("\nbash -- normal work is untouched")
 bash_case("ssh to a host", "ssh tyrex-gl01-dev.kub.local uptime", "defer")
 bash_case("ssh-keygen version", "ssh-keygen -V", "defer")
