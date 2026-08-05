@@ -106,7 +106,7 @@ def _french_date(year: str, month: str, day: str) -> str:
 # substring of it, or every HaLRGB image is silently labelled LRGB.
 MODE_TOKENS = (
     "halrgb_r", "halrgb_l", "halrgb-r", "halrgb-l", "lrgb", "forax",
-    "sho", "hoo", "ohs", "hso", "rgb",
+    "sho", "hoo", "ohs", "hso", "hos", "rgb",
 )
 
 
