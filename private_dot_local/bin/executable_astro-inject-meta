@@ -70,8 +70,8 @@ RE_JPG = re.compile(
 )
 
 # Modes we recognise as recombination outputs from astro_hibou.py.
-KNOWN_MODES = {"LRGB", "RGB", "SHO", "HOO", "OHS", "HSO", "FORAX", "FORAXX",
-               "HALRGB_R", "HALRGB_L"}
+KNOWN_MODES = {"LRGB", "RGB", "SHO", "HOO", "OHS", "HSO", "HOS", "FORAX",
+               "FORAXX", "HALRGB_R", "HALRGB_L"}
 
 # Wide-field / nightscape exports: no target, no mode, no FITS anywhere. They
 # get authorship and rights only — there is no acquisition metadata to recover
