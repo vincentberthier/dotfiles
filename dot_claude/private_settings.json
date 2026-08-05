@@ -93,6 +93,15 @@
   "hooks": {
     "PreToolUse": [
       {
+        "matcher": "Read|Edit|Write|MultiEdit|NotebookEdit|Bash|Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/vincent/.claude/hooks/ssh-guard.py"
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
@@ -156,7 +165,6 @@
     "padding": 3
   },
   "enabledPlugins": {
-    "claudit@quickstop": false,
     "playground@claude-plugins-official": true,
     "claude-code-setup@claude-plugins-official": false,
     "cowork-plugin-management@knowledge-work-plugins": true,
@@ -175,7 +183,13 @@
     "tyrex-conformity@tyrex-plugins": true,
     "tyrex-documents@tyrex-plugins": true,
     "tyrex-lang-common@tyrex-plugins": true,
-    "tyrex-security@tyrex-plugins": true
+    "tyrex-security@tyrex-plugins": true,
+    "tyrex-lang-rust@tyrex-plugins": true,
+    "tyrex-lang-go@tyrex-plugins": true,
+    "tyrex-lang-ts@tyrex-plugins": true,
+    "tyrex-lang-swift@tyrex-plugins": true,
+    "tyrex-lang-cpp@tyrex-plugins": true,
+    "tyrex-lang-python@tyrex-plugins": true
   },
   "extraKnownMarketplaces": {
     "knowledge-work-plugins": {
