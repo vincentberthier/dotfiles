@@ -268,6 +268,19 @@ word, because the word could attach to either side, and the alternative is obvio
 Keep the enumerated multiple-choice form only for genuinely distinct courses of action I
 couldn't guess (three designs, not do-it/don't).
 
+## Never read `~/.ssh`
+
+Not `config`, not `config.d/`, not keys, not `known_hosts`, not anything else under
+it — no reading, no grepping, no listing, ever, for any reason. It holds private keys
+and cleartext credentials, and nothing in that directory is ever needed to answer a
+question. "I was only checking how a host resolves" is not an exception; it is the
+exact excuse that got me there.
+
+When connectivity to a host is in question, the answer comes from `getent hosts`,
+`ping`, `curl`, `ip -brief link` or the failing command's own error — all of which say
+whether it works without telling me how it is configured. If those genuinely cannot
+settle it, **say so and stop**; how the connection is set up is not mine to inspect.
+
 ## Tools on this machine
 
 This is the **native** Claude Code build: `Glob` and `Grep` were removed permanently
