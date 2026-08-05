@@ -281,6 +281,11 @@ When connectivity to a host is in question, the answer comes from `getent hosts`
 whether it works without telling me how it is configured. If those genuinely cannot
 settle it, **say so and stop**; how the connection is set up is not mine to inspect.
 
+`ssh-guard.py` enforces this — every tool, reads included, plus the chezmoi source that
+renders the directory. It also refuses any interpreter one-liner that derives a path from
+`$HOME` and reads it, since such a path cannot be checked before it runs: use `Read`, or
+a literal absolute path.
+
 ## Tools on this machine
 
 This is the **native** Claude Code build: `Glob` and `Grep` were removed permanently
