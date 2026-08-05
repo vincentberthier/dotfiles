@@ -38,7 +38,7 @@ DSO_ROOT = Path("/run/media/vincent/Corrbolg/dso")
 # Recombination modes, longest first so "HALRGB_R" wins over "LRGB" when both
 # appear in a filename like "starless_halrgb_r_denoised.fit".
 KNOWN_MODES = ["HALRGB_R", "HALRGB_L", "HALRGB", "FORAXX", "FORAX",
-               "LRGB", "RGB", "SHO", "HOO", "OHS", "HSO"]
+               "LRGB", "RGB", "SHO", "HOO", "OHS", "HSO", "HOS"]
 
 # Which per-filter masters actually feed each mode's delivered image.
 #
@@ -57,6 +57,7 @@ MODE_CHANNELS = {
     "SHO": ["sii", "ha", "oiii"],
     "OHS": ["sii", "ha", "oiii"],
     "HSO": ["sii", "ha", "oiii"],
+    "HOS": ["sii", "ha", "oiii"],
     "FORAX": ["sii", "ha", "oiii"],
     "FORAXX": ["sii", "ha", "oiii"],
     "HOO": ["ha", "oiii"],
