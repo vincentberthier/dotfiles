@@ -314,11 +314,21 @@ working, pre-allowlisted tool:
   `.config/`, `.local/`) — and both skip anything a `.gitignore`, `.ignore` or `.fdignore`
   excludes. So a bare run returns an empty result for two different reasons, "absent" and
   "filtered", and it does not tell you which. **An empty result is never evidence of
-  absence.** Pass `-u` — it means `--no-ignore --hidden` on both tools — any time the
-  target could be hidden, which for config, dotfiles and state is always. And report the
-  scope you actually searched: "no match under `~/.claude` with `-u`", never a bare "it
-  isn't there". Concluding a file, setting or backup does not exist off a filtered search
-  is a wrong answer, not a null one, and it sends me to fix a config that was never broken.
+  absence.** Unhide any time the target could be hidden, which for config, dotfiles and
+  state is always — **but the flag is not the same on the two tools, and the difference is
+  silent:**
+
+  | tool | unhides with | because                                                             |
+  | ---- | ------------ | ------------------------------------------------------------------- |
+  | `fd` | `-u`         | `-u` is an alias for `--no-ignore --hidden`                         |
+  | `rg` | `-uu`        | a single `-u` is `--no-ignore` ONLY; the second one adds `--hidden` |
+
+  So `rg -u` on a dotfile returns nothing and looks like a clean answer. Verified against
+  both `--help`s. And report the scope you actually searched: "no match under `~/.claude`
+  with `rg -uu`", never a bare "it isn't there". Concluding a file, setting or backup does
+  not exist off a filtered search is a wrong answer, not a null one, and it sends me to fix
+  a config that was never broken.
+
 - **`glab` is never correct on this machine.** Every GitLab here is the Tyrex GitLab, and
   the `tyrex-gitlab` CLI owns it — issues, MRs, epics, wikis, pipelines, user lookups.
   Run `tyrex-gitlab --schema` to see the commands. This holds no matter how plausible
