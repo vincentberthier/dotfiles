@@ -4,5 +4,5 @@
 # dependency either errors with `class=Ssh (23)` or hangs forever holding the
 # exclusive flock on ~/.cargo/.package-cache — which blocks every other cargo
 # process on this machine. Shelling out to the real `git` binary handles the
-# banner: `git ls-remote` against tyrex-io returns in ~1.5s through the bastion.
+# banner: `git ls-remote` against tyrex-fs returns in ~1.5s through the bastion.
 git-fetch-with-cli = true
