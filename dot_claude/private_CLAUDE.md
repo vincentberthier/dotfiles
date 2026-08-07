@@ -360,6 +360,33 @@ working, pre-allowlisted tool:
 - Independent commands go in separate Bash calls, so they can run in parallel.
 - Web fetches get a timeout of one minute at most, so a dead resource can't hang the turn.
 
+## Running commands — log to a file, check the right status
+
+Two failures, and they compound: a status that is not the one you think it is, and output
+that no longer exists anywhere.
+
+- **`cmd | tail` reports `tail`'s status, not `cmd`'s** — and `tail` succeeds at printing
+  nothing, so a build that failed comes back as exit 0 and you call the task done. Same
+  for `| rg`, `| head`, `| jq`. Never judge a run by the exit status of a pipeline whose
+  last stage is a filter or a pager. Appending `echo "exit=${PIPESTATUS[0]}"` fixes the
+  number but not the habit: the status the harness shows you is then the `echo`'s, always
+  0, so you still have to read the printed line rather than trust the tool result. Don't
+  pipe in the first place.
+- **Never discard output.** `| tail -50` throws away everything above the last fifty
+  lines, which is where the first error usually is, and leaves nothing to go back to when
+  the summary turns out to be wrong. Keeping noise out of the session is right; making it
+  unrecoverable is not. A truncated view comes _from_ a file, never _instead of_ one.
+
+One file gets you both — full output, honest status, and something I can read myself:
+
+    LOG=/var/tmp/ci-$(date +%Y%m%d-%H%M%S).log
+    TMPDIR=/var/tmp CI_VARIANT=rust just ci >"$LOG" 2>&1; echo "exit=$? log=$LOG"
+
+Then `rg -n 'error|warning|FAILED' "$LOG"` or `Read` its tail. `/var/tmp`, never `/tmp`,
+which is RAM-backed here. Backgrounded runs use the same shape, so the log is readable
+while it runs. **Put the log path in your reply** — that is the whole point: it lets me
+look at what happened instead of taking your summary on trust.
+
 ## Config files — chezmoi, and never leave the edit in limbo
 
 Before editing anything under a config directory, check `chezmoi managed` /
