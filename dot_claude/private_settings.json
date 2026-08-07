@@ -115,6 +115,10 @@
           {
             "type": "command",
             "command": "python3 /home/vincent/.claude/hooks/process-wait-guard.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 /home/vincent/.claude/hooks/pipe-truncation-guard.py"
           }
         ]
       },

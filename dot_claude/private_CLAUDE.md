@@ -387,6 +387,9 @@ which is RAM-backed here. Backgrounded runs use the same shape, so the log is re
 while it runs. **Put the log path in your reply** — that is the whole point: it lets me
 look at what happened instead of taking your summary on trust.
 
+`pipe-truncation-guard.py` enforces this for build/test/CI runners piped into a filter.
+Query pipelines (`cargo tree | rg serde`, `just --list | rg ci`) are none of its business.
+
 ## Config files — chezmoi, and never leave the edit in limbo
 
 Before editing anything under a config directory, check `chezmoi managed` /
