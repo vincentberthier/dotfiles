@@ -110,16 +110,16 @@ if not ok:
     failures.append("wrong pinned root")
 check("same repo, another file", decision(call("t-pin", str(TYREX / "tyrex-dwc2/Justfile"))), "defer")
 check("same repo, new nested file", decision(call("t-pin", str(TYREX / "tyrex-dwc2/src/deep/new.rs"))), "defer")
-check("foreign repo tyrex-io", decision(call("t-pin", str(TYREX / "tyrex-io/src/lib.rs"))), "deny")
+check("foreign repo tyrex-fs", decision(call("t-pin", str(TYREX / "tyrex-fs/src/lib.rs"))), "deny")
 check("foreign repo frisk", decision(call("t-pin", str(TYREX / "frisk/README.md"))), "deny")
 check("still free outside repos", decision(call("t-pin", "/tmp/note.md"))    , "defer")
-check("Write tool, foreign", decision(call("t-pin", str(TYREX / "tyrex-io/x.rs"), tool="Write")), "deny")
-check("MultiEdit, foreign", decision(call("t-pin", str(TYREX / "tyrex-io/x.rs"), tool="MultiEdit")), "deny")
-check("NotebookEdit via notebook_path", decision(call("t-pin", str(TYREX / "tyrex-io/x.ipynb"), tool="NotebookEdit", key="notebook_path")), "deny")
+check("Write tool, foreign", decision(call("t-pin", str(TYREX / "tyrex-fs/x.rs"), tool="Write")), "deny")
+check("MultiEdit, foreign", decision(call("t-pin", str(TYREX / "tyrex-fs/x.rs"), tool="MultiEdit")), "deny")
+check("NotebookEdit via notebook_path", decision(call("t-pin", str(TYREX / "tyrex-fs/x.ipynb"), tool="NotebookEdit", key="notebook_path")), "deny")
 
-res = call("t-pin", str(TYREX / "tyrex-io/src/lib.rs"))
+res = call("t-pin", str(TYREX / "tyrex-fs/src/lib.rs"))
 reason = res["hookSpecificOutput"]["permissionDecisionReason"]
-for token in ("tyrex-dwc2", "tyrex-io", "work-order", "Reads are not blocked"):
+for token in ("tyrex-dwc2", "tyrex-fs", "work-order", "Reads are not blocked"):
     ok = token in reason
     print(f"  {'PASS' if ok else 'FAIL'}  denial message mentions {token!r}")
     if not ok:
@@ -130,7 +130,7 @@ if not ok:
     failures.append("main-session wording")
 
 print("\n== subagents inherit the parent pin (shared session_id)")
-res = call("t-pin", str(TYREX / "tyrex-io/src/lib.rs"), agent="sub-1")
+res = call("t-pin", str(TYREX / "tyrex-fs/src/lib.rs"), agent="sub-1")
 check("subagent foreign write", decision(res), "deny")
 reason = res["hookSpecificOutput"]["permissionDecisionReason"]
 ok = "This subagent" in reason
@@ -213,14 +213,14 @@ print("\n== symlink into a foreign repo is resolved, not evaded")
 clean("t-link")
 check("pin tyrex-dwc2", decision(call("t-link", str(TYREX / "tyrex-dwc2/src/lib.rs"))), "defer")
 (TMP / "links").mkdir(parents=True, exist_ok=True)
-link = TMP / "links/io"
+link = TMP / "links/fs"
 if link.is_symlink():
     link.unlink()
-link.symlink_to(TYREX / "tyrex-io")
+link.symlink_to(TYREX / "tyrex-fs")
 check("write through symlink", decision(call("t-link", str(link / "src/lib.rs"))), "deny")
 
 print("\n== hostile session_id cannot escape the state dir")
-res = call("../../../../etc/evil", str(TYREX / "tyrex-io/src/lib.rs"))
+res = call("../../../../etc/evil", str(TYREX / "tyrex-fs/src/lib.rs"))
 check("path-traversal session_id defers", decision(res), "defer")
 ok = not Path("/etc/evil.json").exists()
 print(f"  {'PASS' if ok else 'FAIL'}  no file written outside the state dir")
