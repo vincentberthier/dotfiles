@@ -88,6 +88,80 @@ check("points at polling an artifact", "artifact" in reason.lower())
 check("names -A / --ignore-ancestors", "--ignore-ancestors" in reason)
 check("warns -A is not enough on its own", "second copy" in reason)
 
+def file_verdict(tool: str, path: str, **fields: object) -> str | None:
+    """Return the permissionDecision for a file-writing tool call."""
+    proc = subprocess.run(
+        [sys.executable, str(HOOK)],
+        input=json.dumps({
+            "hook_event_name": "PreToolUse",
+            "session_id": "test-process-wait-guard",
+            "tool_name": tool,
+            "tool_input": {"file_path": path, **fields},
+            "cwd": str(Path.home()),
+        }),
+        capture_output=True, text=True, timeout=30,
+    )
+    assert proc.returncode == 0, f"exited {proc.returncode}: {proc.stderr}"
+    if not proc.stdout.strip():
+        return None
+    return json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"]
+
+
+WAITER = "until ! pgrep -f 'just ci'; do sleep 5; done\n"
+
+print("\n== denies self-matching waiters written into shell-ish files")
+for path, content in (
+    ("/home/vincent/code/proj/wait.sh", "#!/bin/bash\n" + WAITER),
+    ("/home/vincent/code/proj/scripts/ci.bash", WAITER),
+    ("/home/vincent/code/proj/deploy.fish", WAITER),
+    ("/home/vincent/code/proj/Justfile", "ci:\n    @" + WAITER),
+    ("/home/vincent/code/proj/Makefile", "ci:\n\t-" + WAITER),
+    ("/home/vincent/code/proj/.gitlab-ci.yml",
+     "job:\n  script:\n    - ps aux | grep runner\n"),
+):
+    check(f"deny Write: {path}", file_verdict("Write", path, content=content) == "deny")
+
+check("deny Edit new_string",
+      file_verdict("Edit", "/home/vincent/code/proj/wait.sh",
+                   old_string="true", new_string=WAITER) == "deny")
+check("deny MultiEdit new_string",
+      file_verdict("MultiEdit", "/home/vincent/code/proj/wait.sh",
+                   edits=[{"old_string": "a", "new_string": "echo ok"},
+                          {"old_string": "b", "new_string": WAITER}]) == "deny")
+
+print("\n== leaves prose, source and the guard's own files alone")
+for path, content in (
+    ("/home/vincent/code/proj/README.md", "Never run `pgrep -f 'just ci'` in a loop.\n"),
+    ("/home/vincent/code/proj/CLAUDE.md", WAITER),
+    ("/home/vincent/code/proj/src/main.rs", 'let c = "pgrep -f just ci";\n'),
+    ("/home/vincent/.claude/hooks/process-wait-guard.py", WAITER),
+    ("/home/vincent/.claude/hooks/tests/test_x.py", WAITER),
+    ("/home/vincent/code/proj/wait.sh", "# " + WAITER),
+    ("/home/vincent/code/proj/wait.sh", "until ! pgrep -Af 'just ci'; do sleep 5; done\n"),
+    ("/home/vincent/code/proj/wait.sh", "just ci; echo $? > /var/tmp/ci.done\n"),
+    ("/home/vincent/code/proj/Justfile", "ci:\n    @just test && just lint\n"),
+):
+    check(f"allow Write: {path}", file_verdict("Write", path, content=content) is None,
+          str(file_verdict("Write", path, content=content)))
+
+check("old_string is not scanned",
+      file_verdict("Edit", "/home/vincent/code/proj/wait.sh",
+                   old_string=WAITER, new_string="echo done\n") is None)
+
+print("\n== the file denial names the file")
+proc = subprocess.run(
+    [sys.executable, str(HOOK)],
+    input=json.dumps({
+        "hook_event_name": "PreToolUse", "tool_name": "Write",
+        "tool_input": {"file_path": "/home/vincent/code/proj/wait.sh",
+                       "content": WAITER},
+    }),
+    capture_output=True, text=True, timeout=30,
+)
+reason = json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecisionReason"]
+check("names the path", "/home/vincent/code/proj/wait.sh" in reason)
+check("still carries the full corrective", "run_in_background" in reason)
+
 print("\n== ignores other tools and junk input")
 proc = subprocess.run(
     [sys.executable, str(HOOK)],

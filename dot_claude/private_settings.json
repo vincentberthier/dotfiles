@@ -137,6 +137,10 @@
           {
             "type": "command",
             "command": "python3 /home/vincent/.claude/hooks/chezmoi-guard.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 /home/vincent/.claude/hooks/process-wait-guard.py"
           }
         ]
       }

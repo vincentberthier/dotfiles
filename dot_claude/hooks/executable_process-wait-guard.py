@@ -16,9 +16,14 @@ so even excluding ancestors would not have saved it.
 The same bug in its older costume is `ps aux | grep foo`, where grep finds its
 own command line in the ps output.
 
-Caught here (Bash tool calls only):
+Caught, in Bash commands and in the content written to shell-ish files:
   - `pgrep -f` / `pkill -f` with no precise selector (-A, -p, -P, -F)
   - `ps ... | grep PATTERN` with no `-v` and no bracket trick
+
+File scanning is deliberately narrow: only files that get executed as shell
+(*.sh, Justfile, Makefile, CI YAML, …), never Markdown or source, because
+prose about this bug — including this docstring — must stay writable. The
+hooks directory itself is exempt for the same reason.
 
 Fails open (exit 0, no output) on anything it cannot parse — a guard that
 wedges Bash is worse than the bug it guards against.
@@ -30,6 +35,7 @@ import json
 import re
 import shlex
 import sys
+from pathlib import PurePosixPath
 
 # Shell tokens that end one simple command and start another.
 _OPERATORS = {"|", "||", "&&", ";", "&", "|&", "(", ")", "{", "}", "\n"}
@@ -50,6 +56,31 @@ _PREFIXES = {
     "command", "builtin", "exec", "nohup", "setsid", "doas", "sudo", "xargs",
 }
 _ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+
+# File content is only scanned when the file is executed as shell. Markdown,
+# source code and config that merely mentions pgrep must stay writable.
+_SHELLISH_SUFFIXES = {
+    ".sh", ".bash", ".zsh", ".fish", ".ksh", ".just", ".mk", ".yml", ".yaml",
+}
+_SHELLISH_NAMES = {
+    "justfile", "makefile", "gnumakefile", "dockerfile", "containerfile",
+}
+# The guard and its tests must be able to spell out the pattern they catch.
+_EXEMPT_PREFIXES = ("/home/vincent/.claude/hooks/",)
+
+# Leading noise before a command: indentation, YAML list dashes, make/just
+# recipe prefixes (@ silent, - ignore-error, + always-run). Make attaches its
+# prefix directly to the command (`-cmd`), YAML puts a space after it.
+_LINE_PREFIX = re.compile(r"^\s*(?:[-@+]\s*)*")
+
+_FILE_TOOLS = {"Write", "Edit", "MultiEdit", "NotebookEdit"}
+
+FILE_REASON = """Blocked: {path} would contain a waiter that can match itself.
+
+A script hangs the same way a typed command does — worse, because it hangs
+every future run of that script, not just this one.
+
+"""
 
 REASON = """Blocked: this waits on a process by command-line substring, which can match itself.
 
@@ -205,30 +236,86 @@ def command_is_self_matching_waiter(command: str) -> bool:
     return False
 
 
+def _is_shellish(path: str) -> bool:
+    """True if this file is executed as shell, so its lines are commands."""
+    if not path or path.startswith(_EXEMPT_PREFIXES):
+        return False
+    name = PurePosixPath(path).name.lower()
+    if name in _SHELLISH_NAMES:
+        return True
+    return PurePosixPath(name).suffix in _SHELLISH_SUFFIXES
+
+
+def content_has_self_matching_waiter(text: str) -> bool:
+    """Scan written file content line by line for the same footgun."""
+    for raw in text.splitlines():
+        line = _LINE_PREFIX.sub("", raw).strip()
+        if not line or line.startswith("#"):
+            continue
+        if command_is_self_matching_waiter(line):
+            return True
+    return False
+
+
+def _written_text(tool: str, tool_input: dict) -> str:
+    """The text this call introduces — never the text it replaces."""
+    if tool == "Write":
+        return str(tool_input.get("content", ""))
+    if tool == "Edit":
+        return str(tool_input.get("new_string", ""))
+    if tool == "NotebookEdit":
+        return str(tool_input.get("new_source", ""))
+    if tool == "MultiEdit":
+        edits = tool_input.get("edits")
+        if not isinstance(edits, list):
+            return ""
+        return "\n".join(
+            str(e.get("new_string", "")) for e in edits if isinstance(e, dict)
+        )
+    return ""
+
+
+def _deny(reason: str) -> None:
+    print(json.dumps({
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": reason,
+        }
+    }))
+
+
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
         return 0
-    if not isinstance(payload, dict) or payload.get("tool_name") != "Bash":
+    if not isinstance(payload, dict):
         return 0
-
+    tool = payload.get("tool_name")
     tool_input = payload.get("tool_input")
-    command = tool_input.get("command", "") if isinstance(tool_input, dict) else ""
-    if not command:
-        return 0
-    # Cheap pre-filter: nothing to do unless one of the risky words is present.
-    if not any(word in command for word in ("pgrep", "pkill", "ps ")):
+    if not isinstance(tool_input, dict):
         return 0
 
-    if command_is_self_matching_waiter(command):
-        print(json.dumps({
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "deny",
-                "permissionDecisionReason": REASON,
-            }
-        }))
+    if tool == "Bash":
+        text = str(tool_input.get("command", ""))
+        scan = command_is_self_matching_waiter
+        reason = REASON
+    elif tool in _FILE_TOOLS:
+        path = tool_input.get("file_path") or tool_input.get("notebook_path") or ""
+        if not _is_shellish(str(path)):
+            return 0
+        text = _written_text(tool, tool_input)
+        scan = content_has_self_matching_waiter
+        reason = FILE_REASON.format(path=path) + REASON
+    else:
+        return 0
+
+    # Cheap pre-filter: nothing to do unless one of the risky words is present.
+    if not text or not any(w in text for w in ("pgrep", "pkill", "ps ")):
+        return 0
+    if scan(text):
+        _deny(reason)
     return 0
 
 
