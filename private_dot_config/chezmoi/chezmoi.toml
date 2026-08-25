@@ -218,8 +218,8 @@
         ]
 
     [data.niri.athena]
-        xkb_layout = "fr"
-        xkb_variant = "bepo"
+        xkb_layout = "fr,fr"
+        xkb_variant = ",bepo"
         output1 = "eDP-1"
         output2 = "eDP-1"
         output3 = "eDP-1"
