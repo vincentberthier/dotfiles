@@ -15,40 +15,70 @@ Host astro-hibou
 	User debian
 	IdentityFile ~/.ssh/vincent
 
-Host hephaistos-home
-  HostName hephaistos.astro-hibou.eu
-  User vincent
-  Port 50022
-
-Host hephaistos-v4
-  HostName home.astro-hibou.eu
-  User vincent
-  Port 50022
-
 {{ if eq .chezmoi.hostname "gaia" -}}
-Host hephaistos
-  HostName 192.168.1.12
-  User vincent
-  Compression no
-  IdentityFile ~/.ssh/vincent
-  ControlMaster auto
-  ControlPath ~/.ssh/cm-%r@%h:%p
-  ControlPersist 10m
-  ProxyCommand ~/.local/bin/ssh-wake-proxy %h %p
-
 Host nyx
   HostName u642555.your-storagebox.de
   User u642555
   Port 23
   IdentityFile ~/.ssh/vincent
   IdentitiesOnly yes
-{{- else -}}
+{{ end -}}
+
+{{ if ne .chezmoi.hostname "hephaistos" -}}
+# hephaistos: one name, three routes, tried in this order — home LAN, IPv6,
+# then the IPv4 port forward on the Freebox. ssh keeps the FIRST HostName it
+# obtains, so the block order below IS the priority order; `originalhost` keeps
+# the later blocks matching after an earlier one has rewritten HostName.
+#
+# The LAN test asks "am I on the home network", not "is hephaistos up". On gaia
+# the LAN branch installs the wake-on-LAN ProxyCommand, and probing hephaistos
+# to decide would fall through to the remote routes precisely when it is asleep
+# — which is exactly when the wake proxy is the thing that needs to run.
+#
+# HostKeyAlias pins all three routes to a single known_hosts entry: no key
+# churn when the route changes, and a stranger answering on 192.168.1.12:50022
+# on somebody else's network fails verification instead of being connected to.
 Host hephaistos
+  User vincent
+  Port 50022
+  HostKeyAlias hephaistos
+  Compression no
+  IdentityFile ~/.ssh/vincent
+
+Match originalhost hephaistos exec "~/.local/bin/on-network 192.168.1.0/24"
+  HostName 192.168.1.12
+{{- if eq .chezmoi.hostname "gaia" }}
+  ProxyCommand ~/.local/bin/ssh-wake-proxy %h %p
+  ControlMaster auto
+  ControlPath ~/.ssh/cm-%r@%h:%p
+  ControlPersist 10m
+{{- end }}
+
+Match originalhost hephaistos exec "~/.local/bin/ssh-reachable -6 hephaistos.astro-hibou.eu 50022"
+  HostName hephaistos.astro-hibou.eu
+
+Match originalhost hephaistos
+  HostName home.astro-hibou.eu
+
+# Force one route, for debugging the cascade above.
+Host hephaistos-lan
   HostName 192.168.1.12
   User vincent
-  IdentityFile ~/.ssh/vincent
-  Compression no
-{{- end }}
+  Port 50022
+  HostKeyAlias hephaistos
+
+Host hephaistos-v6
+  HostName hephaistos.astro-hibou.eu
+  User vincent
+  Port 50022
+  HostKeyAlias hephaistos
+
+Host hephaistos-v4
+  HostName home.astro-hibou.eu
+  User vincent
+  Port 50022
+  HostKeyAlias hephaistos
+{{ end -}}
 
 {{ if eq .chezmoi.hostname "hephaistos" -}}
 Host gaia
