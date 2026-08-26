@@ -314,20 +314,24 @@ working, pre-allowlisted tool:
   `.config/`, `.local/`) — and both skip anything a `.gitignore`, `.ignore` or `.fdignore`
   excludes. So a bare run returns an empty result for two different reasons, "absent" and
   "filtered", and it does not tell you which. **An empty result is never evidence of
-  absence.** Unhide any time the target could be hidden, which for config, dotfiles and
-  state is always — **but the flag is not the same on the two tools, and the difference is
-  silent:**
+  absence.** Unrestrict any time the target could be hidden, which for config, dotfiles
+  and state is always — **but the flag is not the same on the two tools, and assuming it
+  is silently loses every dotted path:**
 
-  | tool | unhides with | because                                                             |
-  | ---- | ------------ | ------------------------------------------------------------------- |
-  | `fd` | `-u`         | `-u` is an alias for `--no-ignore --hidden`                         |
-  | `rg` | `-uu`        | a single `-u` is `--no-ignore` ONLY; the second one adds `--hidden` |
+  | tool | drops ignore files | also searches hidden |
+  | ---- | ------------------ | -------------------- |
+  | `rg` | `-u`               | **`-uu`**            |
+  | `fd` | `-u`               | `-u`                 |
 
-  So `rg -u` on a dotfile returns nothing and looks like a clean answer. Verified against
-  both `--help`s. And report the scope you actually searched: "no match under `~/.claude`
-  with `rg -uu`", never a bare "it isn't there". Concluding a file, setting or backup does
-  not exist off a filtered search is a wrong answer, not a null one, and it sends me to fix
-  a config that was never broken.
+  `fd -u` really is an alias for `--no-ignore --hidden`. `rg -u` is not: it is one step of
+  "reduce filtering", and the step that adds hidden files is the second one. So `rg -u`
+  skips `.claude/`, `.config/`, `.gitlab-ci-templates/` and every other dotted directory
+  while looking exactly like a search that found nothing. Reach for `rg -uu` and `fd -u`,
+  or spell out `--hidden --no-ignore` when you want to stop thinking about it. And report
+  the scope you actually searched: "no match under `~/.claude` with `rg -uu`", never a
+  bare "it isn't there". Concluding a file, setting or backup does not exist off a
+  filtered search is a wrong answer, not a null one, and it sends me to fix a config that
+  was never broken.
 
 - **`glab` is never correct on this machine.** Every GitLab here is the Tyrex GitLab, and
   the `tyrex-gitlab` CLI owns it — issues, MRs, epics, wikis, pipelines, user lookups.
@@ -359,36 +363,6 @@ working, pre-allowlisted tool:
 - Never prefix a command with `cd <dir> &&`; use absolute paths and tool-native options.
 - Independent commands go in separate Bash calls, so they can run in parallel.
 - Web fetches get a timeout of one minute at most, so a dead resource can't hang the turn.
-
-## Running commands — log to a file, check the right status
-
-Two failures, and they compound: a status that is not the one you think it is, and output
-that no longer exists anywhere.
-
-- **`cmd | tail` reports `tail`'s status, not `cmd`'s** — and `tail` succeeds at printing
-  nothing, so a build that failed comes back as exit 0 and you call the task done. Same
-  for `| rg`, `| head`, `| jq`. Never judge a run by the exit status of a pipeline whose
-  last stage is a filter or a pager. Appending `echo "exit=${PIPESTATUS[0]}"` fixes the
-  number but not the habit: the status the harness shows you is then the `echo`'s, always
-  0, so you still have to read the printed line rather than trust the tool result. Don't
-  pipe in the first place.
-- **Never discard output.** `| tail -50` throws away everything above the last fifty
-  lines, which is where the first error usually is, and leaves nothing to go back to when
-  the summary turns out to be wrong. Keeping noise out of the session is right; making it
-  unrecoverable is not. A truncated view comes _from_ a file, never _instead of_ one.
-
-One file gets you both — full output, honest status, and something I can read myself:
-
-    LOG=/var/tmp/ci-$(date +%Y%m%d-%H%M%S).log
-    TMPDIR=/var/tmp CI_VARIANT=rust just ci >"$LOG" 2>&1; echo "exit=$? log=$LOG"
-
-Then `rg -n 'error|warning|FAILED' "$LOG"` or `Read` its tail. `/var/tmp`, never `/tmp`,
-which is RAM-backed here. Backgrounded runs use the same shape, so the log is readable
-while it runs. **Put the log path in your reply** — that is the whole point: it lets me
-look at what happened instead of taking your summary on trust.
-
-`pipe-truncation-guard.py` enforces this for build/test/CI runners piped into a filter.
-Query pipelines (`cargo tree | rg serde`, `just --list | rg ci`) are none of its business.
 
 ## Config files — chezmoi, and never leave the edit in limbo
 
