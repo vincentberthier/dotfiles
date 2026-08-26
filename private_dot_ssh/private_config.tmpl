@@ -15,6 +15,16 @@ Host astro-hibou
 	User debian
 	IdentityFile ~/.ssh/vincent
 
+Host hephaistos-home
+  HostName hephaistos.astro-hibou.eu
+  User vincent
+  Port 50022
+
+Host hephaistos-v4
+  HostName home.astro-hibou.eu
+  User vincent
+  Port 50022
+
 {{ if eq .chezmoi.hostname "gaia" -}}
 Host hephaistos
   HostName 192.168.1.12
