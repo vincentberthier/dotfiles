@@ -13,9 +13,7 @@ Blocks, in order of how the mistake actually gets made:
   `.ssh` component -- any user's, not just this one's -- resolved through
   symlinks so a link into the directory is caught too.
 - `Bash` commands that name an ssh directory in any of its written forms
-  (`~/.ssh`, `$HOME/.ssh`, `/home/x/.ssh`, `~x/.ssh`), and the chezmoi SOURCE
-  of the same files (`private_dot_ssh/`), where the same secrets live under a
-  name that does not contain `.ssh`.
+  (`~/.ssh`, `$HOME/.ssh`, `/home/x/.ssh`, `~x/.ssh`).
 - `Bash` content searches rooted at `$HOME` (`rg pattern ~`), which read the
   directory without ever naming it.
 - `Bash` interpreter one-liners that DERIVE a path from `$HOME` and read it.
@@ -27,9 +25,24 @@ Blocks, in order of how the mistake actually gets made:
   too, so this is belt-and-braces -- it just fails at dispatch instead of
   burning a turn.
 
-Deliberately NOT blocked: `/etc/ssh` (host config, no user secrets), and the
-`ssh` client itself. Connecting to a host is fine; reading how the connection
-is configured is not.
+Deliberately NOT blocked: `/etc/ssh` (host config, no user secrets), the `ssh`
+client itself, and the chezmoi SOURCE of the directory
+(`~/.local/share/chezmoi/private_dot_ssh/`). Connecting to a host is fine;
+reading how the LIVE connection is configured is not.
+
+The source is allowed because it is not where the secrets are. Key material and
+credentials reach `~/.ssh` at render time, pulled from 1Password by templates;
+the source tree holds the templates, not their output. Reading and editing it is
+therefore the supported way to change ssh config -- and the only way an agent
+can. If a literal private key is ever committed to that tree, this exemption
+stops being true and must be removed, not worked around.
+
+The corollary, learned the hard way: RENDERING the source is blocked too.
+`chezmoi execute-template < config.tmpl`, `chezmoi cat`, `chezmoi diff` and
+`chezmoi apply --dry-run --verbose` all produce the target content, which is
+precisely the secrets the source does not contain. "Read the source, never
+render it" is the whole boundary; a rendered copy is a `~/.ssh` read wearing a
+different filename.
 
 Fails CLOSED. A payload this hook cannot make sense of is denied, because the
 cost of a wrong allow is a credential rotation and the cost of a wrong deny is
@@ -56,9 +69,19 @@ _PATH_KEYS = ("file_path", "notebook_path")
 # `/` is NOT excluded, so `/home/x/.ssh` and `$HOME/.ssh` both match.
 _SSH_COMPONENT = re.compile(r"(?<![\w.-])\.ssh(?![\w-])")
 
-# The chezmoi source form of the same directory. `private_dot_ssh` renders to
-# `~/.ssh`, so it is the same secrets under a name `_SSH_COMPONENT` misses.
+# The chezmoi source form of the directory. Reading and editing it is allowed --
+# it holds templates, not secrets. RENDERING it is not, and that is the only
+# thing this pattern is used for.
 _SSH_SOURCE = re.compile(r"dot_ssh(?![\w-])")
+
+# chezmoi subcommands that turn source templates into target content. That
+# content is where the credentials appear, so running one of these against the
+# ssh source defeats the whole reason the source is readable. `git`, `re-add`,
+# `add`, `source-path` and `managed` are not here: they move bytes around
+# without ever expanding a template.
+_CHEZMOI_RENDERS = frozenset(
+    {"execute-template", "cat", "diff", "status", "verify", "apply", "update", "merge"}
+)
 
 # Tools that read file CONTENT recursively. Rooted at $HOME, they walk into
 # `~/.ssh` without the command ever naming it.
@@ -105,24 +128,20 @@ _QUOTES = str.maketrans("", "", "\"'")
 
 
 def _mentions_ssh(text: str) -> bool:
-    """True if `text` names an ssh directory, quoted or not."""
+    """True if `text` names the live ssh directory, quoted or not."""
     for form in (text, text.translate(_QUOTES)):
-        if _SSH_COMPONENT.search(form) or _SSH_SOURCE.search(form):
+        if _SSH_COMPONENT.search(form):
             return True
     return False
 
 
 def _forbidden_roots() -> set[Path]:
-    """`~/.ssh`, and the chezmoi source that renders it, canonicalized.
+    """`~/.ssh`, canonicalized.
 
-    The source directory has to be named explicitly: `private_dot_ssh/` holds
-    the same secrets but canonicalizes somewhere else entirely, so no amount of
-    resolving `~/.ssh` will ever reach it.
+    The chezmoi source that renders this directory is deliberately absent: it
+    holds the templates, and the secrets only exist once they are rendered here.
     """
     roots = {Path.home() / ".ssh"}
-
-    source = os.environ.get("CHEZMOI_SOURCE_DIR") or "~/.local/share/chezmoi"
-    roots.add(Path(os.path.expanduser(source)) / "private_dot_ssh")
 
     canonical = set()
     for root in roots:
@@ -141,10 +160,9 @@ def _path_is_ssh(raw: str) -> bool:
     what makes `~/.ssh`, `$HOME/.ssh`, `/home/vincent/.ssh` and a symlink
     pointing into it one single case instead of four patterns.
 
-    The component checks are the part canonicalization cannot do: `/root/.ssh`
-    is a real, different directory that no resolution of THIS user's `~/.ssh`
-    will ever equal, and `dot_ssh` names the same secrets in whatever chezmoi
-    source tree they happen to sit in.
+    The component check is the part canonicalization cannot do: `/root/.ssh` is
+    a real, different directory that no resolution of THIS user's `~/.ssh` will
+    ever equal.
     """
     expanded = Path(os.path.expanduser(os.path.expandvars(raw)))
     candidates = {expanded}
@@ -155,11 +173,41 @@ def _path_is_ssh(raw: str) -> bool:
 
     roots = _forbidden_roots()
     for candidate in candidates:
-        parts = candidate.parts
-        if ".ssh" in parts or any(part.endswith("dot_ssh") for part in parts):
+        if ".ssh" in candidate.parts:
             return True
         if any(candidate == root or root in candidate.parents for root in roots):
             return True
+    return False
+
+
+def _renders_ssh_templates(command: str) -> bool:
+    """True if `command` asks chezmoi to render the ssh source into output.
+
+    Reading `private_dot_ssh/` is fine and editing it is the supported
+    workflow. Rendering it is neither: `chezmoi execute-template < config.tmpl`
+    and `chezmoi cat ~/.ssh/config` both produce exactly the credentials the
+    source does not contain, and the output lands in a transcript like any
+    other command output.
+
+    Scoped to commands that name an ssh directory, so `chezmoi apply` on some
+    unrelated template is untouched.
+    """
+    if not (_SSH_SOURCE.search(command) or _SSH_COMPONENT.search(command)):
+        return False
+
+    for segment in _segments(command):
+        try:
+            tokens = shlex.split(segment, posix=True)
+        except ValueError:
+            tokens = segment.split()
+        for index, token in enumerate(tokens):
+            if Path(token).name != "chezmoi":
+                continue
+            # The subcommand is the first argument that is not a global flag.
+            for candidate in tokens[index + 1 :]:
+                if candidate.startswith("-"):
+                    continue
+                return candidate in _CHEZMOI_RENDERS
     return False
 
 
@@ -253,11 +301,14 @@ _WHY = (
     "Do not retry with a different tool, a different path spelling, a subagent, "
     "or a wrapper: they are all blocked, and routing around this hook is worse "
     "than the read it prevents.\n\n"
-    "If connectivity to a host is the real question, answer it without the "
-    "config: `getent hosts <name>`, `ping`, `curl`, `ip -brief link`, or the "
-    "error the failing command already produced. All of those say whether it "
-    "works without saying how it is set up. If none of them settle it, say so "
-    "and stop -- how the connection is configured is not yours to inspect."
+    "If ssh CONFIG is what you need -- reading it or changing it -- use the "
+    "chezmoi source instead: `~/.local/share/chezmoi/private_dot_ssh/`, which "
+    "is allowed. It holds the templates; the secrets only exist once rendered "
+    "here. Edit there, then `chezmoi apply`.\n\n"
+    "If connectivity to a host is the real question, answer it without either: "
+    "`getent hosts <name>`, `ping`, `curl`, `ip -brief link`, or the error the "
+    "failing command already produced. All of those say whether it works "
+    "without saying how it is set up."
 )
 
 
@@ -293,6 +344,18 @@ def main() -> int:
             return 0
         if _mentions_ssh(command):
             deny(f"Blocked: this command names an ssh directory.\n\n  {command}\n\n{_WHY}")
+        elif _renders_ssh_templates(command):
+            deny(
+                "Blocked: this renders ssh templates into their output.\n\n"
+                f"  {command}\n\n"
+                "The chezmoi source is readable BECAUSE it is not the output: "
+                "keys and credentials are pulled from 1Password at render time. "
+                "Rendering it produces exactly what reading `~/.ssh` would have "
+                "shown, so it is the same leak by a longer route -- and the "
+                "output lands in a transcript like any other.\n\n"
+                "Read and edit the source. To see the result, ask for it to be "
+                "applied; verifying the rendered form is not yours to do.\n\n" + _WHY
+            )
         elif _searches_all_of_home(command):
             deny(
                 "Blocked: a content search rooted at `$HOME` reads `~/.ssh` "

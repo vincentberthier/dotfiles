@@ -276,15 +276,28 @@ and cleartext credentials, and nothing in that directory is ever needed to answe
 question. "I was only checking how a host resolves" is not an exception; it is the
 exact excuse that got me there.
 
+**The chezmoi source is a different matter, and it is allowed.**
+`~/.local/share/chezmoi/private_dot_ssh/` holds templates and nothing else — every key
+and credential is pulled from 1Password at render time, so the secrets exist in the
+rendered target and nowhere else. Read ssh config there, edit it there, and never
+reconstruct it from the live copy. If a literal private key is ever committed to that
+tree the exemption stops being true and gets removed, not worked around.
+
+**Read the source; never render it.** That is the entire boundary, and it is crossed
+without noticing: `chezmoi execute-template`, `cat`, `diff`, `status`, `verify` and
+`apply --dry-run --verbose` all turn those templates into target content — which is
+exactly the credentials the source does not hold — and that output lands in a transcript
+like any other command's. A rendered copy is a `~/.ssh` read wearing a different
+filename. Verifying that a template renders correctly is therefore not yours to do; edit
+the source and ask me to apply it.
+
 When connectivity to a host is in question, the answer comes from `getent hosts`,
 `ping`, `curl`, `ip -brief link` or the failing command's own error — all of which say
-whether it works without telling me how it is configured. If those genuinely cannot
-settle it, **say so and stop**; how the connection is set up is not mine to inspect.
+whether it works without reading the live config.
 
-`ssh-guard.py` enforces this — every tool, reads included, plus the chezmoi source that
-renders the directory. It also refuses any interpreter one-liner that derives a path from
-`$HOME` and reads it, since such a path cannot be checked before it runs: use `Read`, or
-a literal absolute path.
+`ssh-guard.py` enforces this — every tool, reads included. It also refuses any
+interpreter one-liner that derives a path from `$HOME` and reads it, since such a path
+cannot be checked before it runs: use `Read`, or a literal absolute path.
 
 ## Tools on this machine
 
