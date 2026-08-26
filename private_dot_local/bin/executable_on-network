@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+#
+# on-network -- exit 0 if this machine has a connected route to an IPv4 network.
+#
+# Answers "am I attached to this LAN right now", which is not the same question
+# as "is some host on it reachable": a machine that is asleep, firewalled or
+# simply off still leaves its network attached. Used from ssh_config "Match
+# exec" blocks to choose the LAN route before any remote one, so a wake-on-LAN
+# ProxyCommand still gets its chance to run.
+#
+# Only the exit status matters; nothing is printed on success.
+#
+# Usage:
+#   on-network <network/prefix>
+#
+# Example:
+#   on-network 192.168.1.0/24
+
+set -euo pipefail
+
+usage() {
+	printf 'Usage: %s <network/prefix>\n' "${0##*/}"
+}
+
+main() {
+	case "${1:-}" in
+	-h | --help)
+		usage
+		return 0
+		;;
+	esac
+
+	if [[ $# -ne 1 ]]; then
+		usage >&2
+		return 2
+	fi
+
+	local network="$1"
+
+	if [[ ! "${network}" =~ ^[0-9]+(\.[0-9]+){3}/[0-9]+$ ]]; then
+		printf 'Invalid IPv4 network: %s\n' "${network}" >&2
+		return 2
+	fi
+
+	local route
+	route="$(ip -4 route show "${network}" 2>/dev/null)"
+
+	[[ -n "${route}" ]]
+}
+
+main "$@"

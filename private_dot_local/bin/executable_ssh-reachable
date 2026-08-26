@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+#
+# ssh-reachable -- exit 0 if a TCP connection to <host> <port> succeeds quickly.
+#
+# Intended for ssh_config "Match exec" blocks, to pick the best path to a host
+# that is reachable by several routes (LAN address, IPv6, forwarded IPv4).
+# Only the exit status matters; nothing is printed on success.
+#
+# Usage:
+#   ssh-reachable [-4|-6] <host> <port> [timeout-seconds]
+#
+# Examples:
+#   ssh-reachable 192.168.1.12 50022
+#   ssh-reachable -6 hephaistos.astro-hibou.eu 50022
+#   ssh-reachable -4 home.astro-hibou.eu 50022 2
+
+set -euo pipefail
+
+readonly DEFAULT_TIMEOUT=1
+
+usage() {
+	printf 'Usage: %s [-4|-6] <host> <port> [timeout-seconds]\n' "${0##*/}"
+}
+
+main() {
+	local -a family=()
+
+	case "${1:-}" in
+	-4 | -6)
+		family=("$1")
+		shift
+		;;
+	-h | --help)
+		usage
+		return 0
+		;;
+	esac
+
+	if [[ $# -lt 2 ]]; then
+		usage >&2
+		return 2
+	fi
+
+	local host="$1"
+	local port="$2"
+	local wait_seconds="${3:-${DEFAULT_TIMEOUT}}"
+
+	if [[ ! "${port}" =~ ^[0-9]+$ ]]; then
+		printf 'Invalid port: %s\n' "${port}" >&2
+		return 2
+	fi
+
+	if [[ ! "${wait_seconds}" =~ ^[0-9]+$ ]]; then
+		printf 'Invalid timeout: %s\n' "${wait_seconds}" >&2
+		return 2
+	fi
+
+	# -z: connect and report status only, transferring nothing.
+	ncat -z "${family[@]}" -w "${wait_seconds}" -- "${host}" "${port}" 2>/dev/null
+}
+
+main "$@"
